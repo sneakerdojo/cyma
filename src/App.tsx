@@ -47,7 +47,7 @@ function App() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <Code2 className="w-8 h-8" />
-              <span className="ml-2 text-xl font-bold">Paradigm</span>
+              <span className="ml-4 text-xl font-bold font-[pondar]">CYMA</span>
             </div>
             <div className="hidden md:flex items-center space-x-8">
               <a href="#services" className="hover:text-gray-300 transition-colors">Services</a>
@@ -68,13 +68,18 @@ function App() {
       <div className="relative pt-32 pb-32 sm:pt-48 sm:pb-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
+            {/*
             <h1 className="text-4xl sm:text-6xl font-bold tracking-tight mb-8">
               Custom low-code<br />software solutions
+            </h1> */}
+            <h1 className='font-[pondar] text-[16rem]'>
+              CYMA
             </h1>
+            {/*
             <p className="text-gray-400 text-lg sm:text-xl max-w-2xl mx-auto mb-12">
               Delivering solutions today, built with quality<br />
               that empowers your tomorrow.
-            </p>
+            </p> */}
             <button className="group bg-white text-black px-6 py-3 rounded-md hover:bg-gray-200 transition-colors inline-flex items-center">
               Let's talk
               <ChevronRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
