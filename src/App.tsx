@@ -1,24 +1,23 @@
 import React, { useState } from 'react';
 import {
-  ChevronLeft,
   ChevronRight,
   Github,
   Linkedin,
   Menu,
   Mail,
   Code,
+  Bot,
   Rocket,
   Server,
   Smartphone,
-  Bot,
-  CalendarCheck,
-  Palette,
-  LightbulbIcon,
-  CheckSquare,
-  Code2,
+  MessageSquare,
   ArrowRight,
   ArrowDown,
-  MessageSquare
+  Code2,
+  LightbulbIcon,
+  CheckSquare,
+  Palette,
+  CalendarCheck,
 } from 'lucide-react';
 
 function App() {
@@ -62,20 +61,20 @@ function App() {
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Navigation */}
-      <nav className="fixed w-full bg-black/90 backdrop-blur-sm border-b border-white/10 z-50">
+      <nav className="fixed top-0 left-0 right-0 bg-black/50 backdrop-blur-lg z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-16" data-component-name="App">
             <div className="flex items-center">
               <img src="/Black and White Abstract Agency Logo.png" className="w-12 h-12" alt="Cyma logo" />
-              <span className="ml-4 text-xl font-bold font-[pondar]">CYMA</span>
+              <a href="#hero" className="ml-4 text-xl font-bold font-[pondar] hover:text-gray-300 transition-colors">CYMA</a>
             </div>
-            <div className="hidden md:flex items-center space-x-8">
+            <div className="hidden md:flex items-center space-x-8" data-component-name="App">
               <a href="#services" className="hover:text-gray-300 transition-colors">Services</a>
+              <a href="#approach" className="hover:text-gray-300 transition-colors">Our Approach</a>
               <a href="#about" className="hover:text-gray-300 transition-colors">About us</a>
-              <a href="#contact" className="hover:text-gray-300 transition-colors">Contact</a>
-              <button className="bg-white text-black px-4 py-2 rounded-md hover:bg-gray-200 transition-colors">
+              <a href="#contact" className="bg-white text-black px-4 py-2 rounded-md hover:bg-gray-200 transition-colors">
                 Let's talk
-              </button>
+              </a>
             </div>
             <div className="md:hidden">
               <Menu className="w-6 h-6" />
@@ -85,7 +84,7 @@ function App() {
       </nav>
 
       {/* Hero Section */}
-      <div className="relative pt-32 pb-32 sm:pt-48 sm:pb-40">
+      <div id="hero" className="relative pt-32 pb-32 sm:pt-48 sm:pb-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             {/*
@@ -113,29 +112,83 @@ function App() {
       </div>
 
       {/* About Section */}
-      <div className="relative py-24 overflow-hidden">
+      <div id="about" className="relative py-24 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="relative z-10">
-            <div className="text-center max-w-4xl mx-auto">
-            <h2 className="text-5xl sm:text-7xl font-bold tracking-tight bg-gradient-to-r from-white/80 to-white bg-clip-text text-transparent">
-                We are CYMA
+            {/* Section Header */}
+            <div className="text-center mb-16">
+              <h2 className="text-5xl sm:text-7xl font-bold mb-6 tracking-tight bg-gradient-to-r from-white/80 to-white bg-clip-text text-transparent">
+                Who are we?
               </h2>
-              <p className="text-2xl sm:text-3xl md:text-4xl leading-relaxed mb-12">
-              We answer your needs now, with quality built to last: So you can get the solutions you need today, delivered with the quality you can trust tomorrow.
-              </p>
+            </div>
+
+            {/* Content Area */}
+            <div className="max-w-5xl mx-auto space-y-20">
+              {/* Main About Description */}
+              <div className="flex flex-col items-center text-center space-y-6">
+                <div className="w-24 h-1 bg-gradient-to-r from-[#0A2540] to-white/40"></div>
+                <p className="text-xl text-gray-300 leading-relaxed max-w-3xl">
+                  At CYMA, we specialize in building intelligent, adaptive solutions that evolve with your business needs. 
+                  We answer your needs now, with quality built to last—delivering solutions today that you can trust tomorrow.
+                </p>
+              </div>
+
+              {/* Three-Column Highlights */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-16">
+                {/* AI Technologies */}
+                <div>
+                  <h3 className="text-2xl font-semibold mb-4 bg-gradient-to-r from-white to-white/70 text-transparent bg-clip-text">
+                    AI Technologies
+                  </h3>
+                  <div className="w-12 h-0.5 bg-gradient-to-r from-[#0A2540] to-white/40 mb-6"></div>
+                  <p className="text-gray-300 leading-relaxed">
+                    We leverage cutting-edge AI to create applications that understand, learn, and respond with human-like intelligence—from custom LLM integration to predictive analytics and intelligent automation.
+                  </p>
+                </div>
+
+                {/* Rapid Development */}
+                <div>
+                  <h3 className="text-2xl font-semibold mb-4 bg-gradient-to-r from-white to-white/70 text-transparent bg-clip-text">
+                    Rapid Development
+                  </h3>
+                  <div className="w-12 h-0.5 bg-gradient-to-r from-[#0A2540] to-white/40 mb-6"></div>
+                  <p className="text-gray-300 leading-relaxed">
+                    We accelerate your development cycle through rapid prototyping, allowing you to visualize your application early, gather feedback faster, and reduce costs through early issue identification.
+                  </p>
+                </div>
+
+                {/* Modernization */}
+                <div>
+                  <h3 className="text-2xl font-semibold mb-4 bg-gradient-to-r from-white to-white/70 text-transparent bg-clip-text">
+                    Modernization
+                  </h3>
+                  <div className="w-12 h-0.5 bg-gradient-to-r from-[#0A2540] to-white/40 mb-6"></div>
+                  <p className="text-gray-300 leading-relaxed">
+                    We transform legacy systems into modern, scalable applications—upgrading technology stacks, redesigning interfaces, and optimizing architecture for the future of your business.
+                  </p>
+                </div>
+              </div>
+
+              {/* Bottom Statement */}
+              <div className="flex flex-col items-center text-center pt-8">
+                <p className="text-lg text-white/90 font-medium max-w-3xl">
+                  From concept to deployment, we design, build, and modernize web applications that stand out.
+                </p>
+              </div>
             </div>
           </div>
 
           {/* Design Elements */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-[800px] h-[800px] bg-gradient-to-r from-white/5 to-transparent rounded-full blur-3xl transform -rotate-45"></div>
-            <div className="w-[600px] h-[600px] bg-gradient-to-l from-white/5 to-transparent rounded-full blur-2xl"></div>
+            <div className="w-full h-full bg-gradient-to-b from-transparent via-[#0A2540]/5 to-transparent"></div>
+            <div className="absolute top-40 right-0 w-64 h-64 bg-[#0A2540]/10 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-40 left-0 w-64 h-64 bg-[#0A2540]/10 rounded-full blur-3xl"></div>
           </div>
         </div>
       </div>
 
       {/* Services Section */}
-      <div className="relative py-24 overflow-hidden" id="services">
+      <div id="services" className="relative py-24 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-4xl sm:text-5xl font-bold text-center mb-20">
             Services tailored to your<br />unique business needs
@@ -338,34 +391,8 @@ function App() {
         </div>
       </div>
 
-      {/* Brand Section */}
-      <div className="relative py-24 overflow-hidden">
-
-        {/* Background Elements */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-[800px] h-[800px] bg-gradient-to-r from-white/5 to-transparent rounded-full blur-3xl transform rotate-45"></div>
-        </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-center items-center">
-            <div className="text-center">
-              <h2 className="text-5xl sm:text-7xl font-bold tracking-tight leading-tight mb-8">
-                Bring together<br />
-                AI<br />
-                and Technology
-              </h2>
-              <div className="h-1 w-24 bg-white/20 rounded-full mx-auto"></div>
-            </div>
-          </div>
-        </div>
-
-        {/* Background Elements */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-[800px] h-[800px] bg-gradient-to-r from-white/5 to-transparent rounded-full blur-3xl transform rotate-45"></div>
-        </div>
-      </div>
-
       {/* Our Approach Section */}
-      <div className="relative py-16 md:py-24 overflow-hidden">
+      <div id="approach" className="relative py-16 md:py-24 overflow-hidden">
         {/* Background Elements */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="w-[800px] h-[800px] bg-gradient-to-r from-purple-500/5 to-transparent rounded-full blur-3xl transform -rotate-12"></div>
@@ -496,7 +523,7 @@ function App() {
       </div>
 
       {/* Contact Section */}
-      <div className="relative py-24 overflow-hidden" id="contact">
+      <div id="contact" className="relative py-24 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             {/* Left Column */}
