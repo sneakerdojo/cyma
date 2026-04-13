@@ -22,3 +22,32 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+dev-debug.log
+# Dependency directories
+node_modules/
+# Environment variables
+.env
+.env.local
+.vscode
+# OS specific
+
+# Claude Code / tooling state
+.taskmaster/
+.playwright-cli/
+.claude/
+Screenshot*.png
+
+# Task files
+# tasks.json
+# tasks/
+
+# worker
+worker/dist
+worker/.env*
+!worker/.env.example
+# docker volumes
+pgdata/
+# uploads
+uploads/
+/var/octio/

@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: octio-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: octio
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-octio_local_dev}
+      POSTGRES_DB: octio
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U octio -d octio"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mastra-chat-worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    container_name: octio-mastra-chat-worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgres://octio:${POSTGRES_PASSWORD:-octio_local_dev}@postgres:5432/octio
+    env_file:
+      - ./worker/.env
+    ports:
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  pgdata:

@@ -1,0 +1,12 @@
+{
+  "name": "@octio/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/schemas.ts"
+  },
+  "dependencies": {
+    "zod": "^3.23.0"
+  }
+}

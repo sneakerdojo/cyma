@@ -1,0 +1,32 @@
+image: docker:latest
+
+services:
+  - docker:dind
+
+stages:
+  - build
+  - package
+
+build:
+  image: node:22-alpine
+  stage: build
+  only:
+    - main
+    - qa
+  script:
+    - npm ci
+    - npm run build
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 day
+
+package:qa:
+  stage: package
+  only:
+    - main
+    - qa
+  script:
+    - docker build -f Prod.Dockerfile -t "registry.gitlab.com/octio-dev/website:qa" .
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.com
+    - docker push "registry.gitlab.com/octio-dev/website:qa"

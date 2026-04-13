@@ -1,24 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
-import { Cpu, Zap, RefreshCcw } from 'lucide-react';
+import { Target, Hammer, Layers } from 'lucide-react';
 
 const HIGHLIGHTS = [
   {
-    icon: Cpu,
-    title: 'AI Technologies',
+    icon: Target,
+    title: 'Battle-Tested',
     description:
-      'We leverage cutting-edge artificial intelligence to create intelligent, adaptive solutions that learn and evolve with your business.',
+      "Years of shipping real software across industries and stacks. We've seen the edge cases, learned the hard lessons, and know what actually works.",
   },
   {
-    icon: Zap,
-    title: 'Rapid Development',
+    icon: Hammer,
+    title: 'Production-Grade',
     description:
-      'Agile methodologies and modern tooling enable us to deliver production-ready software at speed without compromising quality.',
+      'Everything we build runs in real operations. No demos, no toys — software that holds up when it matters.',
   },
   {
-    icon: RefreshCcw,
-    title: 'Modernization',
+    icon: Layers,
+    title: 'End-to-End',
     description:
-      'We breathe new life into legacy systems, transforming outdated technology stacks into modern, scalable architectures.',
+      "From strategy to deployment to ongoing support — we own the whole stack so you don't have to stitch one together.",
   },
 ];
 
@@ -55,14 +55,13 @@ export default function About() {
             Who we are
           </span>
           <h2 className="mt-4 font-display font-extrabold text-4xl sm:text-5xl lg:text-6xl leading-tight">
-            A team of passionate{' '}
-            <span className="text-gradient">technologists</span>
+            Builders{' '}
+            <span className="text-gradient">at heart</span>
           </h2>
           <p className="mt-6 text-lg text-text-muted leading-relaxed">
-            At Octio, we specialize in building intelligent, adaptive solutions
-            that bridge the gap between cutting-edge technology and real-world
-            business needs. From concept to deployment, we design, build, and
-            modernize applications that stand out.
+            Octio is a tech consultancy powered by a team that takes craft seriously.
+            We partner with ambitious businesses — across industries and stages — to turn
+            complex problems into software that ships, works, and lasts.
           </p>
         </div>
 

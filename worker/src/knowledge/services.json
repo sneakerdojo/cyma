@@ -1,0 +1,121 @@
+{
+  "web-dev": {
+    "title": "Web Development",
+    "summary": "Custom websites and web applications built with React, Next.js, and modern full-stack frameworks. We design and ship production-grade web platforms — from marketing sites and customer portals to complex internal tools — with AI capabilities built in from day one.",
+    "details": "Every web project starts with a requirements workshop, not a template. We architect your frontend with React or Next.js, back it with a purpose-built API layer (Node.js or Hono on Cloudflare Workers), and wire it to a database that fits your data model — typically PostgreSQL via Supabase or Drizzle. Authentication, role-based access, file storage, email, and real-time features are handled as first-class concerns, not afterthoughts. We deploy to the edge where it makes sense — Cloudflare Pages and Workers for globally distributed performance — or to traditional cloud infrastructure when the workload demands it. Type safety runs end-to-end: TypeScript on both client and server, with Zod schema validation at API boundaries. Every project ships with CI/CD pipelines, environment-based config, and structured logging so your team can own it after handover.",
+    "typical_timeline": "4–12 weeks depending on complexity",
+    "technologies": ["React", "Next.js", "TypeScript", "Tailwind CSS", "Hono", "Node.js", "Supabase", "PostgreSQL", "Drizzle ORM", "Cloudflare Workers", "Zod"],
+    "ideal_for": [
+      "Businesses that need a bespoke web platform their off-the-shelf tools cannot handle",
+      "Companies replacing a slow or fragile existing site with a scalable, maintainable codebase",
+      "Founders launching a product and needing a technical team to own the full build"
+    ],
+    "pricing_range": "R50 000 – R250 000 depending on scope and feature complexity",
+    "note": "Discovery call required to scope accurately. Simple marketing sites sit at the lower end; full-stack platforms with auth, integrations, and AI features sit higher."
+  },
+
+  "custom-software": {
+    "title": "Custom Software",
+    "summary": "Bespoke software built specifically for your business processes — internal tools, workflow platforms, dashboards, and customer-facing systems that off-the-shelf products simply cannot replicate. AI-native from the ground up.",
+    "details": "Custom software is the right call when your team is stitching together three SaaS tools and still working around them in spreadsheets — or when your domain is specialised enough that a generic product will never fit. We scope the system properly: data model first, then API contracts, then the interface. We work in 2-week sprints with demos so you validate direction early, not after months of build. On the backend we lean on TypeScript, Node.js, and PostgreSQL. For compute-heavy or data-intensive workloads we bring in Python where it earns its place. Containerisation with Docker, orchestration with Kubernetes or managed cloud services, and observability tooling (structured logs, health checks, alerting) are part of every delivery. We design for handover — clear README, environment documentation, and a post-launch support window so your team can run it confidently.",
+    "typical_timeline": "8–20 weeks depending on feature scope and integrations",
+    "technologies": ["TypeScript", "Node.js", "Python", "PostgreSQL", "Docker", "Kubernetes", "Supabase", "Hono", "Zod", "GitHub Actions"],
+    "ideal_for": [
+      "Operations-heavy businesses whose workflow does not fit any existing SaaS product",
+      "Teams spending more time working around their tools than with them",
+      "Companies that need full ownership of their core software rather than being locked into a vendor"
+    ],
+    "pricing_range": "R80 000 – R500 000+ depending on scope",
+    "note": "Complex multi-role systems with deep integrations and reporting sit toward the upper end. We will be honest with you if your problem is better solved by a configured SaaS than a custom build."
+  },
+
+  "ai-agents": {
+    "title": "AI Agents & Automations",
+    "summary": "Autonomous AI agents and agentic workflows that do real work — qualifying leads, handling customer queries, automating document workflows, coordinating multi-step operations, and integrating with your existing tools. Built on Claude, OpenAI, Mastra, and purpose-built infrastructure, not chatbot wrappers.",
+    "details": "There is a meaningful difference between a chatbot and an agent. A chatbot responds. An agent acts: it can call tools, make decisions across multiple steps, read and write to your systems, and escalate to a human only when it genuinely needs to. We build the latter. Our agent architecture is built primarily on Mastra (our preferred agentic framework), with Claude and OpenAI as the reasoning layer depending on the task profile. For retrieval-augmented workflows we implement vector databases with semantic search so agents answer from your own knowledge base rather than hallucinating. We cover the full spectrum — customer service agents, sales and BDR agents, operations automation, research and summarisation agents, document intake workflows, and multi-agent orchestration where one coordinator routes work to specialist sub-agents. Everything is connected to your stack via API integrations: CRM, calendar, email, Slack, WhatsApp, and custom internal tools. We also build lighter-weight automation pipelines using n8n for businesses that need reliable workflow automation without the overhead of a full agentic system.",
+    "typical_timeline": "4–12 weeks for single-agent deployments; 12–24 weeks for multi-agent orchestration systems",
+    "technologies": ["Claude API", "OpenAI", "Mastra", "LangChain", "n8n", "Pinecone", "pgvector", "TypeScript", "Cloudflare Workers", "Hono", "Zod"],
+    "ideal_for": [
+      "Businesses with repetitive, high-volume tasks that currently rely on manual human effort",
+      "Sales and customer success teams who need 24/7 responsiveness without hiring headcount",
+      "Companies sitting on unstructured data (documents, emails, forms) that need to be queryable and actionable"
+    ],
+    "pricing_range": "R50 000 – R500 000+ depending on agent complexity, integrations, and volume",
+    "note": "AI agent projects are scoped carefully on a discovery call. Pricing depends heavily on the number of integrations, expected message volume, and whether you need a single-agent deployment or a coordinated multi-agent system."
+  },
+
+  "mobile-app": {
+    "title": "Mobile App Development",
+    "summary": "Native-feeling iOS and Android apps built with React Native and Expo — one codebase, both platforms, production quality. We build mobile apps that are AI-ready from day one and designed to work seamlessly with your backend systems.",
+    "details": "React Native with Expo is our default choice for mobile because it delivers genuine native performance and native UI components across iOS and Android without maintaining two separate codebases. For projects where a specific platform's native APIs are core to the product — complex animations, Bluetooth, advanced camera workflows — we will scope Swift or Kotlin accordingly and be transparent about the trade-offs. Every mobile app we build connects to a properly designed API backend, handles offline states gracefully, and ships with a CI/CD pipeline using EAS Build for automated iOS and Android releases. We handle App Store and Google Play submission, including provisioning profiles, signing certificates, and review preparation. AI capabilities — on-device inference for fast interactions, server-side agents for complex reasoning — are designed in from the requirements stage rather than bolted on later. State management is handled with Zustand or TanStack Query depending on the data access patterns, and we enforce type safety with TypeScript throughout.",
+    "typical_timeline": "8–18 weeks for a full featured app; 4–8 weeks for a focused MVP",
+    "technologies": ["React Native", "Expo", "TypeScript", "EAS Build", "Zustand", "TanStack Query", "React Navigation", "Tailwind (NativeWind)", "Swift (when required)", "Kotlin (when required)"],
+    "ideal_for": [
+      "Businesses that need a mobile app as a primary customer touchpoint or field tool",
+      "Companies with an existing web platform looking to extend to mobile without duplicating their backend",
+      "Product founders who want a production-quality app to validate traction before scaling"
+    ],
+    "pricing_range": "R80 000 – R350 000 depending on feature scope and platform targets",
+    "note": "Prices include deployment and App Store submission preparation. Ongoing maintenance and update cycles are quoted separately."
+  },
+
+  "modernisation": {
+    "title": "Legacy Modernisation",
+    "summary": "Legacy systems rebuilt as intelligent, maintainable platforms. We migrate monolithic codebases, redesign brittle APIs, move infrastructure to the cloud, and add AI agents where your team is currently doing manual work — without shutting your business down to do it.",
+    "details": "Legacy modernisation is one of the most technically demanding engagements we take on, and we are honest about that upfront. The goal is never a big-bang rewrite — it is a structured migration that keeps your operations running while systematically replacing the parts that are slowing you down. We start with a codebase and infrastructure audit: understand the current architecture, map the integrations, identify the highest-risk areas, and define a migration path that can be executed incrementally. We use the strangler fig pattern where appropriate — new services wrap old ones and gradually take over traffic. Database migrations are handled with zero-downtime strategies: dual writes, backfill jobs, cut-over windows timed to low-traffic periods. On the infrastructure side, we containerise workloads with Docker, establish proper environment separation, and set up CI/CD pipelines that the existing team was likely lacking. We bring AI into the modernised system where it earns its place — agents replacing manual data entry, automated reconciliation, intelligent document processing — not as a marketing feature but as a real operational improvement.",
+    "typical_timeline": "12–24 weeks for phased migrations; complex enterprise systems may run longer",
+    "technologies": ["Docker", "Kubernetes", "Terraform", "PostgreSQL", "Cloud migration (AWS, GCP, Cloudflare)", "TypeScript", "Node.js", "API-first redesign", "CI/CD pipelines", "Zero-downtime migration strategies"],
+    "ideal_for": [
+      "Businesses running on systems built 5–15 years ago that are expensive to change and fragile under load",
+      "Companies whose development velocity has slowed because the codebase is too risky to touch",
+      "Organisations moving from on-premises infrastructure to cloud-native deployments"
+    ],
+    "pricing_range": "R150 000 – R750 000+ depending on system complexity and migration scope",
+    "note": "We require a technical discovery session before scoping modernisation engagements. The cost varies significantly based on the size of the existing system, quality of existing documentation, and the agreed migration strategy."
+  },
+
+  "pricing": {
+    "title": "Pricing",
+    "summary": "We scope and price every project individually based on complexity, integrations, team size, and timeline. Budget ranges in ZAR: under R50K for small automations and simple sites, R50K–R150K for focused web apps and single-agent deployments, R150K–R500K for full platforms and complex AI systems, R500K+ for enterprise-scale builds and multi-agent orchestration. All pricing is project-based — no retainers required unless you want ongoing support.",
+    "details": "We do not publish fixed price lists because software complexity varies too much for that to be honest. What we can tell you is how we structure pricing and where your project is likely to land. Scoping starts with a discovery call where we understand your requirements in detail. We then produce a written proposal with a fixed-price quote for the agreed scope — not time and materials, not open-ended. If the scope changes, we discuss it and adjust together. We do not bill for the discovery call. For most web and mobile projects, the primary cost drivers are the number of user roles, integrations with third-party systems, and the depth of AI features. For AI agent work specifically, volume matters too — a system handling 10 000 monthly interactions has different infrastructure and cost implications than one handling 100. We are a South African agency billing in ZAR, operating in SAST (UTC+2), and familiar with the local market, local payment infrastructure, and the constraints South African businesses operate under.",
+    "typical_timeline": "Discovery to proposal: 3–5 business days",
+    "technologies": [],
+    "ideal_for": [
+      "Businesses that want a clear, fixed-price proposal before committing to a build",
+      "Companies that have been burned by scope creep on previous development engagements",
+      "Startups and SMEs who need to plan their budget accurately before starting"
+    ],
+    "pricing_range": "R25 000 (small automation) to R750 000+ (enterprise platform)",
+    "note": "All pricing is in ZAR. We do not require a deposit until the proposal is agreed and contracts are signed. Discovery calls are free."
+  },
+
+  "process": {
+    "title": "Our Process",
+    "summary": "Discovery call to understand the problem. Requirements workshop to define the scope in writing. Architecture design with your input before a line of code is written. Sprint-based development with demos every two weeks so you see progress and can redirect early. QA testing with a structured test plan. Deployment to production with proper environment config. Post-launch support window included in every project.",
+    "details": "Our process is designed to eliminate the most common reasons software projects fail: unclear requirements, no visibility into progress, and handovers that leave clients stranded. Phase one is discovery — a structured call where we ask the hard questions about your business problem, your users, your constraints, and your existing tech landscape. From that we produce a written requirements document you sign off on before we start designing. Phase two is architecture — we define the data model, API structure, tech stack selection, and deployment approach. We share this with you for review; your input is genuinely useful here because you know your domain better than we do. Phase three is the build, run in two-week sprints. At the end of each sprint there is a demo and a short retrospective. You can re-prioritise the backlog between sprints — we build in that flexibility by design. Phase four is QA: structured test plans covering happy paths, edge cases, and integration scenarios. We catch bugs before you do. Phase five is deployment: production environment setup, CI/CD, monitoring, and documentation for your team. Phase six is support: a defined post-launch support window (typically 30 days) where we resolve any issues that surface in production at no extra charge.",
+    "typical_timeline": "Varies by project. Discovery to delivery typically ranges from 6 weeks (focused scope) to 24 weeks (large platform). We will give you a realistic timeline in the proposal.",
+    "technologies": ["GitHub Actions (CI/CD)", "Vitest / Playwright (testing)", "Cloudflare / AWS / GCP (deployment)", "Linear (project management)", "Structured sprint ceremonies"],
+    "ideal_for": [
+      "Clients who have had bad experiences with agencies that disappeared or went quiet mid-build",
+      "Businesses that want to be informed participants in the development process, not passive recipients",
+      "Teams who need a clear handover so they can maintain and extend the system themselves"
+    ],
+    "pricing_range": "Process is included in every engagement — not billed separately",
+    "note": "We work with clients in South Africa, and across time zones where the overlap allows for regular communication. All project management is handled in SAST (UTC+2)."
+  },
+
+  "general": {
+    "title": "About Octio",
+    "summary": "Octio is a software development and AI consultancy based in Pretoria, South Africa. We build intelligent, production-grade systems for ambitious businesses — AI agents and automations, custom applications, mobile apps, and legacy modernisation. Our team combines deep technical craft with a straightforward approach: honest scoping, fixed-price proposals, and software that ships and lasts.",
+    "details": "Octio was built on the belief that most businesses deserve better software than they currently have — and that better software means intelligent software. We are not a body shop adding headcount to your team for time and materials. We are a product-focused consultancy that takes ownership of the problem, designs the right solution, and ships it. Our team has shipped production systems across fintech, operations, e-commerce, and professional services. We have built everything from event-driven microservices handling high transaction volumes to lean mobile apps used in the field. We bring that breadth of experience to every engagement. As a Pretoria-based agency we operate in South African business hours (SAST, UTC+2), bill in ZAR, and understand the constraints and opportunities of the local market — load-shedding resilience in system design, South African payment gateways, POPIA compliance considerations, and the realities of building on South African infrastructure. We are small enough to give every client genuine senior attention, and we are disciplined about taking on only what we can deliver well. That means we sometimes turn down work that is not a good fit — because a failed project serves nobody.",
+    "typical_timeline": "Discovery call can be booked within 1–2 business days",
+    "technologies": ["React", "Next.js", "React Native", "TypeScript", "Node.js", "Python", "PostgreSQL", "Supabase", "Mastra", "Claude API", "OpenAI", "Docker", "Cloudflare Workers"],
+    "ideal_for": [
+      "Businesses that want a technical partner, not just a vendor executing a ticket queue",
+      "Companies that need AI integrated into their operations in a practical, measurable way",
+      "Founders and operators who value directness and honest assessment over a sales pitch"
+    ],
+    "pricing_range": "Scoped per project — discovery call is free",
+    "note": "Learn more at octio.co.za or book a discovery call directly through the website."
+  }
+}

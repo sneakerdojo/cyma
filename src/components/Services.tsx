@@ -1,108 +1,41 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  Globe,
-  RefreshCcw,
-  Server,
-  Brain,
-  Smartphone,
-  MessageSquare,
-} from 'lucide-react';
+import { Bot, Layers, RefreshCcw, Smartphone } from 'lucide-react';
 
-interface ServiceCard {
+const AI_CAPABILITIES = [
+  'Customer service agents',
+  'Sales & BDR agents',
+  'Ops automation',
+  'Research agents',
+  'Document workflows',
+  'Multi-agent orchestration',
+];
+
+interface SupportingService {
   icon: React.ComponentType<{ size?: number; className?: string }>;
   title: string;
   description: string;
 }
 
-const WEB_SERVICES: ServiceCard[] = [
+const SUPPORTING_SERVICES: SupportingService[] = [
   {
-    icon: Globe,
-    title: 'Design & Development',
+    icon: Layers,
+    title: 'Custom Applications',
     description:
-      'Custom-built websites and web applications tailored to your brand identity and business objectives.',
+      'Bespoke platforms built AI-native from day one. Web platforms and internal tools — every one of them intelligent by design, not retrofitted.',
   },
   {
     icon: RefreshCcw,
-    title: 'Modernization',
+    title: 'Modernisation',
     description:
-      'Transform legacy systems into modern, performant applications using the latest technologies and best practices.',
-  },
-  {
-    icon: Server,
-    title: 'Hosting & SEO',
-    description:
-      'Reliable hosting infrastructure paired with data-driven SEO strategies to maximize your online visibility.',
-  },
-];
-
-const SOFTWARE_SERVICES: ServiceCard[] = [
-  {
-    icon: Brain,
-    title: 'AI-driven Software',
-    description:
-      'Intelligent applications that leverage machine learning and AI to automate processes and generate insights.',
+      "Legacy systems rebuilt as intelligent platforms. We don't just migrate — we add agents where humans used to do manual work.",
   },
   {
     icon: Smartphone,
-    title: 'Web & Mobile Apps',
+    title: 'Mobile App Development',
     description:
-      'Cross-platform applications with native performance, delivering seamless experiences on every device.',
-  },
-  {
-    icon: MessageSquare,
-    title: 'AI Powered Chatbots',
-    description:
-      'Conversational AI solutions that handle customer interactions, streamline support, and drive engagement.',
+      'Native-feeling iOS and Android apps — React Native, Swift, or Kotlin depending on what fits. AI-ready from day one.',
   },
 ];
-
-function ServiceGroup({
-  title,
-  services,
-  visible,
-  delayBase,
-}: {
-  title: string;
-  services: ServiceCard[];
-  visible: boolean;
-  delayBase: number;
-}) {
-  return (
-    <div>
-      <h3
-        className={`font-display font-bold text-lg text-text-muted mb-6 ${
-          visible ? 'animate-fade-up' : 'opacity-0'
-        }`}
-        style={{ animationDelay: `${delayBase}ms` }}
-      >
-        {title}
-      </h3>
-      <div className="grid gap-4">
-        {services.map((service, i) => (
-          <div
-            key={service.title}
-            className={`card-hover group p-6 rounded-2xl bg-surface flex items-start gap-5 ${
-              visible ? 'animate-fade-up' : 'opacity-0'
-            }`}
-            style={{ animationDelay: `${delayBase + 100 + i * 120}ms` }}
-          >
-            <div className="shrink-0 w-11 h-11 rounded-lg bg-orange-dim flex items-center justify-center transition-colors duration-300 group-hover:bg-orange/20">
-              <service.icon size={20} className="text-orange" />
-            </div>
-            <div>
-              <h4 className="font-display font-bold text-base mb-1.5">
-                {service.title}
-              </h4>
-              <p className="text-text-muted text-sm leading-relaxed">
-                {service.description}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export default function Services() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -145,25 +78,92 @@ export default function Services() {
             What we do
           </span>
           <h2 className="mt-4 font-display font-extrabold text-4xl sm:text-5xl lg:text-6xl leading-tight">
-            Services tailored to{' '}
-            <span className="text-gradient">your needs</span>
+            Services with{' '}
+            <span className="text-gradient">teeth</span>
           </h2>
         </div>
 
-        {/* Service groups */}
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16">
-          <ServiceGroup
-            title="Web Development"
-            services={WEB_SERVICES}
-            visible={visible}
-            delayBase={200}
+        {/* Hero AI Solutions card */}
+        <div
+          className={`relative mb-6 overflow-hidden rounded-3xl border border-orange/30 bg-gradient-to-br from-surface via-surface to-orange/5 p-8 sm:p-12 lg:p-14 ${
+            visible ? 'animate-fade-up' : 'opacity-0'
+          }`}
+          style={{ animationDelay: '200ms' }}
+        >
+          {/* Glow inside card */}
+          <div
+            className="absolute -top-20 -right-20 w-[400px] h-[400px] rounded-full opacity-20 pointer-events-none"
+            style={{
+              background: 'radial-gradient(circle, var(--c-orange) 0%, transparent 70%)',
+              filter: 'blur(80px)',
+            }}
           />
-          <ServiceGroup
-            title="Custom Software"
-            services={SOFTWARE_SERVICES}
-            visible={visible}
-            delayBase={400}
-          />
+
+          <div className="relative grid lg:grid-cols-12 gap-8 items-center">
+            {/* Left: Icon + copy */}
+            <div className="lg:col-span-7">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-14 h-14 rounded-2xl bg-orange flex items-center justify-center shadow-lg shadow-orange/20">
+                  <Bot size={28} className="text-bg" />
+                </div>
+                <span className="text-orange font-display font-semibold text-xs tracking-widest uppercase">
+                  Our flagship
+                </span>
+              </div>
+
+              <h3 className="font-display font-extrabold text-4xl sm:text-5xl lg:text-6xl leading-[0.95] mb-4">
+                AI Solutions
+              </h3>
+              <p className="font-display text-lg sm:text-xl text-orange-light mb-5">
+                Agents, automations, agentic workflows
+              </p>
+              <p className="text-text-muted text-base sm:text-lg leading-relaxed max-w-xl">
+                We design and deploy autonomous AI agents that handle complex work — from
+                customer operations to back-office automation to multi-agent orchestration.
+                Not chatbots. Systems that actually do the job.
+              </p>
+            </div>
+
+            {/* Right: Capability chips */}
+            <div className="lg:col-span-5">
+              <div className="flex flex-wrap gap-2.5">
+                {AI_CAPABILITIES.map((cap, i) => (
+                  <span
+                    key={cap}
+                    className={`px-4 py-2 rounded-full border border-border bg-surface/60 text-sm text-text-muted hover:border-orange/40 hover:text-text transition-all duration-300 ${
+                      visible ? 'animate-fade-up' : 'opacity-0'
+                    }`}
+                    style={{ animationDelay: `${300 + i * 60}ms` }}
+                  >
+                    {cap}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Supporting services grid */}
+        <div className="grid md:grid-cols-3 gap-6">
+          {SUPPORTING_SERVICES.map((service, i) => (
+            <div
+              key={service.title}
+              className={`card-hover group p-8 rounded-2xl bg-surface ${
+                visible ? 'animate-fade-up' : 'opacity-0'
+              }`}
+              style={{ animationDelay: `${500 + i * 120}ms` }}
+            >
+              <div className="w-12 h-12 rounded-xl bg-orange-dim flex items-center justify-center mb-5 transition-colors duration-300 group-hover:bg-orange/20">
+                <service.icon size={22} className="text-orange" />
+              </div>
+              <h4 className="font-display font-bold text-xl mb-3">
+                {service.title}
+              </h4>
+              <p className="text-text-muted text-sm leading-relaxed">
+                {service.description}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
     </section>

@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
+import { useWizard } from '../features/octo/WizardContext';
 
 const NAV_LINKS = [
   { label: 'Services', href: '#services' },
   { label: 'Approach', href: '#approach' },
   { label: 'About', href: '#about' },
-  { label: 'Contact', href: '#contact' },
 ];
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const { openWizard } = useWizard();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -27,18 +28,8 @@ export default function Navbar() {
       }`}
     >
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
-          {/* Logo */}
-          <a href="#" className="flex items-center gap-3 group">
-            <img
-              src="/octio-icon.png"
-              alt="Octio"
-              className="h-10 w-10 transition-transform duration-300 group-hover:rotate-12"
-            />
-            <span className="font-display font-bold text-xl tracking-tight text-text">
-              octio
-            </span>
-          </a>
+        <div className="flex items-center justify-end h-20">
+          {/* Logo removed — hero displays Octio branding at large scale */}
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-1">
@@ -51,12 +42,12 @@ export default function Navbar() {
                 {link.label}
               </a>
             ))}
-            <a
-              href="#contact"
+            <button
+              onClick={openWizard}
               className="btn-glow ml-4 px-6 py-2.5 bg-orange text-bg text-sm font-semibold rounded-full transition-all duration-300 hover:bg-orange-light hover:shadow-lg hover:shadow-orange/20"
             >
               Let's Talk
-            </a>
+            </button>
           </div>
 
           {/* Mobile menu button */}
@@ -87,13 +78,15 @@ export default function Navbar() {
               {link.label}
             </a>
           ))}
-          <a
-            href="#contact"
-            onClick={() => setMenuOpen(false)}
-            className="mt-3 block text-center px-6 py-3 bg-orange text-bg font-semibold rounded-full"
+          <button
+            onClick={() => {
+              setMenuOpen(false);
+              openWizard();
+            }}
+            className="mt-3 block w-full text-center px-6 py-3 bg-orange text-bg font-semibold rounded-full"
           >
             Let's Talk
-          </a>
+          </button>
         </div>
       </div>
     </nav>

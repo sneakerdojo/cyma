@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 const FOOTER_LINKS = {
   Company: [
     { label: 'About', href: '#about' },
@@ -6,10 +8,10 @@ const FOOTER_LINKS = {
     { label: 'Contact', href: '#contact' },
   ],
   Services: [
-    { label: 'Web Development', href: '#services' },
-    { label: 'Mobile Apps', href: '#services' },
     { label: 'AI Solutions', href: '#services' },
-    { label: 'Modernization', href: '#services' },
+    { label: 'Custom Applications', href: '#services' },
+    { label: 'Modernisation', href: '#services' },
+    { label: 'Mobile App Development', href: '#services' },
   ],
 };
 
@@ -25,9 +27,8 @@ export default function Footer() {
               <span className="font-display font-bold text-lg">octio</span>
             </div>
             <p className="text-text-muted text-sm leading-relaxed max-w-sm">
-              Innovative software solutions powered by artificial intelligence.
-              We design, build, and modernize applications that transform
-              businesses.
+              Agentic AI, custom applications, and modernisation. We build
+              production AI systems for businesses ready to move faster.
             </p>
           </div>
 
@@ -60,12 +61,12 @@ export default function Footer() {
             reserved.
           </p>
           <div className="flex items-center gap-6">
-            <a
-              href="#"
+            <Link
+              to="/privacy"
               className="text-xs text-text-muted hover:text-orange transition-colors"
             >
               Privacy Policy
-            </a>
+            </Link>
             <a
               href="#"
               className="text-xs text-text-muted hover:text-orange transition-colors"
