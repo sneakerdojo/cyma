@@ -13,9 +13,12 @@ build:
   only:
     - main
     - qa
+  before_script:
+    - corepack enable
+    - corepack prepare pnpm@10.33.0 --activate
   script:
-    - npm ci
-    - npm run build
+    - pnpm install --frozen-lockfile
+    - pnpm run build
   artifacts:
     paths:
       - dist/
