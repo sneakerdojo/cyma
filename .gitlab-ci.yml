@@ -24,12 +24,17 @@ build:
       - dist/
     expire_in: 1 day
 
-package:qa:
+package:
   stage: package
   only:
     - main
     - qa
   script:
-    - docker build -f Prod.Dockerfile -t "registry.gitlab.com/octio-dev/website:qa" .
+    - docker build -f Prod.Dockerfile
+        -t "registry.gitlab.com/octio-dev/octio-website:latest"
+        -t "registry.gitlab.com/octio-dev/octio-website:qa"
+        -t "registry.gitlab.com/octio-dev/octio-website:$CI_COMMIT_SHORT_SHA" .
     - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.com
-    - docker push "registry.gitlab.com/octio-dev/website:qa"
+    - docker push "registry.gitlab.com/octio-dev/octio-website:latest"
+    - docker push "registry.gitlab.com/octio-dev/octio-website:qa"
+    - docker push "registry.gitlab.com/octio-dev/octio-website:$CI_COMMIT_SHORT_SHA"

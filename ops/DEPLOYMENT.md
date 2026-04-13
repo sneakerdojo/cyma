@@ -1,7 +1,7 @@
 # Octio Website — Deployment
 
 The frontend builds in GitLab CI and pushes a Docker image to
-`registry.gitlab.com/octio-dev/website:qa`. From there an Ansible playbook
+`registry.gitlab.com/octio-dev/octio-website:qa`. From there an Ansible playbook
 deploys it onto the octioqa host alongside the other services managed by
 `tabbris-nginx`.
 
@@ -18,7 +18,7 @@ GitLab CI (.gitlab-ci.yml)
     │ build: node:22-alpine → npm ci && npm run build → dist/
     │ package: docker build -f Prod.Dockerfile → push to registry
     ▼
-registry.gitlab.com/octio-dev/website:qa
+registry.gitlab.com/octio-dev/octio-website:qa
     │
     ▼
 Ansible run (octioqa host)
