@@ -42,6 +42,8 @@ export default function OctoContactForm({ onSubmit, visible }: OctoContactFormPr
             placeholder="Your name"
             required
             maxLength={100}
+            autoComplete="name"
+            autoCapitalize="words"
             className="w-full px-4 py-3 bg-surface-2 border border-border rounded-xl text-text placeholder:text-text-muted/50 focus:outline-none focus:border-orange/50 transition-all"
           />
         </div>
@@ -55,6 +57,7 @@ export default function OctoContactForm({ onSubmit, visible }: OctoContactFormPr
             onChange={(e) => setCompany(e.target.value)}
             placeholder="Company name"
             maxLength={200}
+            autoComplete="organization"
             className="w-full px-4 py-3 bg-surface-2 border border-border rounded-xl text-text placeholder:text-text-muted/50 focus:outline-none focus:border-orange/50 transition-all"
           />
         </div>
@@ -70,6 +73,11 @@ export default function OctoContactForm({ onSubmit, visible }: OctoContactFormPr
           placeholder="your@email.com"
           required
           maxLength={254}
+          autoComplete="email"
+          inputMode="email"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
           className="w-full px-4 py-3 bg-surface-2 border border-border rounded-xl text-text placeholder:text-text-muted/50 focus:outline-none focus:border-orange/50 transition-all"
         />
       </div>

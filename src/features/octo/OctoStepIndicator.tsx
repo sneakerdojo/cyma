@@ -20,7 +20,7 @@ export default function OctoStepIndicator({ step }: OctoStepIndicatorProps) {
   const current = STEP_MAP[step];
 
   return (
-    <div className="fixed bottom-8 right-8 font-display text-text-muted text-lg">
+    <div className="fixed bottom-8 right-8 font-display text-text-muted text-lg pointer-events-none">
       <span className="text-text">{String(current).padStart(2, '0')}</span>
       <span className="mx-2 text-border">|</span>
       <span>{String(TOTAL_STEPS).padStart(2, '0')}</span>

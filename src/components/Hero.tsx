@@ -12,6 +12,7 @@ export default function Hero() {
   const [phase, setPhase] = useState<Phase>('black');
   const { open: wizardOpen, openWizard, closeWizard } = useWizard();
   const [orbState, setOrbState] = useState<OctoAnimState>('idle');
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
 
   useEffect(() => {
     const timers = [
@@ -31,6 +32,29 @@ export default function Hero() {
     };
   }, []);
 
+  // iOS keyboard handling: push conversation container up when virtual keyboard appears
+  useEffect(() => {
+    if (!wizardOpen) {
+      setKeyboardOffset(0);
+      return;
+    }
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+
+    const vv = window.visualViewport;
+    const handleResize = () => {
+      const offset = Math.max(0, window.innerHeight - vv.height);
+      setKeyboardOffset(offset);
+    };
+
+    vv.addEventListener('resize', handleResize);
+    handleResize();
+
+    return () => {
+      vv.removeEventListener('resize', handleResize);
+      setKeyboardOffset(0);
+    };
+  }, [wizardOpen]);
+
   const phaseIndex = ['black', 'logo', 'glow', 'morph', 'orb', 'content'].indexOf(phase);
 
   const handleChatClick = useCallback(() => {
@@ -45,7 +69,7 @@ export default function Hero() {
   return (
     <section
       id="hero"
-      className={`${wizardOpen ? 'fixed' : 'relative'} inset-0 min-h-screen flex flex-col items-center justify-center overflow-hidden ${wizardOpen ? 'z-[100] bg-bg' : ''}`}
+      className={`${wizardOpen ? 'fixed' : 'relative'} inset-0 min-h-[100dvh] flex flex-col items-center justify-center overflow-hidden ${wizardOpen ? 'z-[100] bg-bg' : ''}`}
     >
       {/* Darker backdrop when wizard is open */}
       <div
@@ -61,7 +85,7 @@ export default function Hero() {
       {wizardOpen && (
         <button
           onClick={handleCloseWizard}
-          className="fixed top-6 right-6 z-50 w-10 h-10 rounded-full border border-border flex items-center justify-center text-text-muted hover:text-text hover:border-orange/40 transition-all bg-bg/60 backdrop-blur-sm animate-fade-in"
+          className="fixed top-6 right-6 z-50 w-11 h-11 rounded-full border border-border flex items-center justify-center text-text-muted hover:text-text hover:border-orange/40 transition-all bg-bg/60 backdrop-blur-sm animate-fade-in"
           aria-label="Close conversation"
         >
           <X size={18} />
@@ -123,7 +147,7 @@ export default function Hero() {
           transition: 'opacity 700ms cubic-bezier(0.16, 1, 0.3, 1), transform 700ms cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
-        <h1 className="font-display font-extrabold leading-[0.9] tracking-tight text-[2.5rem] sm:text-[3.5rem] md:text-[4.5rem]">
+        <h1 className="font-display font-extrabold leading-[0.9] tracking-tight text-[clamp(1.75rem,8vw,2.5rem)] sm:text-[3.5rem] md:text-[4.5rem]">
           <span className="text-text">We build </span>
           <span className="text-gradient">the future</span>
         </h1>
@@ -161,6 +185,8 @@ export default function Hero() {
           pointerEvents: wizardOpen ? 'auto' : 'none',
           transition: 'opacity 800ms cubic-bezier(0.16, 1, 0.3, 1) 300ms, transform 800ms cubic-bezier(0.16, 1, 0.3, 1) 300ms',
           overflowY: 'auto',
+          overscrollBehavior: 'contain',
+          paddingBottom: `${keyboardOffset}px`,
         }}
       >
         <OctoConversation

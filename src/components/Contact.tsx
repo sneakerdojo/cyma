@@ -25,7 +25,7 @@ export default function Contact() {
   }, []);
 
   return (
-    <section id="contact" ref={sectionRef} className="relative py-32 lg:py-40 bg-surface/30">
+    <section id="contact" ref={sectionRef} className="relative py-32 lg:py-40 bg-surface/30 overflow-hidden">
       <div
         className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full opacity-[0.08] pointer-events-none"
         style={{

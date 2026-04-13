@@ -86,7 +86,7 @@ export default function Approach() {
           {/* Connecting line */}
           <div className="hidden lg:block absolute top-8 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
 
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-8 lg:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 lg:gap-4">
             {STEPS.map((step, i) => (
               <div
                 key={step.title}

@@ -44,6 +44,8 @@ export default function OctoParticles({ state }: OctoParticlesProps) {
   }, []);
 
   useFrame(({ clock }) => {
+    // Option C: skip animation when tab is hidden to save GPU on mobile.
+    if (typeof document !== 'undefined' && document.hidden) return;
     if (!pointsRef.current) return;
     const geo = pointsRef.current.geometry;
     const posAttr = geo.attributes.position as THREE.BufferAttribute;

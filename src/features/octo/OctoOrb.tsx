@@ -139,6 +139,8 @@ export default function OctoOrb({ state }: OctoOrbProps) {
   });
 
   useFrame(({ clock }) => {
+    // Option C: skip animation when tab is hidden to save GPU on mobile.
+    if (typeof document !== 'undefined' && document.hidden) return;
     if (!materialRef.current) return;
 
     const t = clock.getElapsedTime();

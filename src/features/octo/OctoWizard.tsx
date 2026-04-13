@@ -18,7 +18,7 @@ export default function OctoWizard() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-bg flex flex-col items-center justify-start relative overflow-hidden">
+    <div className="min-h-[100dvh] bg-bg flex flex-col items-center justify-start relative overflow-y-auto overflow-x-hidden">
       <div
         className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
         style={{
@@ -29,6 +29,7 @@ export default function OctoWizard() {
 
       <Link
         to="/"
+        aria-label="Back to home"
         className="fixed top-8 left-8 z-50 w-10 h-10 rounded-full border border-border flex items-center justify-center text-text-muted hover:text-text hover:border-orange/40 transition-all"
       >
         <ArrowLeft size={18} />

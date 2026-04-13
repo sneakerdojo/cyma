@@ -63,24 +63,28 @@ export default function OctoTimeSlot({ visible, onSelect }: OctoTimeSlotProps) {
   return (
     <div className="mt-8 max-w-2xl mx-auto animate-fade-up">
       {/* Date picker */}
-      <div className="flex items-center justify-center gap-2 mb-6 overflow-x-auto pb-2">
-        <Calendar size={16} className="text-text-muted mr-2 shrink-0" />
-        {days.map((day, i) => (
-          <button
-            key={day.toISOString()}
-            onClick={() => setSelectedDayIdx(i)}
-            className={`shrink-0 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-300 ${
-              selectedDayIdx === i
-                ? 'border-orange bg-orange/10 text-text'
-                : 'border-border text-text-muted hover:border-orange/40 hover:text-text'
-            }`}
-          >
-            <div className="text-xs opacity-60">{formatDateLabel(day).split(' ')[0]}</div>
-            <div className="font-display font-bold">
-              {formatDateLabel(day).split(' ').slice(1).join(' ')}
-            </div>
-          </button>
-        ))}
+      <div className="relative mb-6">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 justify-center">
+          <Calendar size={16} className="text-text-muted mr-2 shrink-0" />
+          {days.map((day, i) => (
+            <button
+              key={day.toISOString()}
+              onClick={() => setSelectedDayIdx(i)}
+              className={`shrink-0 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-300 ${
+                selectedDayIdx === i
+                  ? 'border-orange bg-orange/10 text-text'
+                  : 'border-border text-text-muted hover:border-orange/40 hover:text-text'
+              }`}
+            >
+              <div className="text-xs opacity-60">{formatDateLabel(day).split(' ')[0]}</div>
+              <div className="font-display font-bold">
+                {formatDateLabel(day).split(' ').slice(1).join(' ')}
+              </div>
+            </button>
+          ))}
+        </div>
+        {/* Right-edge fade gradient — signals horizontal scroll on narrow screens */}
+        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-bg to-transparent pointer-events-none" />
       </div>
 
       {/* Time slots */}

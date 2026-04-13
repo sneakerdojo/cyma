@@ -56,7 +56,7 @@ export default function Services() {
     <section
       id="services"
       ref={sectionRef}
-      className="relative py-32 lg:py-40 bg-surface/30"
+      className="relative py-32 lg:py-40 bg-surface/30 overflow-hidden"
     >
       {/* Glow accent */}
       <div

@@ -1,6 +1,6 @@
 import { Suspense, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Float, Environment } from '@react-three/drei';
+import { Float } from '@react-three/drei';
 import * as THREE from 'three';
 import OctoOrb from './OctoOrb';
 import OctoEyes from './OctoEyes';
@@ -19,6 +19,8 @@ function MouseTracker({ children }: { children: React.ReactNode }) {
   const { viewport } = useThree();
 
   useFrame(({ pointer }) => {
+    // Option C: skip animation when tab is hidden to save GPU on mobile.
+    if (typeof document !== 'undefined' && document.hidden) return;
     if (!groupRef.current) return;
 
     // Smooth lerp toward mouse position
@@ -56,7 +58,10 @@ function Scene({ state }: OctoSceneProps) {
 
       <OctoParticles state={state} />
 
-      <Environment preset="studio" />
+      {/* Replaced HDR Environment preset (external CDN) with local lights for
+          reliable mobile loading — visually equivalent for a decorative orb. */}
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[10, 10, 5]} intensity={1} />
     </>
   );
 }
@@ -69,6 +74,17 @@ export default function OctoScene({ state, fullHeight = false }: OctoSceneProps)
         camera={{ position: [0, 0, fullHeight ? 11 : 4.5], fov: 45 }}
         gl={{ alpha: true, antialias: true }}
         style={{ background: 'transparent' }}
+        onCreated={({ gl }) => {
+          // Handle WebGL context loss gracefully (common on mobile with
+          // low GPU memory or when app is backgrounded).
+          gl.domElement.addEventListener('webglcontextlost', (e) => {
+            e.preventDefault();
+            console.warn('WebGL context lost');
+          });
+          gl.domElement.addEventListener('webglcontextrestored', () => {
+            console.info('WebGL context restored');
+          });
+        }}
       >
         <Suspense fallback={null}>
           <Scene state={state} />

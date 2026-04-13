@@ -53,7 +53,7 @@ export default function Navbar() {
           {/* Mobile menu button */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden p-2 text-text-muted hover:text-text transition-colors"
+            className="md:hidden p-3 text-text-muted hover:text-text transition-colors"
             aria-label="Toggle menu"
           >
             {menuOpen ? <X size={24} /> : <Menu size={24} />}

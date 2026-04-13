@@ -120,6 +120,7 @@ const WELCOME_MESSAGE = `Your discovery call is booked! I'm Octo — ask me anyt
 export default function FreeChatWidget({ sessionId, contactId, wizardContext }: FreeChatWidgetProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const isNearBottomRef = useRef(true);
   const [inputValue, setInputValue] = useState('');
 
   // Stable transport instance — only recreated if sessionId/contactId/context change.
@@ -161,10 +162,29 @@ export default function FreeChatWidget({ sessionId, contactId, wizardContext }: 
   const isLoading = status === 'streaming' || status === 'submitted';
   const isStreaming = status === 'streaming';
 
-  // Scroll to bottom whenever messages update or loading state changes.
+  // Track whether the user is near the bottom of the message list.
+  // Using a ref (not state) to avoid triggering re-renders on every scroll event.
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const threshold = 100; // px from bottom
+    isNearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+  }, []);
+
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-  }, [messages, isLoading]);
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', handleScroll, { passive: true });
+    return () => el.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
+
+  // Auto-scroll only when the user is already near the bottom.
+  // If they scrolled up to read history, leave them there.
+  useEffect(() => {
+    if (isNearBottomRef.current) {
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+    }
+  }, [messages, status]);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -182,8 +202,14 @@ export default function FreeChatWidget({ sessionId, contactId, wizardContext }: 
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      // Submit on Enter (without Shift) for chat-style UX.
-      if (e.key === 'Enter' && !e.shiftKey) {
+      // Only intercept Enter on non-touch devices (desktop).
+      // On mobile, Enter is the only way to insert a newline — intercepting it
+      // would make the textarea effectively single-line. Mobile users use the
+      // send button instead.
+      const isTouchDevice =
+        typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
+
+      if (e.key === 'Enter' && !e.shiftKey && !isTouchDevice) {
         e.preventDefault();
         handleSubmit(e as unknown as React.FormEvent);
       }
@@ -261,6 +287,11 @@ export default function FreeChatWidget({ sessionId, contactId, wizardContext }: 
           placeholder="Ask me anything about Octio..."
           disabled={isLoading}
           rows={1}
+          autoComplete="off"
+          autoCorrect="on"
+          spellCheck={true}
+          enterKeyHint="send"
+          inputMode="text"
           className="flex-1 px-5 py-3.5 bg-surface border border-border rounded-2xl text-text placeholder:text-text-muted/50 focus:outline-none focus:border-orange/50 focus:ring-1 focus:ring-orange/20 transition-all resize-none disabled:opacity-50 leading-relaxed"
           aria-label="Message input"
         />
@@ -279,7 +310,7 @@ export default function FreeChatWidget({ sessionId, contactId, wizardContext }: 
       </form>
 
       <p className="text-center text-xs text-text-muted/40">
-        Press Enter to send · Shift+Enter for new line
+        Desktop: Enter to send · Shift+Enter for new line
       </p>
     </div>
   );

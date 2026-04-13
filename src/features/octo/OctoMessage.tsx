@@ -32,9 +32,13 @@ export default function OctoMessage({ text, onComplete }: OctoMessageProps) {
   if (!text) return null;
 
   return (
-    <p className="font-display font-bold text-2xl sm:text-3xl md:text-4xl text-text text-center leading-tight max-w-3xl mx-auto">
-      {displayed}
-      {!done && <span className="inline-block w-0.5 h-8 bg-orange animate-pulse ml-1" />}
-    </p>
+    <div aria-live="polite">
+      {/* Full text exposed immediately for screen readers; hidden visually */}
+      <span className="sr-only">{text}</span>
+      <p aria-hidden="true" className="font-display font-bold text-2xl sm:text-3xl md:text-4xl text-text text-center leading-tight max-w-3xl mx-auto">
+        {displayed}
+        {!done && <span className="inline-block w-0.5 h-8 bg-orange animate-pulse ml-1" />}
+      </p>
+    </div>
   );
 }

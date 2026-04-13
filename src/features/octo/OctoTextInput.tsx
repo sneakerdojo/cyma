@@ -41,7 +41,20 @@ export default function OctoTextInput({
     setError(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+
+      // Pick the best supported MIME type — iOS Safari records mp4, not webm
+      let mimeType = 'audio/webm';
+      if (typeof MediaRecorder !== 'undefined' && !MediaRecorder.isTypeSupported('audio/webm')) {
+        if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4';
+        } else if (MediaRecorder.isTypeSupported('audio/mpeg')) {
+          mimeType = 'audio/mpeg';
+        } else {
+          mimeType = ''; // let the browser choose
+        }
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -50,7 +63,8 @@ export default function OctoTextInput({
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        // Use the recorder's actual MIME type so the Blob matches what was recorded
+        const blob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType || 'audio/webm' });
         stream.getTracks().forEach((t) => t.stop());
         if (blob.size > 10 * 1024 * 1024) {
           setError('Recording too large — try a shorter message.');
@@ -85,7 +99,7 @@ export default function OctoTextInput({
         maxDurationTimerRef.current = null;
       }, 300_000);
     } catch {
-      setError('Mic access denied. You can still type or attach a file.');
+      setError('Microphone access denied. You can type or attach a file instead. To enable voice, check your browser permissions.');
     }
   }, []);
 
@@ -199,7 +213,7 @@ export default function OctoTextInput({
           <button
             type="button"
             onClick={discardVoice}
-            className="w-7 h-7 rounded-full border border-border flex items-center justify-center text-text-muted hover:text-text hover:border-orange/40 transition-all"
+            className="p-2 rounded-full border border-border flex items-center justify-center text-text-muted hover:text-text hover:border-orange/40 transition-all"
             aria-label="Remove voice note"
           >
             <X size={14} />
@@ -221,7 +235,7 @@ export default function OctoTextInput({
           <button
             type="button"
             onClick={removeFile}
-            className="w-7 h-7 rounded-full border border-border flex items-center justify-center text-text-muted hover:text-text hover:border-orange/40 transition-all"
+            className="p-2 rounded-full border border-border flex items-center justify-center text-text-muted hover:text-text hover:border-orange/40 transition-all"
             aria-label="Remove file"
           >
             <X size={14} />
@@ -230,7 +244,20 @@ export default function OctoTextInput({
       )}
 
       {/* Error */}
-      {error && <p className="mt-3 text-xs text-orange-light">{error}</p>}
+      {error && (
+        <div className="mt-3 flex items-center gap-3">
+          <p className="text-xs text-orange-light flex-1">{error}</p>
+          {error.includes('access denied') && (
+            <button
+              type="button"
+              onClick={startRecording}
+              className="shrink-0 text-xs font-medium text-text-muted border border-border px-3 py-1.5 rounded-full hover:border-orange/40 hover:text-text transition-all"
+            >
+              Try again
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Actions */}
       <div className="mt-4 flex items-center justify-between gap-3">
