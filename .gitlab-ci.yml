@@ -6,13 +6,17 @@ services:
 stages:
   - build
   - package
+  - deploy
+
+# =============================================================================
+# Build stage — compile the Vite SPA
+# =============================================================================
 
 build:
   image: node:22-alpine
   stage: build
   only:
     - main
-    - qa
   before_script:
     - corepack enable
     - corepack prepare pnpm@10.33.0 --activate
@@ -22,19 +26,97 @@ build:
   artifacts:
     paths:
       - dist/
-    expire_in: 1 day
+    expire_in: 1 week
+
+# =============================================================================
+# Package stage — build the nginx image and push to registry
+# =============================================================================
 
 package:
   stage: package
   only:
     - main
-    - qa
   script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.com
     - docker build -f Prod.Dockerfile
         -t "registry.gitlab.com/octio-dev/octio-website:latest"
-        -t "registry.gitlab.com/octio-dev/octio-website:qa"
         -t "registry.gitlab.com/octio-dev/octio-website:$CI_COMMIT_SHORT_SHA" .
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.com
     - docker push "registry.gitlab.com/octio-dev/octio-website:latest"
-    - docker push "registry.gitlab.com/octio-dev/octio-website:qa"
     - docker push "registry.gitlab.com/octio-dev/octio-website:$CI_COMMIT_SHORT_SHA"
+
+# =============================================================================
+# Deploy stage — SSH to target host, docker compose pull/up, reload gateway
+# =============================================================================
+#
+# Both environments run the same image and pull from the same `:latest` tag.
+# deploy:qa fires automatically after package on every main commit (internal
+# site reachable via WireGuard mesh at octio-website-qa.octio.local). Use it
+# to smoke-test the latest image before promoting to prod.
+#
+# deploy:production is manual — trigger it from the pipeline UI once QA looks
+# good. It deploys the exact same image to infra-01 behind https://octio.co.za/.
+
+.deploy-base: &deploy-base
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - |
+      if [ -f "$SSH_PRIVATE_KEY" ]; then
+        chmod 600 "$SSH_PRIVATE_KEY"
+        ssh-add "$SSH_PRIVATE_KEY"
+      else
+        echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+      fi
+    - mkdir -p ~/.ssh
+    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+
+deploy:qa:
+  <<: *deploy-base
+  environment:
+    name: qa
+  script:
+    - |
+      ssh -p $DEPLOY_SSH_PORT $DEPLOY_USER@$DEPLOY_HOST_QA bash -s <<'REMOTE'
+        set -e
+        cd /opt/stacks/octio-website-qa
+        echo "Pulling latest image..."
+        docker compose pull
+        echo "Recreating container..."
+        docker compose up -d --force-recreate
+        echo "Waiting for healthcheck..."
+        timeout 60 bash -c 'until docker inspect octio-website-qa --format "{{.State.Health.Status}}" 2>/dev/null | grep -q healthy; do sleep 2; done'
+        echo "Reloading gateway..."
+        docker kill --signal=HUP gateway 2>/dev/null || docker restart gateway
+        docker compose ps
+      REMOTE
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: on_success
+    - when: never
+
+deploy:production:
+  <<: *deploy-base
+  environment:
+    name: production
+  script:
+    - |
+      ssh -p $DEPLOY_SSH_PORT $DEPLOY_USER@$DEPLOY_HOST_PROD bash -s <<'REMOTE'
+        set -e
+        cd /opt/stacks/octio-website-prd
+        echo "Pulling latest image..."
+        docker compose pull
+        echo "Recreating container..."
+        docker compose up -d --force-recreate
+        echo "Waiting for healthcheck..."
+        timeout 60 bash -c 'until docker inspect octio-website-prd --format "{{.State.Health.Status}}" 2>/dev/null | grep -q healthy; do sleep 2; done'
+        echo "Reloading gateway..."
+        docker kill --signal=HUP gateway 2>/dev/null || docker restart gateway
+        docker compose ps
+      REMOTE
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: manual
+    - when: never
