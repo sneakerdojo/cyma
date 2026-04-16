@@ -235,7 +235,7 @@ stepRoutes.post('/', async (c) => {
     // generate placeholder slots for the next 5 business days so the UI works.
     // These are indicative — the actual booking will re-check availability.
     if (slots.length === 0) {
-      const placeholderSlots: typeof slots = [];
+      const placeholderSlots: Array<{ start: string; end: string; label: string }> = [];
       const now = new Date();
       const times = ['09:00', '11:00', '14:00', '16:00'];
       let cursor = new Date(now);

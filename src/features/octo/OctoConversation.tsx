@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { MessageCircle, Video, CalendarPlus, AlertTriangle, RefreshCw, X } from 'lucide-react';
 import type { OrbState } from '../chat/InteractiveChat';
 import OctoMessage from './OctoMessage';
@@ -8,6 +8,7 @@ import OctoContactForm from './OctoContactForm';
 import OctoTimeSlot from './OctoTimeSlot';
 import OctoFreeChat from './OctoFreeChat';
 import OctoStepIndicator from './OctoStepIndicator';
+import OctoIdentify, { type IdentityData } from './OctoIdentify';
 import { useWizardState } from './useWizardState';
 import type {
   OctoAnimState,
@@ -49,7 +50,72 @@ export default function OctoConversation({ onClose, onStateChange }: OctoConvers
     hasResumedSession,
   } = useWizardState();
 
+  // ── Identify gate ─────────────────────────────────────────────────────────
+  // `identified` starts false on every fresh mount — no localStorage persistence
+  // per product spec. If the user refreshes mid-wizard the gate shows again.
+  const [identified, setIdentified] = useState(false);
+  const [identityData, setIdentityData] = useState<IdentityData | null>(null);
+
+  const handleIdentified = useCallback(
+    (data: IdentityData) => {
+      setIdentityData(data);
+      setIdentified(true);
+
+      if (data.returning) {
+        // Returning user with a confirmed booking — skip the full wizard and
+        // jump directly to freechat. Pre-fill contact so the chat agent has
+        // identity context from the first message.
+        dispatch({
+          type: 'SUBMIT_CONTACT',
+          payload: {
+            name: `${data.firstName} ${data.surname}`,
+            email: data.email,
+            company: data.company,
+            phone: data.phone,
+          },
+        });
+        void goToFreeChat();
+        return;
+      }
+
+      // New user or known contact without a confirmed booking — start wizard
+      // with contact pre-filled. The contact step will be auto-skipped below.
+      dispatch({
+        type: 'SUBMIT_CONTACT',
+        payload: {
+          name: `${data.firstName} ${data.surname}`,
+          email: data.email,
+          company: data.company,
+          phone: data.phone,
+        },
+      });
+
+      if (hasResumedSession) {
+        showChoices();
+        return;
+      }
+      startGreeting();
+    },
+    [dispatch, goToFreeChat, hasResumedSession, showChoices, startGreeting]
+  );
+
+  // ── Auto-skip the contact step for identified users ────────────────────────
+  // When the wizard reaches the 'contact' step and the user is already
+  // identified, silently advance — they already gave us this information.
   useEffect(() => {
+    if (!identified || state.step !== 'contact' || !identityData) return;
+
+    // Dispatch NEXT_STEP to move past the contact step without displaying the form.
+    // We rely on the fact that SUBMIT_CONTACT was already dispatched in
+    // handleIdentified so the contact data is already in state.
+    dispatch({ type: 'NEXT_STEP' });
+  }, [identified, state.step, identityData, dispatch]);
+
+  useEffect(() => {
+    // Identify gate must clear before we start the greeting. The greeting
+    // effect fires only once (empty dep array below) so we gate it here.
+    if (!identified) return;
+
     // If the user is picking up a resumed session, don't overwrite their
     // progress with a fresh greeting. Jump straight to showing choices for
     // whatever step they were on.
@@ -59,7 +125,7 @@ export default function OctoConversation({ onClose, onStateChange }: OctoConvers
     }
     startGreeting();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [identified]);
 
   // When the user closes the wizard after completing, clear the saved
   // session so the next visit starts fresh.
@@ -127,6 +193,15 @@ export default function OctoConversation({ onClose, onStateChange }: OctoConvers
     },
     [transitionToStep]
   );
+
+  // ── Identify gate — shown before any wizard step ─────────────────────────
+  if (!identified) {
+    return (
+      <div className="w-full max-w-4xl mx-auto px-6">
+        <OctoIdentify onIdentified={handleIdentified} />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-4xl mx-auto px-6">

@@ -19,6 +19,7 @@ export interface ContactInfo {
   name: string;
   email: string;
   company: string;
+  phone?: string; // SA format (+27...) — captured during identify step
 }
 
 export interface RequirementsPayload {

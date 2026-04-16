@@ -114,7 +114,7 @@ export function base64url(message: string): string {
 // Private send helper (single responsibility: talk to Gmail API)
 // ---------------------------------------------------------------------------
 
-async function sendEmail(options: SendEmailOptions): Promise<string> {
+export async function sendEmail(options: SendEmailOptions): Promise<string> {
   const auth = getOAuth2Client();
   const gmail = google.gmail({ version: 'v1', auth });
 

@@ -60,6 +60,28 @@ const configSchema = z.object({
         ? 'https://octio.co.za/uploads'
         : 'http://localhost:3000/uploads'),
     ),
+  /**
+   * Base URL used to construct links in outbound emails (e.g. deletion confirmation).
+   * Defaults to localhost in development; should be the public API origin in production.
+   */
+  apiBaseUrl: z
+    .string()
+    .optional()
+    .transform((val) =>
+      val ??
+      (process.env.NODE_ENV === 'production'
+        ? 'https://api.octio.co.za'
+        : 'http://localhost:3005'),
+    ),
+  /**
+   * HMAC secret used to sign and verify POPIA deletion confirmation tokens.
+   * Must be set in production. In development a default insecure value is used
+   * so the server boots without explicit configuration.
+   */
+  deletionSecret: z
+    .string()
+    .optional()
+    .transform((val) => val ?? 'dev-deletion-secret-change-in-production'),
 });
 
 const parsed = configSchema.safeParse({
@@ -85,6 +107,8 @@ const parsed = configSchema.safeParse({
   outreachGroupEmail: process.env.OUTREACH_GROUP_EMAIL,
   uploadDir: process.env.UPLOAD_DIR,
   uploadPublicUrlBase: process.env.UPLOAD_PUBLIC_URL_BASE,
+  apiBaseUrl: process.env.API_BASE_URL,
+  deletionSecret: process.env.DELETION_SECRET,
 });
 
 if (!parsed.success) {
