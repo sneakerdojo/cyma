@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
+import Markdown from 'react-markdown';
 import { Send, AlertCircle, RefreshCw, Loader2 } from 'lucide-react';
 import type { ContactInfo } from '../octo/types';
 
@@ -24,61 +25,13 @@ export interface FreeChatWidgetProps {
 }
 
 // ---------------------------------------------------------------------------
-// AssistantBubble — lightweight typewriter effect for assistant messages.
-// OctoMessage is a heading-level wizard component; it is not reusable here
-// because (1) it anchors to large display typography and (2) it calls
-// onComplete() which wires into wizard-step state machine transitions.
+// AssistantBubble — renders streamed markdown content via react-markdown.
 // ---------------------------------------------------------------------------
 
-interface AssistantBubbleProps {
-  content: string;
-  /** When true the message is still streaming — skip typewriter, show live text */
-  isStreaming?: boolean;
-}
-
-function AssistantBubble({ content, isStreaming = false }: AssistantBubbleProps) {
-  const [displayed, setDisplayed] = useState('');
-  const [done, setDone] = useState(false);
-  const prevContentRef = useRef('');
-
-  useEffect(() => {
-    // While streaming, show text as-is without the typewriter lag.
-    if (isStreaming) {
-      setDisplayed(content);
-      setDone(false);
-      prevContentRef.current = content;
-      return;
-    }
-
-    // Once streaming stops, play typewriter from the last streamed position.
-    const startIdx = prevContentRef.current.length;
-    if (startIdx >= content.length) {
-      setDone(true);
-      return;
-    }
-
-    setDone(false);
-    let idx = startIdx;
-
-    const interval = setInterval(() => {
-      idx++;
-      setDisplayed(content.slice(0, idx));
-      if (idx >= content.length) {
-        clearInterval(interval);
-        setDone(true);
-        prevContentRef.current = content;
-      }
-    }, 18);
-
-    return () => clearInterval(interval);
-  }, [content, isStreaming]);
-
+function AssistantBubble({ content }: { content: string }) {
   return (
-    <div className="max-w-[85%] px-4 py-3 rounded-2xl rounded-bl-md text-sm leading-relaxed bg-surface border border-border text-text">
-      {isStreaming ? content : displayed}
-      {!done && !isStreaming && (
-        <span className="inline-block w-0.5 h-3.5 bg-orange animate-pulse ml-0.5 align-middle" />
-      )}
+    <div className="max-w-[85%] px-4 py-3 rounded-2xl rounded-bl-md text-sm leading-relaxed bg-surface border border-border text-text prose prose-invert prose-sm prose-p:my-1 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 prose-headings:text-orange prose-headings:mt-2 prose-headings:mb-1 prose-strong:text-text prose-code:text-orange prose-code:bg-bg prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:before:content-none prose-code:after:content-none max-w-none">
+      <Markdown>{content}</Markdown>
     </div>
   );
 }
@@ -102,10 +55,13 @@ function UserBubble({ content }: { content: string }) {
 function ThinkingDots() {
   return (
     <div className="flex justify-start">
-      <div className="px-4 py-3 rounded-2xl rounded-bl-md bg-surface border border-border flex items-center gap-1.5">
-        <span className="w-1.5 h-1.5 rounded-full bg-orange animate-bounce" style={{ animationDelay: '0ms' }} />
-        <span className="w-1.5 h-1.5 rounded-full bg-orange animate-bounce" style={{ animationDelay: '150ms' }} />
-        <span className="w-1.5 h-1.5 rounded-full bg-orange animate-bounce" style={{ animationDelay: '300ms' }} />
+      <div className="flex flex-col items-center gap-1.5 px-4 py-2">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-orange animate-bounce" style={{ animationDelay: '0ms' }} />
+          <span className="w-2 h-2 rounded-full bg-orange animate-bounce" style={{ animationDelay: '150ms' }} />
+          <span className="w-2 h-2 rounded-full bg-orange animate-bounce" style={{ animationDelay: '300ms' }} />
+        </div>
+        <span className="text-[11px] text-text-muted">typing</span>
       </div>
     </div>
   );
@@ -222,7 +178,12 @@ export default function FreeChatWidget({ sessionId, contactId, wizardContext }: 
     // Bug #11: actually re-send the last user message instead of only clearing the error
     const lastUserMessage = messages.filter((m) => m.role === 'user').at(-1);
     if (lastUserMessage) {
-      const text = typeof lastUserMessage.content === 'string' ? lastUserMessage.content : '';
+      const text =
+        lastUserMessage.parts
+          ?.filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+          .map((p) => p.text)
+          .join('') ||
+        (typeof lastUserMessage.content === 'string' ? lastUserMessage.content : '');
       if (text) {
         void sendMessage({ text });
       }
@@ -240,15 +201,25 @@ export default function FreeChatWidget({ sessionId, contactId, wizardContext }: 
       >
         {messages.map((msg, idx) => {
           const isLastMessage = idx === messages.length - 1;
-          const content = typeof msg.content === 'string' ? msg.content : '';
+
+          // ai v6 UIMessage uses `parts` array instead of `content` string.
+          const content =
+            msg.parts
+              ?.filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+              .map((p) => p.text)
+              .join('') ||
+            (typeof msg.content === 'string' ? msg.content : '');
+
+          // Hide the last assistant message while it's still streaming —
+          // we buffer the full response and show ThinkingDots instead,
+          // then reveal the complete formatted markdown once done.
+          const isBuffering = isLastMessage && msg.role === 'assistant' && isLoading;
+          if (isBuffering) return null;
 
           return (
             <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               {msg.role === 'assistant' ? (
-                <AssistantBubble
-                  content={content}
-                  isStreaming={isStreaming && isLastMessage}
-                />
+                <AssistantBubble content={content} />
               ) : (
                 <UserBubble content={content} />
               )}
@@ -256,8 +227,8 @@ export default function FreeChatWidget({ sessionId, contactId, wizardContext }: 
           );
         })}
 
-        {/* Show dots only while submitted but not yet streaming */}
-        {status === 'submitted' && <ThinkingDots />}
+        {/* Show typing indicator while waiting for or buffering response */}
+        {isLoading && <ThinkingDots />}
       </div>
 
       {/* Error banner */}

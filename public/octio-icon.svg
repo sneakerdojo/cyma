@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 460" fill="none">
+  <!--
+    Octio octopus icon — circuit-board tentacles
+    Brand color: #E8862A
+    Scales infinitely as SVG — no more squashing at small sizes
+  -->
+  <g stroke="#E8862A" fill="none">
+    <!-- Head — arc with gap at bottom for tentacles to emerge -->
+    <path d="M85 225 A110 110 0 1 1 215 225" stroke-width="24" stroke-linecap="round"/>
+
+    <!-- Eyes -->
+    <circle cx="127" cy="145" r="11" fill="#E8862A" stroke="none"/>
+    <circle cx="173" cy="145" r="11" fill="#E8862A" stroke="none"/>
+
+    <!-- Tentacle 1 — far left, curves outward -->
+    <path d="M85 225 C85 250, 70 270, 55 300 Q45 325, 45 340" stroke-width="16" stroke-linecap="round"/>
+    <circle cx="45" cy="350" r="18" stroke-width="12"/>
+
+    <!-- Tentacle 2 — inner left, curves slightly then down -->
+    <path d="M108 230 C108 255, 95 275, 90 310 L90 340" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="90" cy="355" r="16" stroke-width="11"/>
+
+    <!-- Tentacle 3 — center left, straight down with U-bend -->
+    <path d="M130 232 L130 355 Q130 380, 140 380" stroke-width="13" stroke-linecap="round"/>
+    <circle cx="140" cy="395" r="14" stroke-width="10"/>
+
+    <!-- Tentacle 4 — center right, straight down -->
+    <path d="M160 232 L160 340 Q160 365, 170 365" stroke-width="13" stroke-linecap="round"/>
+    <circle cx="170" cy="375" r="14" stroke-width="10"/>
+
+    <!-- Tentacle 5 — inner right, curves slightly then down -->
+    <path d="M192 230 C192 255, 205 275, 210 310 L215 330" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="218" cy="345" r="16" stroke-width="11"/>
+
+    <!-- Tentacle 6 — far right, curves outward -->
+    <path d="M215 225 C215 250, 230 270, 245 300 Q255 325, 255 340" stroke-width="16" stroke-linecap="round"/>
+    <circle cx="255" cy="350" r="18" stroke-width="12"/>
+  </g>
+</svg>

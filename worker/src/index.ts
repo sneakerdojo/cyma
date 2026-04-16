@@ -5,6 +5,7 @@ import { logger } from './logger.js';
 import { Hono } from 'hono';
 import { bookRoutes } from './routes/book.js';
 import { chatRoutes } from './routes/chat.js';
+import { stepRoutes } from './routes/step.js';
 import { cors } from 'hono/cors';
 import { logger as honoLogger } from 'hono/logger';
 import { serve } from '@hono/node-server';
@@ -42,6 +43,7 @@ app.use('/api/*', rateLimitMiddleware('ip-only'));
 // ------------------------------------------------------------------
 app.route('/api', bookRoutes);
 app.route('/chat', chatRoutes);
+app.route('/chat/step', stepRoutes);
 
 app.get('/health', async (c) => {
   try {

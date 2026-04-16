@@ -71,13 +71,45 @@ function decodeRawMessage(raw: string): string {
 }
 
 /**
+ * Decode an RFC 2047 encoded-word header value (`=?UTF-8?B?<base64>?=`).
+ * Returns the value unchanged if not encoded.
+ */
+function decodeHeaderValue(value: string): string {
+  const match = value.match(/^=\?UTF-8\?B\?(.+)\?=$/);
+  if (match) {
+    return Buffer.from(match[1], 'base64').toString('utf-8');
+  }
+  return value;
+}
+
+/**
  * Extract a named header value from a decoded RFC 2822 message.
+ * Automatically decodes RFC 2047 encoded-word values so tests can assert
+ * against plain UTF-8 strings regardless of header encoding.
  */
 function extractHeader(decoded: string, header: string): string | undefined {
   const lines = decoded.split('\r\n');
   const prefix = `${header}: `;
   const line = lines.find((l) => l.toLowerCase().startsWith(prefix.toLowerCase()));
-  return line ? line.slice(prefix.length) : undefined;
+  if (!line) return undefined;
+  return decodeHeaderValue(line.slice(prefix.length));
+}
+
+/**
+ * Extract and decode the base64-encoded body from a decoded RFC 2822 message.
+ * The builder folds base64 at 76 chars with CRLF — unfold before decoding.
+ */
+function extractBody(decoded: string): string {
+  const separator = decoded.indexOf('\r\n\r\n');
+  if (separator === -1) return '';
+  const body = decoded.slice(separator + 4);
+  // Unfold base64 (remove CRLF line breaks inserted every 76 chars)
+  const unfolded = body.replace(/\r\n/g, '');
+  try {
+    return Buffer.from(unfolded, 'base64').toString('utf-8');
+  } catch {
+    return body;
+  }
 }
 
 function makeIntake(overrides: Partial<BookingIntake> = {}): BookingIntake {
@@ -141,10 +173,11 @@ describe('sendBookingConfirmation', () => {
 
     const { raw } = (mockSend.mock.calls[0][0] as { requestBody: { raw: string } }).requestBody;
     const decoded = decodeRawMessage(raw);
+    const body = extractBody(decoded);
 
-    expect(decoded).toContain(calendar.meetLink);
-    expect(decoded).toContain(intake.selectedSlot.label);
-    expect(decoded).toContain(intake.selectedService);
+    expect(body).toContain(calendar.meetLink);
+    expect(body).toContain(intake.selectedSlot.label);
+    expect(body).toContain(intake.selectedService);
   });
 
   it('returns the message ID from the Gmail API response', async () => {
@@ -160,12 +193,13 @@ describe('sendBookingConfirmation', () => {
 
     const { raw } = (mockSend.mock.calls[0][0] as { requestBody: { raw: string } }).requestBody;
     const decoded = decodeRawMessage(raw);
+    const body = extractBody(decoded);
 
     // The first 200 x's followed by "..." must appear; the 201st char must NOT appear raw
     const truncated = `${'x'.repeat(200)}...`;
-    expect(decoded).toContain(truncated);
+    expect(body).toContain(truncated);
     // 500 x's in a row should NOT appear (only 200 were kept)
-    expect(decoded).not.toContain('x'.repeat(201));
+    expect(body).not.toContain('x'.repeat(201));
   });
 });
 
@@ -187,15 +221,16 @@ describe('sendInternalAlert', () => {
 
   it('includes the provided subject and body in the decoded message', async () => {
     const subject = 'HOT LEAD: Jane from Acme';
-    const body = 'She asked about AI agents.';
+    const bodyText = 'She asked about AI agents.';
 
-    await sendInternalAlert(subject, body);
+    await sendInternalAlert(subject, bodyText);
 
     const { raw } = (mockSend.mock.calls[0][0] as { requestBody: { raw: string } }).requestBody;
     const decoded = decodeRawMessage(raw);
+    const body = extractBody(decoded);
 
     expect(extractHeader(decoded, 'Subject')).toBe(subject);
-    expect(decoded).toContain(body);
+    expect(body).toContain(bodyText);
   });
 });
 
@@ -240,11 +275,12 @@ describe('XSS escaping in HTML email bodies', () => {
 
     const { raw } = (mockSend.mock.calls[0][0] as { requestBody: { raw: string } }).requestBody;
     const decoded = decodeRawMessage(raw);
+    const body = extractBody(decoded);
 
     // The escaped form must appear in the body
-    expect(decoded).toContain('&lt;script&gt;');
+    expect(body).toContain('&lt;script&gt;');
     // The raw tag must NOT appear
-    expect(decoded).not.toContain('<script>');
+    expect(body).not.toContain('<script>');
   });
 
   it('escapes HTML in internal alert body', async () => {
@@ -254,9 +290,78 @@ describe('XSS escaping in HTML email bodies', () => {
 
     const { raw } = (mockSend.mock.calls[0][0] as { requestBody: { raw: string } }).requestBody;
     const decoded = decodeRawMessage(raw);
+    const body = extractBody(decoded);
 
-    expect(decoded).toContain('&lt;img');
-    expect(decoded).not.toContain('<img');
+    expect(body).toContain('&lt;img');
+    expect(body).not.toContain('<img');
+  });
+});
+
+describe('UTF-8 encoding of headers and body (mojibake prevention)', () => {
+  beforeEach(() => {
+    mockSend.mockClear();
+  });
+
+  it('RFC 2047 encodes subject containing em dash and middle dot', async () => {
+    const intake = makeIntake({
+      selectedSlot: { label: 'Tue 14 Apr · 10:00 AM' },
+    });
+
+    await sendBookingConfirmation(intake, makeCalendarResult());
+
+    const { raw } = (mockSend.mock.calls[0][0] as { requestBody: { raw: string } }).requestBody;
+    const decoded = decodeRawMessage(raw);
+
+    // The raw Subject header must be in RFC 2047 encoded-word format
+    const lines = decoded.split('\r\n');
+    const rawSubject = lines.find((l) => l.startsWith('Subject: '))?.slice('Subject: '.length);
+    expect(rawSubject).toMatch(/^=\?UTF-8\?B\?.+\?=$/);
+
+    // When decoded, the subject must contain the original non-ASCII characters
+    expect(extractHeader(decoded, 'Subject')).toBe(
+      'Your Octio discovery call is locked in — Tue 14 Apr · 10:00 AM',
+    );
+  });
+
+  it('pure ASCII subject is not RFC 2047 encoded (stays readable)', async () => {
+    await sendInternalAlert('HOT LEAD: Jane', 'Body text');
+
+    const { raw } = (mockSend.mock.calls[0][0] as { requestBody: { raw: string } }).requestBody;
+    const decoded = decodeRawMessage(raw);
+    const lines = decoded.split('\r\n');
+    const rawSubject = lines.find((l) => l.startsWith('Subject: '))?.slice('Subject: '.length);
+
+    // ASCII subjects pass through unchanged — no encoded-word wrapping
+    expect(rawSubject).toBe('HOT LEAD: Jane');
+  });
+
+  it('body is base64-encoded with Content-Transfer-Encoding: base64 header', async () => {
+    await sendBookingConfirmation(makeIntake(), makeCalendarResult());
+
+    const { raw } = (mockSend.mock.calls[0][0] as { requestBody: { raw: string } }).requestBody;
+    const decoded = decodeRawMessage(raw);
+
+    expect(decoded).toContain('Content-Transfer-Encoding: base64');
+    expect(decoded).toContain('Content-Type: text/html; charset=utf-8');
+  });
+
+  it('non-ASCII characters in body survive the base64 round trip', async () => {
+    const intake = makeIntake({
+      requirements: 'Need AI agents — urgent · high priority · ZAR R500k+',
+      selectedSlot: { label: 'Wed 15 Apr · 14:00' },
+    });
+
+    await sendBookingConfirmation(intake, makeCalendarResult());
+
+    const { raw } = (mockSend.mock.calls[0][0] as { requestBody: { raw: string } }).requestBody;
+    const decoded = decodeRawMessage(raw);
+    const body = extractBody(decoded);
+
+    // Original UTF-8 characters must round-trip correctly — no mojibake
+    expect(body).toContain('—');
+    expect(body).toContain('·');
+    expect(body).toContain('Wed 15 Apr · 14:00');
+    expect(body).not.toContain('Ã¢'); // The mojibake signature
   });
 });
 

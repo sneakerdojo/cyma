@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Octio Conversational UI — Interactive Mockup v3</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { background:#06060C; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:#F0EDE8; height:100vh; overflow:hidden; }
+
+  .container { height:100vh; display:flex; flex-direction:column; max-width:480px; margin:0 auto; position:relative; }
+
+  /* Demo tab bar (not in real UI) */
+  .demo-tabs { flex-shrink:0; display:flex; justify-content:center; gap:4px; padding:6px 16px 0; background:#06060C; }
+  .demo-tab { padding:5px 10px; font-size:10px; border-radius:6px; cursor:pointer; border:1px solid transparent; color:#7A7A8C; transition:all 0.15s; white-space:nowrap; }
+  .demo-tab.active { background:#0D0D1A; border-color:#1E1E30; color:#F0EDE8; }
+  .demo-tab:hover { color:#F0EDE8; }
+
+  /* Header — close + history */
+  .header { flex-shrink:0; display:flex; justify-content:space-between; align-items:center; padding:8px 20px 0; }
+  .header-btn { padding:5px 12px; font-size:11px; color:#7A7A8C; border:1px solid #1E1E30; border-radius:8px; background:transparent; cursor:pointer; transition:all 0.15s; }
+  .header-btn:hover { color:#F0EDE8; border-color:#E8862A; }
+  .header-btn.active { color:#E8862A; border-color:#E8862A; }
+
+  /* Orb zone */
+  .orb-zone { flex-shrink:0; display:flex; flex-direction:column; align-items:center; padding:16px 0 12px; }
+  .orb { width:120px; height:120px; border-radius:50%; background:radial-gradient(circle at 40% 40%, #F5A54B, #E8862A 50%, #c0601a 100%); box-shadow:0 0 70px rgba(232,134,42,0.25); position:relative; animation:float 4s ease-in-out infinite; transition:all 0.4s; }
+  .orb.thinking { animation:float 1.5s ease-in-out infinite; box-shadow:0 0 120px rgba(232,134,42,0.4); }
+  .orb.listening { animation:listen 0.8s ease-in-out infinite; box-shadow:0 0 100px rgba(232,134,42,0.5); }
+  @keyframes listen { 0%,100% { transform:scale(1); } 50% { transform:scale(1.06); } }
+  .orb .eye { position:absolute; top:45%; width:7px; height:12px; background:#fff; border-radius:50%; }
+  .orb .eye.l { left:36%; }
+  .orb .eye.r { left:56%; }
+  .orb-label { margin-top:8px; font-size:13px; font-weight:600; letter-spacing:0.5px; color:#E8862A; }
+  @keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-5px); } }
+
+  /* History drawer */
+  .history-drawer { max-height:0; overflow:hidden; transition:max-height 0.3s ease; padding:0 20px; }
+  .history-drawer.open { max-height:300px; padding-bottom:10px; }
+  .history-title { font-size:10px; color:#7A7A8C; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }
+  .history-item { display:flex; align-items:center; justify-content:space-between; padding:7px 12px; background:#0D0D1A; border:1px solid #1E1E30; border-radius:8px; font-size:12px; margin-bottom:5px; }
+  .history-label { color:#7A7A8C; }
+  .history-value { color:#F0EDE8; font-weight:500; }
+  .history-edit { color:#E8862A; cursor:pointer; font-size:10px; margin-left:8px; }
+
+  /* Step zone — fills remaining space */
+  .step { flex:1; display:flex; flex-direction:column; padding:0 20px 20px; overflow-y:auto; }
+  .step h2 { font-size:18px; font-weight:600; line-height:1.3; margin-bottom:6px; }
+  .step .detail { font-size:12px; color:#7A7A8C; line-height:1.5; margin-bottom:18px; }
+
+  /* Choice buttons */
+  .choices { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+  .choice-btn { padding:10px 16px; background:#0D0D1A; border:1px solid #1E1E30; border-radius:10px; color:#F0EDE8; font-size:13px; cursor:pointer; transition:all 0.15s; }
+  .choice-btn:hover { border-color:#E8862A; background:#141428; }
+  .choice-btn.selected { border-color:#E8862A; background:#1a1a2e; color:#E8862A; }
+
+  /* Integrated text fallback (part of each component) */
+  .or-label { font-size:11px; color:#7A7A8C; margin:10px 0 4px; }
+  .text-fallback { display:flex; gap:8px; align-items:center; }
+  .text-fallback input, .text-fallback textarea {
+    flex:1; padding:10px 14px; background:#0D0D1A; border:1px solid #1E1E30;
+    border-radius:10px; color:#F0EDE8; font-size:13px; outline:none; font-family:inherit;
+  }
+  .text-fallback input:focus, .text-fallback textarea:focus { border-color:#E8862A; }
+  .text-fallback textarea { resize:none; line-height:1.5; height:100px; }
+  .icon-btn { width:36px; height:36px; flex-shrink:0; border-radius:50%; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
+  .mic-btn { background:#0D0D1A; border:1px solid #1E1E30; color:#7A7A8C; }
+  .mic-btn:hover { border-color:#E8862A; color:#E8862A; }
+  .mic-btn.recording { background:#E8862A; color:#06060C; border-color:#E8862A; animation:pulse 1s infinite; }
+  .send-btn { background:#E8862A; color:#06060C; }
+  .send-btn:hover { background:#F5A54B; }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+
+  /* Checkboxes */
+  .check-list { display:flex; flex-direction:column; gap:7px; margin-bottom:12px; }
+  .check-item { display:flex; align-items:center; gap:10px; padding:10px 12px; background:#0D0D1A; border:1px solid #1E1E30; border-radius:9px; cursor:pointer; font-size:13px; transition:border-color 0.15s; }
+  .check-item:hover { border-color:#3a3a5c; }
+  .check-item.checked { border-color:#E8862A; }
+  .checkbox { width:18px; height:18px; border:2px solid #1E1E30; border-radius:4px; display:flex; align-items:center; justify-content:center; transition:all 0.15s; flex-shrink:0; }
+  .check-item.checked .checkbox { background:#E8862A; border-color:#E8862A; }
+  .confirm-btn { padding:9px 22px; background:#E8862A; border:none; border-radius:9px; color:#06060C; font-size:13px; font-weight:600; cursor:pointer; transition:background 0.15s; }
+  .confirm-btn:hover { background:#F5A54B; }
+
+  /* File upload */
+  .upload-zone { border:2px dashed #1E1E30; border-radius:12px; padding:28px 16px; text-align:center; cursor:pointer; transition:border-color 0.15s; margin-bottom:12px; }
+  .upload-zone:hover { border-color:#E8862A; }
+  .upload-icon { font-size:24px; margin-bottom:6px; color:#E8862A; }
+  .upload-main { font-size:13px; margin-bottom:3px; }
+  .upload-sub { font-size:11px; color:#7A7A8C; }
+  .skip-btn { padding:7px 18px; background:transparent; border:1px solid #1E1E30; border-radius:9px; color:#7A7A8C; font-size:12px; cursor:pointer; transition:all 0.15s; margin-bottom:8px; }
+  .skip-btn:hover { color:#F0EDE8; border-color:#E8862A; }
+
+  /* Form */
+  .form-fields { display:flex; flex-direction:column; gap:10px; margin-bottom:12px; }
+  .form-field label { display:block; font-size:11px; color:#7A7A8C; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px; }
+  .form-field input { width:100%; padding:10px 14px; background:#0D0D1A; border:1px solid #1E1E30; border-radius:9px; color:#F0EDE8; font-size:13px; outline:none; }
+  .form-field input:focus { border-color:#E8862A; }
+
+  /* Diagram */
+  .diagram-zone { background:#0D0D1A; border:1px solid #1E1E30; border-radius:12px; padding:16px; margin-bottom:14px; position:relative; cursor:pointer; }
+  .diagram-zone:hover { border-color:#E8862A; }
+  .diagram-placeholder { height:140px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#7A7A8C; font-size:13px; gap:8px; }
+  .diagram-placeholder .nodes { display:flex; gap:16px; }
+  .diagram-placeholder .node { padding:8px 14px; border:1px solid #E8862A; border-radius:6px; font-size:11px; color:#E8862A; }
+  .diagram-placeholder .arrow { color:#7A7A8C; font-size:16px; align-self:center; }
+  .expand-hint { position:absolute; bottom:8px; right:12px; font-size:10px; color:#E8862A; }
+
+  /* Voice recording overlay — covers component area only, not orb/header */
+  .voice-overlay {
+    background:#06060C; z-index:50; border-radius:12px;
+    display:flex; align-items:center; justify-content:center;
+    animation:fadeIn 0.2s ease; padding:24px 16px;
+  }
+  .voice-content { display:flex; flex-direction:column; align-items:center; gap:20px; }
+
+  .waveform { display:flex; align-items:center; gap:3px; height:60px; }
+  .wave-bar {
+    width:4px; border-radius:4px; background:#E8862A;
+    animation:wave 1.2s ease-in-out infinite;
+    animation-delay: calc(var(--i) * 0.06s);
+  }
+  @keyframes wave {
+    0%, 100% { height:8px; opacity:0.4; }
+    50% { height: calc(12px + var(--i) * 2.5px); opacity:1; }
+  }
+
+  .voice-timer { font-size:28px; font-weight:600; color:#F0EDE8; font-variant-numeric:tabular-nums; }
+  .voice-status { font-size:13px; color:#7A7A8C; }
+  .transcription-result {
+    font-size:14px; color:#F0EDE8; text-align:center; max-width:280px;
+    line-height:1.5; opacity:0; transition:opacity 0.3s;
+  }
+  .voice-overlay.done .transcription-result { opacity:1; }
+  .voice-overlay.transcribing .waveform .wave-bar { animation:none; height:4px; opacity:0.3; }
+  .voice-overlay.done .waveform .wave-bar { animation:none; height:4px; opacity:0.2; }
+  .voice-overlay.done .voice-timer { color:#E8862A; }
+
+  .voice-stop {
+    width:52px; height:52px; border-radius:50%; background:#E8862A;
+    border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:background 0.15s;
+  }
+  .voice-stop:hover { background:#F5A54B; }
+  .voice-overlay.transcribing .voice-stop,
+  .voice-overlay.done .voice-stop { display:none; }
+
+  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+  /* Scheduler */
+  .day-btn { padding:10px 14px; background:#0D0D1A; border:1px solid #1E1E30; border-radius:10px; color:#F0EDE8; cursor:pointer; transition:all 0.15s; text-align:center; min-width:60px; flex-shrink:0; }
+  .day-btn:hover { border-color:#E8862A; }
+  .day-btn.active-day { border-color:#E8862A; background:#1a1a2e; }
+  .slot-btn { padding:12px; background:#0D0D1A; border:1px solid #1E1E30; border-radius:10px; color:#F0EDE8; font-size:14px; font-weight:500; cursor:pointer; transition:all 0.15s; text-align:center; }
+  .slot-btn:hover:not(.unavailable) { border-color:#E8862A; background:#141428; }
+  .slot-btn.selected-slot { border-color:#E8862A; background:#E8862A; color:#06060C; }
+  .slot-btn.unavailable { color:#3a3a4c; border-color:#141428; cursor:not-allowed; text-decoration:line-through; }
+
+  /* Thinking */
+  .thinking-zone { display:flex; flex-direction:column; align-items:center; gap:10px; padding:50px 0; }
+  .dots { display:flex; gap:8px; }
+  .dot { width:10px; height:10px; border-radius:50%; background:#E8862A; animation:bounce 1.2s infinite; }
+  .dot:nth-child(2) { animation-delay:0.15s; }
+  .dot:nth-child(3) { animation-delay:0.3s; }
+  .thinking-label { font-size:11px; color:#7A7A8C; }
+  @keyframes bounce { 0%,80%,100% { transform:translateY(0); } 40% { transform:translateY(-12px); } }
+
+  /* Markdown response */
+  .agent-text { font-size:14px; color:#B0ADB8; line-height:1.6; margin-bottom:14px; }
+  .agent-text strong { color:#F0EDE8; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Demo tabs (switch views) -->
+  <div class="demo-tabs">
+    <div class="demo-tab active" onclick="showView('choices')">Choices</div>
+    <div class="demo-tab" onclick="showView('multiselect')">Multi-select</div>
+    <div class="demo-tab" onclick="showView('textinput')">Text</div>
+    <div class="demo-tab" onclick="showView('upload')">Upload</div>
+    <div class="demo-tab" onclick="showView('form')">Form</div>
+    <div class="demo-tab" onclick="showView('diagram')">Diagram</div>
+    <div class="demo-tab" onclick="showView('scheduler')">Schedule</div>
+    <div class="demo-tab" onclick="showView('thinking')">Thinking</div>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <button class="header-btn">&times; Close</button>
+    <button class="header-btn" onclick="toggleHistory()" id="history-btn">History</button>
+  </div>
+
+  <!-- History drawer -->
+  <div class="history-drawer" id="history-drawer">
+    <div class="history-title">Your answers</div>
+    <div class="history-item"><span class="history-label">Service:</span><span><span class="history-value">AI Agents & Automations</span><span class="history-edit">Edit</span></span></div>
+    <div class="history-item"><span class="history-label">Budget:</span><span><span class="history-value">R150K – R500K</span><span class="history-edit">Edit</span></span></div>
+    <div class="history-item"><span class="history-label">Problem:</span><span><span class="history-value">Manual processes eating time</span><span class="history-edit">Edit</span></span></div>
+  </div>
+
+  <!-- Orb -->
+  <div class="orb-zone">
+    <div class="orb" id="orb"><div class="eye l"></div><div class="eye r"></div></div>
+    <span class="orb-label">mina.</span>
+  </div>
+
+  <!-- VIEW: Choices -->
+  <div class="step" id="view-choices">
+    <h2>What's the main problem you're trying to solve?</h2>
+    <p class="detail">This helps us match you with the right approach and prepare relevant examples for your discovery call.</p>
+    <div class="choices">
+      <button class="choice-btn" onclick="selectChoice(this)">Manual processes eating time</button>
+      <button class="choice-btn" onclick="selectChoice(this)">Legacy system needs replacing</button>
+      <button class="choice-btn" onclick="selectChoice(this)">Need to scale operations</button>
+      <button class="choice-btn" onclick="selectChoice(this)">Customer experience improvement</button>
+      <button class="choice-btn" onclick="selectChoice(this)">Something else</button>
+    </div>
+    <div class="or-label">Or type your answer</div>
+    <div class="text-fallback">
+      <input type="text" placeholder="Describe your situation...">
+      <button class="icon-btn mic-btn" onclick="toggleMic(this)">&#127908;</button>
+      <button class="icon-btn send-btn">&#9654;</button>
+    </div>
+  </div>
+
+  <!-- VIEW: Multi-select -->
+  <div class="step" id="view-multiselect" style="display:none;">
+    <h2>Which pain points apply to you?</h2>
+    <p class="detail">Select all that are relevant — helps us prioritise what to cover on your call.</p>
+    <div class="check-list">
+      <div class="check-item" onclick="toggleCheck(this)"><div class="checkbox"></div>Team spending hours on data entry</div>
+      <div class="check-item" onclick="toggleCheck(this)"><div class="checkbox"></div>No visibility into sales pipeline</div>
+      <div class="check-item" onclick="toggleCheck(this)"><div class="checkbox"></div>Current system can't handle growth</div>
+      <div class="check-item" onclick="toggleCheck(this)"><div class="checkbox"></div>Leads falling through the cracks</div>
+    </div>
+    <button class="confirm-btn">Confirm</button>
+    <div class="or-label">Or type your answer</div>
+    <div class="text-fallback">
+      <input type="text" placeholder="Something not listed...">
+      <button class="icon-btn mic-btn" onclick="toggleMic(this)">&#127908;</button>
+      <button class="icon-btn send-btn">&#9654;</button>
+    </div>
+  </div>
+
+  <!-- VIEW: Text input -->
+  <div class="step" id="view-textinput" style="display:none;">
+    <h2>Describe what you're building</h2>
+    <p class="detail">Be as specific as you can — existing systems, integrations, what success looks like.</p>
+    <div class="text-fallback" style="align-items:flex-end;">
+      <textarea placeholder="e.g., We have a WordPress site with 3 contact forms. Leads go into a spreadsheet and someone manually follows up..."></textarea>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <button class="icon-btn mic-btn" onclick="toggleMic(this)">&#127908;</button>
+        <button class="icon-btn send-btn">&#9654;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW: File upload -->
+  <div class="step" id="view-upload" style="display:none;">
+    <h2>Got any specs or mockups?</h2>
+    <p class="detail">Totally optional — wireframes, briefs, or screenshots of the current system.</p>
+    <div class="upload-zone">
+      <div class="upload-icon">&#8682;</div>
+      <div class="upload-main">Drop files here or tap to browse</div>
+      <div class="upload-sub">PDF, images, docs — up to 10MB</div>
+    </div>
+    <button class="skip-btn">Skip this</button>
+    <div class="or-label">Or describe what you'd share</div>
+    <div class="text-fallback">
+      <input type="text" placeholder="e.g., I have a Figma mockup of...">
+      <button class="icon-btn mic-btn" onclick="toggleMic(this)">&#127908;</button>
+      <button class="icon-btn send-btn">&#9654;</button>
+    </div>
+  </div>
+
+  <!-- VIEW: Form -->
+  <div class="step" id="view-form" style="display:none;">
+    <h2>Who should we add to the call?</h2>
+    <p class="detail">If there's someone else on your team who should join the discovery call, add them here.</p>
+    <div class="form-fields">
+      <div class="form-field"><label>Full Name</label><input type="text" placeholder="Jane Smith"></div>
+      <div class="form-field"><label>Email</label><input type="email" placeholder="jane@company.co.za"></div>
+      <div class="form-field"><label>Role</label><input type="text" placeholder="CTO, Product Manager, etc."></div>
+    </div>
+    <button class="confirm-btn">Add to call</button>
+    <div class="or-label">Or type your answer</div>
+    <div class="text-fallback">
+      <input type="text" placeholder="Skip — just me on the call">
+      <button class="icon-btn mic-btn" onclick="toggleMic(this)">&#127908;</button>
+      <button class="icon-btn send-btn">&#9654;</button>
+    </div>
+  </div>
+
+  <!-- VIEW: Diagram (multiple) -->
+  <div class="step" id="view-diagram" style="display:none;">
+    <h2>Two approaches for your lead pipeline</h2>
+    <p class="agent-text">Based on your requirements, there are two ways to structure this. Here's how each one works:</p>
+
+    <!-- Diagram 1 -->
+    <div style="font-size:13px;color:#E8862A;font-weight:600;margin-bottom:6px;">Approach A — Full Automation</div>
+    <div class="diagram-zone" onclick="expandDiagram(this)">
+      <div class="diagram-placeholder">
+        <div class="nodes">
+          <div class="node">Website Form</div>
+          <div class="arrow">→</div>
+          <div class="node">AI Agent</div>
+          <div class="arrow">→</div>
+          <div class="node">CRM</div>
+        </div>
+        <div style="font-size:10px;color:#7A7A8C;margin-top:6px;">auto-qualify → auto-score → auto-book</div>
+        <div class="nodes" style="margin-top:6px;">
+          <div class="node">Email Nurture</div>
+          <div class="arrow">→</div>
+          <div class="node">Calendar</div>
+          <div class="arrow">→</div>
+          <div class="node">Call Brief</div>
+        </div>
+      </div>
+      <div class="expand-hint">Tap to expand ↗</div>
+    </div>
+    <p class="agent-text" style="font-size:12px;">Zero human touch until the discovery call. The agent handles everything — qualification, booking, follow-up. <strong>Best for high volume, lower complexity leads.</strong></p>
+
+    <!-- Diagram 2 -->
+    <div style="font-size:13px;color:#E8862A;font-weight:600;margin:14px 0 6px;">Approach B — AI-Assisted, Human-Reviewed</div>
+    <div class="diagram-zone" onclick="expandDiagram(this)">
+      <div class="diagram-placeholder">
+        <div class="nodes">
+          <div class="node">Website Form</div>
+          <div class="arrow">→</div>
+          <div class="node">AI Agent</div>
+          <div class="arrow">→</div>
+          <div class="node" style="border-color:#4ade80;color:#4ade80;">Human Review</div>
+        </div>
+        <div style="font-size:10px;color:#7A7A8C;margin-top:6px;">auto-qualify → human approves → then books</div>
+        <div class="nodes" style="margin-top:6px;">
+          <div class="node" style="border-color:#4ade80;color:#4ade80;">Team Dashboard</div>
+          <div class="arrow">→</div>
+          <div class="node">Calendar</div>
+          <div class="arrow">→</div>
+          <div class="node">Call Brief</div>
+        </div>
+      </div>
+      <div class="expand-hint">Tap to expand ↗</div>
+    </div>
+    <p class="agent-text" style="font-size:12px;">The AI qualifies and prepares, but a human reviews before the call is booked. <strong>Best for high-value leads where you want control.</strong></p>
+
+    <p class="detail" style="margin-top:14px;">Which approach makes more sense for your business?</p>
+    <div class="choices">
+      <button class="choice-btn" onclick="selectChoice(this)">Full automation</button>
+      <button class="choice-btn" onclick="selectChoice(this)">AI-assisted, human-reviewed</button>
+      <button class="choice-btn" onclick="selectChoice(this)">Mix of both</button>
+    </div>
+    <div class="or-label">Or type your answer</div>
+    <div class="text-fallback">
+      <input type="text" placeholder="Tell me more about what you need...">
+      <button class="icon-btn mic-btn" onclick="toggleMic(this)">&#127908;</button>
+      <button class="icon-btn send-btn">&#9654;</button>
+    </div>
+  </div>
+
+  <!-- VIEW: Scheduler -->
+  <div class="step" id="view-scheduler" style="display:none;">
+    <h2>Pick a time for your discovery call</h2>
+    <p class="detail">30-minute call via Google Meet. All times in SAST (South Africa).</p>
+
+    <!-- Day selector -->
+    <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px;">
+      <button class="day-btn active-day" onclick="selectDay(this)">
+        <span style="font-size:10px;color:#7A7A8C;">MON</span><br>
+        <span style="font-size:16px;font-weight:600;">14</span><br>
+        <span style="font-size:10px;color:#7A7A8C;">Apr</span>
+      </button>
+      <button class="day-btn" onclick="selectDay(this)">
+        <span style="font-size:10px;color:#7A7A8C;">TUE</span><br>
+        <span style="font-size:16px;font-weight:600;">15</span><br>
+        <span style="font-size:10px;color:#7A7A8C;">Apr</span>
+      </button>
+      <button class="day-btn" onclick="selectDay(this)">
+        <span style="font-size:10px;color:#7A7A8C;">WED</span><br>
+        <span style="font-size:16px;font-weight:600;">16</span><br>
+        <span style="font-size:10px;color:#7A7A8C;">Apr</span>
+      </button>
+      <button class="day-btn" onclick="selectDay(this)">
+        <span style="font-size:10px;color:#7A7A8C;">THU</span><br>
+        <span style="font-size:16px;font-weight:600;">17</span><br>
+        <span style="font-size:10px;color:#7A7A8C;">Apr</span>
+      </button>
+      <button class="day-btn" onclick="selectDay(this)">
+        <span style="font-size:10px;color:#7A7A8C;">FRI</span><br>
+        <span style="font-size:16px;font-weight:600;">18</span><br>
+        <span style="font-size:10px;color:#7A7A8C;">Apr</span>
+      </button>
+    </div>
+
+    <!-- Time slots -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+      <button class="slot-btn" onclick="selectSlot(this)">09:00 AM</button>
+      <button class="slot-btn" onclick="selectSlot(this)">11:00 AM</button>
+      <button class="slot-btn" onclick="selectSlot(this)">02:00 PM</button>
+      <button class="slot-btn unavailable">04:00 PM</button>
+    </div>
+
+    <div style="font-size:11px;color:#7A7A8C;margin-bottom:12px;">
+      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#1E1E30;margin-right:4px;vertical-align:middle;"></span> Unavailable
+      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#E8862A;margin:0 4px 0 12px;vertical-align:middle;"></span> Selected
+    </div>
+
+    <div class="or-label">Or type a preferred time</div>
+    <div class="text-fallback">
+      <input type="text" placeholder="e.g., any morning next week works...">
+      <button class="icon-btn mic-btn" onclick="toggleMic(this)">&#127908;</button>
+      <button class="icon-btn send-btn">&#9654;</button>
+    </div>
+  </div>
+
+  <!-- VIEW: Thinking -->
+  <div class="step" id="view-thinking" style="display:none;">
+    <div class="thinking-zone">
+      <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      <span class="thinking-label">thinking...</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function showView(view) {
+  document.querySelectorAll('.step').forEach(s => s.style.display = 'none');
+  document.getElementById('view-' + view).style.display = 'flex';
+  document.querySelectorAll('.demo-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  const orb = document.getElementById('orb');
+  orb.classList.toggle('thinking', view === 'thinking');
+}
+
+function toggleHistory() {
+  document.getElementById('history-drawer').classList.toggle('open');
+  document.getElementById('history-btn').classList.toggle('active');
+}
+
+function selectChoice(btn) {
+  btn.closest('.choices').querySelectorAll('.choice-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+function toggleCheck(item) {
+  item.classList.toggle('checked');
+  const cb = item.querySelector('.checkbox');
+  cb.innerHTML = item.classList.contains('checked')
+    ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06060C" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>'
+    : '';
+}
+
+function selectDay(btn) {
+  btn.closest('div').querySelectorAll('.day-btn').forEach(b => b.classList.remove('active-day'));
+  btn.classList.add('active-day');
+}
+
+function selectSlot(btn) {
+  if (btn.classList.contains('unavailable')) return;
+  btn.closest('div').querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected-slot'));
+  btn.classList.add('selected-slot');
+}
+
+function toggleMic(btn) {
+  const step = btn.closest('.step');
+  if (!step) return;
+
+  let overlay = step.querySelector('.voice-overlay');
+
+  if (overlay) {
+    // Stop recording — orb thinks while transcribing
+    const orb = document.getElementById('orb');
+    orb.classList.remove('listening');
+    orb.classList.add('thinking');
+    overlay.classList.add('transcribing');
+    overlay.querySelector('.voice-status').textContent = 'Transcribing...';
+
+    setTimeout(() => {
+      // Simulate transcription result
+      const result = 'We need an AI agent that qualifies leads from our website and books discovery calls automatically';
+      overlay.classList.add('done');
+      overlay.querySelector('.voice-status').textContent = 'Transcribed';
+      overlay.querySelector('.transcription-result').textContent = result;
+
+      // Put result in the text input
+      const input = step.querySelector('.text-fallback input, .text-fallback textarea');
+      if (input) input.value = result;
+
+      setTimeout(() => {
+        // Restore hidden components
+        Array.from(step.children).forEach(el => {
+          if (el !== overlay && el.dataset.wasDisplay !== undefined) {
+            el.style.display = el.dataset.wasDisplay;
+            delete el.dataset.wasDisplay;
+          }
+        });
+        overlay.remove();
+        btn.classList.remove('recording');
+        document.getElementById('orb').classList.remove('thinking');
+      }, 2000);
+    }, 1500);
+    return;
+  }
+
+  // Start recording — orb listens, show waveform overlay
+  btn.classList.add('recording');
+  document.getElementById('orb').classList.add('listening');
+
+  overlay = document.createElement('div');
+  overlay.className = 'voice-overlay';
+  overlay.innerHTML = `
+    <div class="voice-content">
+      <div class="waveform">
+        <div class="wave-bar" style="--i:0"></div>
+        <div class="wave-bar" style="--i:1"></div>
+        <div class="wave-bar" style="--i:2"></div>
+        <div class="wave-bar" style="--i:3"></div>
+        <div class="wave-bar" style="--i:4"></div>
+        <div class="wave-bar" style="--i:5"></div>
+        <div class="wave-bar" style="--i:6"></div>
+        <div class="wave-bar" style="--i:7"></div>
+        <div class="wave-bar" style="--i:8"></div>
+        <div class="wave-bar" style="--i:9"></div>
+        <div class="wave-bar" style="--i:10"></div>
+        <div class="wave-bar" style="--i:11"></div>
+        <div class="wave-bar" style="--i:12"></div>
+        <div class="wave-bar" style="--i:13"></div>
+        <div class="wave-bar" style="--i:14"></div>
+        <div class="wave-bar" style="--i:15"></div>
+        <div class="wave-bar" style="--i:16"></div>
+        <div class="wave-bar" style="--i:17"></div>
+        <div class="wave-bar" style="--i:18"></div>
+        <div class="wave-bar" style="--i:19"></div>
+      </div>
+      <div class="voice-timer">0:00</div>
+      <div class="voice-status">Listening...</div>
+      <div class="transcription-result"></div>
+      <button class="voice-stop" onclick="toggleMic(this.closest('.step').querySelector('.mic-btn'))">
+        <div style="width:16px;height:16px;background:#06060C;border-radius:3px;"></div>
+      </button>
+    </div>
+  `;
+
+  // Hide all other content in the step, show overlay in its place
+  Array.from(step.children).forEach(el => {
+    if (!el.classList.contains('voice-overlay')) {
+      el.dataset.wasDisplay = el.style.display || '';
+      el.style.display = 'none';
+    }
+  });
+  step.appendChild(overlay);
+
+  // Timer
+  let seconds = 0;
+  const timer = setInterval(() => {
+    seconds++;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    const timerEl = overlay.querySelector('.voice-timer');
+    if (timerEl) timerEl.textContent = mins + ':' + String(secs).padStart(2, '0');
+    if (seconds >= 300) clearInterval(timer);
+  }, 1000);
+  overlay._timer = timer;
+}
+
+function expandDiagram(el) {
+  if (el.classList.contains('expanded')) {
+    el.classList.remove('expanded');
+    el.style.position = '';
+    el.style.inset = '';
+    el.style.zIndex = '';
+    el.style.borderRadius = '12px';
+    el.style.margin = '';
+    el.querySelector('.expand-hint').textContent = 'Tap to expand ↗';
+  } else {
+    el.classList.add('expanded');
+    el.style.position = 'fixed';
+    el.style.inset = '40px 20px';
+    el.style.zIndex = '9999';
+    el.style.borderRadius = '16px';
+    el.style.margin = '0';
+    el.querySelector('.expand-hint').textContent = 'Tap to close ✕';
+    el.querySelector('.diagram-placeholder').style.height = '100%';
+  }
+}
+</script>
+
+</body>
+</html>

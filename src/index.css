@@ -216,6 +216,21 @@ body::after {
   background-clip: text;
 }
 
+/* Voice waveform bar animation — used in VoiceOverlay */
+@keyframes waveBar {
+  0%, 100% { transform: scaleY(1); }
+  50%       { transform: scaleY(0.25); }
+}
+
+/* Hide scrollbar on day-picker rows while preserving scroll */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* Accessibility: respect user motion preferences */
 @media (prefers-reduced-motion: reduce) {
   *,

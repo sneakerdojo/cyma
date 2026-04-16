@@ -23,7 +23,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="md:col-span-2">
             <div className="flex items-center gap-3 mb-4">
-              <img src="/octio-icon.png" alt="Octio" className="h-8 w-8" />
+              <img src="/octio-icon.svg" alt="Octio" className="h-8 w-8" />
               <span className="font-display font-bold text-lg">octio</span>
             </div>
             <p className="text-text-muted text-sm leading-relaxed max-w-sm">

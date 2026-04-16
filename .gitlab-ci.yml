@@ -29,6 +29,28 @@ build:
     expire_in: 1 week
 
 # =============================================================================
+# Build stage — compile the Hono+Mastra worker
+# =============================================================================
+
+build:worker:
+  image: node:22-alpine
+  stage: build
+  only:
+    - main
+  before_script:
+    - corepack enable
+    - corepack prepare pnpm@10.33.0 --activate
+  script:
+    - pnpm install --frozen-lockfile
+    - pnpm --filter @octio/worker run build
+  artifacts:
+    paths:
+      - worker/dist/
+      - worker/src/knowledge/
+      - worker/src/prompts/
+    expire_in: 1 week
+
+# =============================================================================
 # Package stage — build the nginx image and push to registry
 # =============================================================================
 
@@ -43,6 +65,22 @@ package:
         -t "registry.gitlab.com/octio-dev/octio-website:$CI_COMMIT_SHORT_SHA" .
     - docker push "registry.gitlab.com/octio-dev/octio-website:latest"
     - docker push "registry.gitlab.com/octio-dev/octio-website:$CI_COMMIT_SHORT_SHA"
+
+# =============================================================================
+# Package stage — build the worker image and push to registry
+# =============================================================================
+
+package:worker:
+  stage: package
+  only:
+    - main
+  script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.com
+    - docker build -f worker/Dockerfile
+        -t "registry.gitlab.com/octio-dev/octio-website/worker:latest"
+        -t "registry.gitlab.com/octio-dev/octio-website/worker:$CI_COMMIT_SHORT_SHA" .
+    - docker push "registry.gitlab.com/octio-dev/octio-website/worker:latest"
+    - docker push "registry.gitlab.com/octio-dev/octio-website/worker:$CI_COMMIT_SHORT_SHA"
 
 # =============================================================================
 # Deploy stage — SSH to target host, docker compose pull/up, reload gateway
@@ -82,12 +120,14 @@ deploy:qa:
       ssh -p $DEPLOY_SSH_PORT $DEPLOY_USER@$DEPLOY_HOST_QA bash -s <<'REMOTE'
         set -e
         cd /opt/stacks/octio-website-qa
-        echo "Pulling latest image..."
+        echo "Pulling latest images..."
         docker compose pull
-        echo "Recreating container..."
+        echo "Recreating containers..."
         docker compose up -d --force-recreate
-        echo "Waiting for healthcheck..."
+        echo "Waiting for web healthcheck..."
         timeout 60 bash -c 'until docker inspect octio-website-qa --format "{{.State.Health.Status}}" 2>/dev/null | grep -q healthy; do sleep 2; done'
+        echo "Waiting for worker healthcheck..."
+        timeout 60 bash -c 'until docker inspect octio-worker-qa --format "{{.State.Health.Status}}" 2>/dev/null | grep -q healthy; do sleep 2; done'
         echo "Reloading gateway..."
         docker kill --signal=HUP gateway 2>/dev/null || docker restart gateway
         docker compose ps
@@ -106,12 +146,14 @@ deploy:production:
       ssh -p $DEPLOY_SSH_PORT $DEPLOY_USER@$DEPLOY_HOST_PROD bash -s <<'REMOTE'
         set -e
         cd /opt/stacks/octio-website-prd
-        echo "Pulling latest image..."
+        echo "Pulling latest images..."
         docker compose pull
-        echo "Recreating container..."
+        echo "Recreating containers..."
         docker compose up -d --force-recreate
-        echo "Waiting for healthcheck..."
+        echo "Waiting for web healthcheck..."
         timeout 60 bash -c 'until docker inspect octio-website-prd --format "{{.State.Health.Status}}" 2>/dev/null | grep -q healthy; do sleep 2; done'
+        echo "Waiting for worker healthcheck..."
+        timeout 60 bash -c 'until docker inspect octio-worker-prd --format "{{.State.Health.Status}}" 2>/dev/null | grep -q healthy; do sleep 2; done'
         echo "Reloading gateway..."
         docker kill --signal=HUP gateway 2>/dev/null || docker restart gateway
         docker compose ps

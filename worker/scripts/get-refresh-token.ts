@@ -31,6 +31,8 @@ const SCOPES = [
   'https://www.googleapis.com/auth/calendar.events',
   'https://www.googleapis.com/auth/gmail.send',
   'https://www.googleapis.com/auth/meetings.space.readonly',
+  'https://www.googleapis.com/auth/admin.directory.group.member',
+  'https://www.googleapis.com/auth/contacts',
 ];
 
 // ---------------------------------------------------------------------------

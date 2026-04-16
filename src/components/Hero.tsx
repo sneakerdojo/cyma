@@ -101,7 +101,7 @@ export default function Hero() {
         }}
       >
         <img
-          src="/octio-icon.png"
+          src="/octio-icon.svg"
           alt="Octio"
           className="w-20 h-20 sm:w-24 sm:h-24"
           style={{
@@ -127,7 +127,7 @@ export default function Hero() {
         className="relative z-10 w-full"
         style={{
           opacity: phaseIndex >= 4 ? 1 : 0,
-          transform: `translateY(${wizardOpen ? '-32%' : '-28%'})`,
+          transform: `translateY(${wizardOpen ? '-42%' : '-28%'})`,
           transition: 'opacity 1400ms cubic-bezier(0.16, 1, 0.3, 1), transform 900ms cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
@@ -178,7 +178,7 @@ export default function Hero() {
       <div
         className="absolute inset-x-0 z-10"
         style={{
-          top: '55%',
+          top: '38%',
           bottom: '5%',
           opacity: wizardOpen ? 1 : 0,
           transform: wizardOpen ? 'translateY(0)' : 'translateY(30px)',

@@ -48,9 +48,33 @@ const MAX_REQUIREMENTS_LENGTH = 200;
 // Private RFC 2822 builder (SRP — knows nothing about business logic)
 // ---------------------------------------------------------------------------
 
+/**
+ * RFC 2047 encoded-word for non-ASCII header values.
+ * Returns the string unchanged if it's pure ASCII; otherwise wraps it in
+ * `=?UTF-8?B?<base64>?=` so email clients decode it correctly.
+ * Without this, em dashes and other non-ASCII characters in headers render
+ * as mojibake (e.g. `Ã¢Â€Â"` instead of `—`).
+ */
+export function encodeHeaderValue(value: string): string {
+  // eslint-disable-next-line no-control-regex
+  if (/^[\x00-\x7F]*$/.test(value)) {
+    return value;
+  }
+  const base64 = Buffer.from(value, 'utf-8').toString('base64');
+  return `=?UTF-8?B?${base64}?=`;
+}
+
+/**
+ * Encodes the `From` display name portion only, preserving the `<email>` syntax.
+ * Example: `Octio` → `Octio` (ASCII unchanged); `Octo 🔥` → `=?UTF-8?B?...?= <email>`.
+ */
+function encodeFromHeader(displayName: string, email: string): string {
+  return `${encodeHeaderValue(displayName)} <${email}>`;
+}
+
 function buildRawMessage(options: SendEmailOptions): string {
   const lines: string[] = [
-    `From: Octio <${config.googleSenderEmail ?? ''}>`,
+    `From: ${encodeFromHeader('Octio', config.googleSenderEmail ?? '')}`,
     `To: ${options.to}`,
   ];
 
@@ -58,20 +82,28 @@ function buildRawMessage(options: SendEmailOptions): string {
     lines.push(`Cc: ${options.cc}`);
   }
 
+  // Base64-encode the HTML body for rock-solid UTF-8 handling across SMTP.
+  // Avoids any 7bit/8bit transfer-encoding ambiguity for non-ASCII content
+  // (em dashes, middle dots, smart quotes, etc.) inside the body.
+  const encodedBody = Buffer.from(options.htmlBody, 'utf-8').toString('base64');
+
   lines.push(
-    `Subject: ${options.subject}`,
-    'Content-Type: text/html; charset=utf-8',
+    `Subject: ${encodeHeaderValue(options.subject)}`,
     'MIME-Version: 1.0',
+    'Content-Type: text/html; charset=utf-8',
+    'Content-Transfer-Encoding: base64',
     '',
-    options.htmlBody,
+    // RFC 2045 recommends folding base64 at 76 chars per line for maximum
+    // SMTP compatibility, though most modern servers accept long lines.
+    encodedBody.replace(/(.{76})/g, '$1\r\n'),
   );
 
   // RFC 2822 mandates CRLF line endings
   return lines.join('\r\n');
 }
 
-function base64url(message: string): string {
-  return Buffer.from(message)
+export function base64url(message: string): string {
+  return Buffer.from(message, 'utf-8')
     .toString('base64')
     .replace(/\+/g, '-')
     .replace(/\//g, '_')

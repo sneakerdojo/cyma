@@ -6,7 +6,9 @@ import { saveVoiceNote, saveAttachment } from '../services/storage.js';
 import { FileTooLargeError, InvalidFileTypeError } from '../services/storage.errors.js';
 import { computeOLS } from '../services/scoring.js';
 import { createDiscoveryCallEvent, parseSlotToISO } from '../services/calendar.js';
-import { sendBookingConfirmation, sendInternalAlert } from '../services/gmail.js';
+import { sendInternalAlert } from '../services/gmail.js';
+import { notifyLeadsGroup, addToOutreachList } from '../services/leads-group.js';
+import { createLeadContact } from '../services/google-contacts.js';
 import { db } from '../db/client.js';
 import {
   contacts,
@@ -281,36 +283,21 @@ bookRoutes.post('/book', async (c) => {
     logger.error({ err }, 'book: consent_events insert failed — non-fatal');
   }
 
-  // ── Step 12: Send confirmation email ────────────────────────────────────
-  let emailWarning: string | undefined;
-
+  // ── Step 12: Confirmation email handled by Google Calendar ──────────────
+  // Google Calendar auto-sends a native ICS invite to every attendee because
+  // `createDiscoveryCallEvent` passes `sendUpdates: 'all'`. The invite arrives
+  // in the client's email client (Gmail, Outlook, Apple Mail) with built-in
+  // Yes/Maybe/No RSVP buttons and one-click add-to-calendar. No custom
+  // confirmation email is sent — that was redundant and led to "Add to
+  // calendar" button friction. Mark the booking as having its native invite
+  // dispatched so the audit trail reflects the delivery.
   try {
-    await sendBookingConfirmation(
-      {
-        contact: intake.contact,
-        selectedSlot: intake.selectedSlot,
-        selectedService: intake.selectedService,
-        budget: intake.budget,
-        requirements: intake.requirements,
-      },
-      {
-        meetLink: calResult.meetLink,
-        calendarLink: calResult.calendarLink,
-      },
-    );
-
-    try {
-      await db
-        .update(bookings)
-        .set({ emailSent: true })
-        .where(eq(bookings.id, bookingId));
-    } catch (dbErr) {
-      logger.error({ dbErr }, 'book: emailSent flag update failed — non-fatal');
-    }
-  } catch (err) {
-    logger.error({ err }, 'book: confirmation email failed — non-fatal');
-    emailWarning =
-      'Booking confirmed but confirmation email could not be sent';
+    await db
+      .update(bookings)
+      .set({ emailSent: true })
+      .where(eq(bookings.id, bookingId));
+  } catch (dbErr) {
+    logger.error({ dbErr }, 'book: emailSent flag update failed — non-fatal');
   }
 
   // ── Step 13: Hot lead internal alert ────────────────────────────────────
@@ -356,6 +343,33 @@ bookRoutes.post('/book', async (c) => {
     }
   }
 
+  // ── Step 14: Leads group notification + outreach list + Google Contact ───
+  try {
+    await Promise.all([
+      notifyLeadsGroup({
+        contact: intake.contact,
+        selectedService: intake.selectedService,
+        budget: intake.budget,
+        requirements: intake.requirements,
+        olsScore: olsResult.total,
+        scoreBand: olsResult.band,
+        meetLink: calResult.meetLink,
+        slotLabel: intake.selectedSlot.label,
+      }),
+      addToOutreachList(intake.contact.email, intake.contact.name),
+      createLeadContact({
+        contact: intake.contact,
+        selectedService: intake.selectedService,
+        budget: intake.budget,
+        requirements: intake.requirements,
+        olsScore: olsResult.total,
+        scoreBand: olsResult.band,
+      }),
+    ]);
+  } catch (err) {
+    logger.error({ err }, 'book: leads integration failed — non-fatal');
+  }
+
   // ── Response ─────────────────────────────────────────────────────────────
   return c.json({
     ok: true as const,
@@ -363,7 +377,6 @@ bookRoutes.post('/book', async (c) => {
     eventId: calResult.eventId,
     calendarLink: calResult.calendarLink,
     scoreBand: olsResult.band,
-    ...(emailWarning ? { warning: emailWarning } : {}),
   });
 });
 

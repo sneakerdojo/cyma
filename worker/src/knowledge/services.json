@@ -11,7 +11,33 @@
       "Founders launching a product and needing a technical team to own the full build"
     ],
     "pricing_range": "R50 000 – R250 000 depending on scope and feature complexity",
-    "note": "Discovery call required to scope accurately. Simple marketing sites sit at the lower end; full-stack platforms with auth, integrations, and AI features sit higher."
+    "note": "Discovery call required to scope accurately. Simple marketing sites sit at the lower end; full-stack platforms with auth, integrations, and AI features sit higher.",
+    "pain_points": [
+      "Existing website is slow, breaks under traffic, or costs a fortune to update",
+      "Business has outgrown a templated CMS and needs a platform that fits its actual workflow",
+      "Sales and operations teams are working around the website instead of through it"
+    ],
+    "social_proof": [
+      "A professional services firm had their client portal rebuilt — reduced their onboarding admin from 3 hours per client to a 10-minute self-serve flow, cutting their ops overhead by 60%",
+      "A B2B SaaS company replaced a WordPress site that was costing R8 000/month in maintenance with a Next.js platform their own team could update — maintenance cost dropped to near zero",
+      "A logistics company's customer-facing booking portal went from a 4-second load time to under 800ms after a full rebuild — their conversion rate on the booking flow increased by 34%"
+    ],
+    "common_objections": [
+      {
+        "objection": "We already have a website, why rebuild it?",
+        "response": "The question is what the existing site is costing you — in lost conversions, in developer time, in maintenance bills. If it cannot do what your business needs it to do, that's a real cost. We'll tell you honestly on the call whether a rebuild makes sense or whether targeted improvements would get you there."
+      },
+      {
+        "objection": "Can't we just use WordPress or Webflow?",
+        "response": "For a marketing site with standard content, absolutely — and we'll tell you that if it's the right answer. Where those tools break down is when you need custom data models, complex user roles, integrations with internal systems, or serious performance at scale. We scope projects with that question in mind from the start."
+      }
+    ],
+    "call_prep_questions": [
+      "What is the primary job the website needs to do — is it lead generation, client self-service, e-commerce, or something else?",
+      "Who are the users — external customers, internal staff, or both?",
+      "What are the biggest frustrations with the current site or platform?",
+      "Are there third-party systems the new platform needs to integrate with (CRM, payment gateway, ERP)?"
+    ]
   },
 
   "custom-software": {
@@ -26,7 +52,33 @@
       "Companies that need full ownership of their core software rather than being locked into a vendor"
     ],
     "pricing_range": "R80 000 – R500 000+ depending on scope",
-    "note": "Complex multi-role systems with deep integrations and reporting sit toward the upper end. We will be honest with you if your problem is better solved by a configured SaaS than a custom build."
+    "note": "Complex multi-role systems with deep integrations and reporting sit toward the upper end. We will be honest with you if your problem is better solved by a configured SaaS than a custom build.",
+    "pain_points": [
+      "Team is running critical processes across three or four SaaS tools that don't talk to each other",
+      "Manual data re-entry between systems is creating errors and consuming hours per day",
+      "No single source of truth — management can't get a clear picture of operations without pulling reports from multiple places"
+    ],
+    "social_proof": [
+      "A property management company was reconciling tenant payments manually across spreadsheets and email — we built a unified platform that automated reconciliation and cut their month-end close from 3 days to 4 hours",
+      "A healthcare services provider had four disconnected systems for scheduling, billing, and patient records — we built an integrated platform that reduced data entry errors by 85% and freed up 2 full-time staff from admin work",
+      "A freight company's dispatch process lived in email and a whiteboard — we built a real-time dispatch platform that gave their operations team full visibility and reduced double-bookings to zero"
+    ],
+    "common_objections": [
+      {
+        "objection": "Custom software is too expensive",
+        "response": "Compared to what? The real cost comparison is against what your current setup is costing you in staff time, errors, and missed opportunities. We scope and price per project — the call will give you a concrete number to compare against the status quo."
+      },
+      {
+        "objection": "We're worried about what happens if you're not around to maintain it",
+        "response": "Every project we ship includes full documentation, a clean handover, and a 30-day support window. We build so that a competent developer you hire in the future can understand and extend it — not so it becomes a dependency on us."
+      }
+    ],
+    "call_prep_questions": [
+      "Walk me through your current process step by step — where does it start, where does it end, and where does it break?",
+      "Which parts of the process involve the most manual work or the most errors?",
+      "Have you tried any existing tools to solve this — what did they get right and where did they fall short?",
+      "Who would use this system day-to-day, and what are their technical skills?"
+    ]
   },
 
   "ai-agents": {
@@ -41,7 +93,33 @@
       "Companies sitting on unstructured data (documents, emails, forms) that need to be queryable and actionable"
     ],
     "pricing_range": "R50 000 – R500 000+ depending on agent complexity, integrations, and volume",
-    "note": "AI agent projects are scoped carefully on a discovery call. Pricing depends heavily on the number of integrations, expected message volume, and whether you need a single-agent deployment or a coordinated multi-agent system."
+    "note": "AI agent projects are scoped carefully on a discovery call. Pricing depends heavily on the number of integrations, expected message volume, and whether you need a single-agent deployment or a coordinated multi-agent system.",
+    "pain_points": [
+      "Sales or support team is overwhelmed with repetitive first-response queries that don't require human judgment",
+      "Leads are sitting unqualified for 24–48 hours because there's no capacity to respond faster",
+      "Documents, forms, and emails contain valuable data that nobody has time to extract and act on"
+    ],
+    "social_proof": [
+      "A financial services company's inbound lead response time dropped from 4 hours to 30 seconds after deploying a qualification agent — their lead-to-call conversion rate improved by 28%",
+      "A legal firm automated their client intake process with a document-reading agent — what previously required a paralegal to spend 45 minutes per intake now takes 3 minutes with human review only on exceptions",
+      "A property developer deployed a 24/7 enquiry agent across their website and WhatsApp — handled 80% of inbound queries without human intervention and qualified leads before routing to sales"
+    ],
+    "common_objections": [
+      {
+        "objection": "AI agents hallucinate — we can't trust them with real client interactions",
+        "response": "That's the right concern, and it's why architecture matters. We ground agents in your own knowledge base using retrieval, set strict tool boundaries, and build human escalation paths for anything the agent isn't confident about. The agent we're discussing would be scoped to what it can reliably do — not deployed recklessly."
+      },
+      {
+        "objection": "We tried a chatbot before and it was useless",
+        "response": "Chatbots are script-runners — they follow a decision tree and fall over the moment the user goes off script. Agents are different: they reason, use tools, and handle novel situations. We'd be happy to walk through what went wrong with your previous attempt on the call."
+      }
+    ],
+    "call_prep_questions": [
+      "Which specific task or workflow would the agent handle — be as precise as possible?",
+      "What does the current manual process look like, and how many hours per week does it consume?",
+      "What systems would the agent need to read from or write to?",
+      "What does a failed or wrong response look like in your context — what are the stakes?"
+    ]
   },
 
   "mobile-app": {
@@ -56,7 +134,33 @@
       "Product founders who want a production-quality app to validate traction before scaling"
     ],
     "pricing_range": "R80 000 – R350 000 depending on feature scope and platform targets",
-    "note": "Prices include deployment and App Store submission preparation. Ongoing maintenance and update cycles are quoted separately."
+    "note": "Prices include deployment and App Store submission preparation. Ongoing maintenance and update cycles are quoted separately.",
+    "pain_points": [
+      "Field staff or clients are using a desktop web app on mobile because no native app exists — the experience is broken",
+      "Building two separate native apps (iOS and Android) is financially out of reach",
+      "A previous agency delivered an app that was rejected by the App Store or crashes in production"
+    ],
+    "social_proof": [
+      "A construction site inspection company replaced paper-based checklists with a React Native app — their site managers complete inspections 3x faster and defect reports now arrive at head office in real time instead of at week end",
+      "A retail chain deployed a field sales app to their 40-person sales team — order capture time dropped from 15 minutes per order to under 3 minutes, and order accuracy went from 94% to 99.8%",
+      "A healthcare startup launched an MVP patient-facing app in 6 weeks using Expo — it passed App Store review on the first submission and reached 500 active users within the first month"
+    ],
+    "common_objections": [
+      {
+        "objection": "Why not just make the website mobile-responsive instead?",
+        "response": "Responsive web works for content. Where it falls apart is offline access, push notifications, device hardware (camera, GPS, biometrics), and the performance expectations users have of a native experience. If your use case needs any of those, a native app is the right answer. If it doesn't, we'll tell you that."
+      },
+      {
+        "objection": "Building two separate apps is too expensive",
+        "response": "React Native solves exactly this — one codebase, iOS and Android, with genuine native performance. You get both platforms at roughly the cost of one. Where you'd pay double is if you went fully native Swift and Kotlin — we'd only recommend that if the product genuinely required it."
+      }
+    ],
+    "call_prep_questions": [
+      "Who are the primary users — customers, internal staff, or field teams?",
+      "What are the 3–5 core actions users need to do in the app?",
+      "Does the app need to work offline, or is connectivity reliable in the use context?",
+      "Do you have a backend API already, or does that need to be built as well?"
+    ]
   },
 
   "modernisation": {
@@ -71,7 +175,33 @@
       "Organisations moving from on-premises infrastructure to cloud-native deployments"
     ],
     "pricing_range": "R150 000 – R750 000+ depending on system complexity and migration scope",
-    "note": "We require a technical discovery session before scoping modernisation engagements. The cost varies significantly based on the size of the existing system, quality of existing documentation, and the agreed migration strategy."
+    "note": "We require a technical discovery session before scoping modernisation engagements. The cost varies significantly based on the size of the existing system, quality of existing documentation, and the agreed migration strategy.",
+    "pain_points": [
+      "Every change to the system takes weeks and carries high risk of breaking something else — developers are scared to touch it",
+      "System goes down under peak load and nobody fully understands why or how to fix it reliably",
+      "The original developer who built the system is no longer available and there is minimal documentation"
+    ],
+    "social_proof": [
+      "A manufacturing company's decade-old inventory system was taking 45 minutes to generate a stock report — after a phased migration to a cloud-native architecture, the same report runs in under 4 seconds",
+      "A financial services firm was running a monolith on a single server with no backups — we migrated to containerised microservices on the cloud with automated failover, reducing their unplanned downtime from several incidents per month to zero in the 8 months following migration",
+      "A logistics company's legacy dispatch software was costing R120 000 per year in vendor support fees and could not integrate with modern APIs — the modernised platform eliminated that cost and connected to their ERP and route optimisation tools in the first phase"
+    ],
+    "common_objections": [
+      {
+        "objection": "A rewrite is too risky — what if it breaks the business?",
+        "response": "That's exactly why we don't do big-bang rewrites. The strangler fig approach means the old system keeps running while the new one takes over piece by piece — you're never exposed to an all-or-nothing moment. We'll walk through the specific migration strategy for your system on the call."
+      },
+      {
+        "objection": "We don't have documentation for the existing system",
+        "response": "Most legacy systems don't. Our technical discovery process is designed to work with what exists — code analysis, infrastructure inspection, interviews with whoever knows the system best. Lack of documentation slows things down but it doesn't make it impossible."
+      }
+    ],
+    "call_prep_questions": [
+      "How old is the system and what technology is it built on?",
+      "What are the specific symptoms — is it performance, reliability, development speed, cost, or all of the above?",
+      "Are there integrations with other systems we need to preserve during migration?",
+      "Is there still a developer who understands the existing system, or has that knowledge walked out the door?"
+    ]
   },
 
   "pricing": {
@@ -86,7 +216,31 @@
       "Startups and SMEs who need to plan their budget accurately before starting"
     ],
     "pricing_range": "R25 000 (small automation) to R750 000+ (enterprise platform)",
-    "note": "All pricing is in ZAR. We do not require a deposit until the proposal is agreed and contracts are signed. Discovery calls are free."
+    "note": "All pricing is in ZAR. We do not require a deposit until the proposal is agreed and contracts are signed. Discovery calls are free.",
+    "pain_points": [
+      "Been burned by a time-and-materials agency where the final bill bore no resemblance to the initial estimate",
+      "Cannot get budget approval without a clear fixed number — open-ended quotes are a non-starter",
+      "Previous project ran over budget and over time with no clear accountability"
+    ],
+    "social_proof": [
+      "A retail client came to us after a previous agency had billed R400 000 over two years with nothing shipped — we delivered a fixed-scope platform in 14 weeks at an agreed R180 000, on budget",
+      "A startup founder got three agency quotes ranging from R50 000 to R800 000 for the same brief — our scoping call identified what was actually needed, and the final build came in at R120 000 with a clear scope document both sides signed before work began"
+    ],
+    "common_objections": [
+      {
+        "objection": "How do I know the fixed price won't just be padded with contingency?",
+        "response": "Our proposals itemise the scope in detail — not a lump sum with a project name. You can see exactly what you're paying for. If something gets added, we discuss it and quote it separately. No hidden contingency buffers."
+      },
+      {
+        "objection": "What if we need changes mid-project?",
+        "response": "We build in a change process. Minor adjustments within scope are absorbed. Meaningful scope changes are quoted and agreed before work begins. You will always know where you stand."
+      }
+    ],
+    "call_prep_questions": [
+      "Has the business had previous software development engagements — how did those go?",
+      "Is there an approved budget for this project, or does the proposal need to inform the budget request?",
+      "Who has authority to sign off on the proposal and contract?"
+    ]
   },
 
   "process": {
@@ -101,7 +255,31 @@
       "Teams who need a clear handover so they can maintain and extend the system themselves"
     ],
     "pricing_range": "Process is included in every engagement — not billed separately",
-    "note": "We work with clients in South Africa, and across time zones where the overlap allows for regular communication. All project management is handled in SAST (UTC+2)."
+    "note": "We work with clients in South Africa, and across time zones where the overlap allows for regular communication. All project management is handled in SAST (UTC+2).",
+    "pain_points": [
+      "Previous agency went quiet for weeks at a time — no visibility, no updates, just a delivery date that kept slipping",
+      "Handover documentation was non-existent — team inherited a system nobody could maintain",
+      "Requirements kept changing because they were never properly written down and agreed upfront"
+    ],
+    "social_proof": [
+      "A client who had been burned by two previous agencies — both going silent for months — described our sprint demo cadence as 'the first time I've felt in control of a software project'",
+      "A company received a full handover package including architecture diagrams, environment documentation, and a runbook — their internal developer was able to make independent changes within the first week after handover"
+    ],
+    "common_objections": [
+      {
+        "objection": "We've worked with agencies before and it always goes wrong",
+        "response": "The most common reasons are unclear requirements, no visibility during the build, and poor handover. Our process is specifically designed to address all three. We can walk you through exactly how on the call."
+      },
+      {
+        "objection": "Two-week sprints sound bureaucratic — we want to move fast",
+        "response": "Sprints make you move faster, not slower — because they create forcing functions that prevent scope drift and keep the build aligned with what you actually need. The alternative is building for months and discovering misalignment at the end."
+      }
+    ],
+    "call_prep_questions": [
+      "Have you been through a software development process before — what worked and what didn't?",
+      "How involved do you want to be during the build — weekly check-ins, bi-weekly demos, or more hands-off?",
+      "Who on your side would own the relationship with our team day-to-day?"
+    ]
   },
 
   "general": {
@@ -116,6 +294,31 @@
       "Founders and operators who value directness and honest assessment over a sales pitch"
     ],
     "pricing_range": "Scoped per project — discovery call is free",
-    "note": "Learn more at octio.co.za or book a discovery call directly through the website."
+    "note": "Learn more at octio.co.za or book a discovery call directly through the website.",
+    "pain_points": [
+      "Working with an agency that over-promised and under-delivered — want a team that is straight about what is realistic",
+      "Technology decisions are being made without a clear understanding of the business problem",
+      "Software projects keep failing or stalling — looking for a partner who takes genuine ownership"
+    ],
+    "social_proof": [
+      "A fintech founder came to us with a failed build from a previous agency — we completed a working MVP in 10 weeks that went on to secure a seed round of funding",
+      "An operations director described Octio as 'the first technical partner we've worked with who pushed back on our brief when it needed pushing back on — and were right every time'"
+    ],
+    "common_objections": [
+      {
+        "objection": "You're a small agency — can you handle our scale?",
+        "response": "Small means every client gets senior engineers, not junior developers managed from a distance. We are deliberate about not over-committing — we take on 3 to 4 projects at a time. If your project is beyond our capacity at a given time, we will tell you upfront rather than take your money and underdeliver."
+      },
+      {
+        "objection": "We'd prefer to work with a larger, more established firm",
+        "response": "Larger firms typically assign junior teams to projects under your size threshold. At Octio, the people you meet on the discovery call are the people who build your system. That's a structural difference, not a marketing claim."
+      }
+    ],
+    "call_prep_questions": [
+      "What is the core problem you are trying to solve — describe it in business terms, not technical terms?",
+      "What does success look like 6 months after this project ships?",
+      "Have you worked with external software agencies before — how did those engagements go?",
+      "What is your timeline expectation and what is driving it?"
+    ]
   }
 }

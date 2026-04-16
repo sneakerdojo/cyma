@@ -12,8 +12,10 @@ const {
   mockSaveAttachment,
   mockCreateDiscoveryCallEvent,
   mockParseSlotToISO,
-  mockSendBookingConfirmation,
   mockSendInternalAlert,
+  mockNotifyLeadsGroup,
+  mockAddToOutreachList,
+  mockCreateLeadContact,
   mockDbInsert,
   mockDbUpdate,
   mockDbInsertValues,
@@ -45,8 +47,10 @@ const {
     mockSaveAttachment: vi.fn(),
     mockCreateDiscoveryCallEvent: vi.fn(),
     mockParseSlotToISO: vi.fn().mockReturnValue('2026-04-13T09:00:00+02:00'),
-    mockSendBookingConfirmation: vi.fn().mockResolvedValue('msg-ok'),
     mockSendInternalAlert: vi.fn().mockResolvedValue('msg-alert'),
+    mockNotifyLeadsGroup: vi.fn().mockResolvedValue(undefined),
+    mockAddToOutreachList: vi.fn().mockResolvedValue(undefined),
+    mockCreateLeadContact: vi.fn().mockResolvedValue(undefined),
     mockDbInsert,
     mockDbUpdate,
     mockDbInsertValues,
@@ -107,8 +111,16 @@ vi.mock('../services/calendar.js', () => ({
 }));
 
 vi.mock('../services/gmail.js', () => ({
-  sendBookingConfirmation: mockSendBookingConfirmation,
   sendInternalAlert: mockSendInternalAlert,
+}));
+
+vi.mock('../services/leads-group.js', () => ({
+  notifyLeadsGroup: mockNotifyLeadsGroup,
+  addToOutreachList: mockAddToOutreachList,
+}));
+
+vi.mock('../services/google-contacts.js', () => ({
+  createLeadContact: mockCreateLeadContact,
 }));
 
 vi.mock('../db/client.js', () => ({
@@ -135,6 +147,8 @@ vi.mock('../config.js', () => ({
     nodeEnv: 'test',
     googleSenderEmail: 'sender@octio.co.za',
     octioTeamEmail: 'team@octio.co.za',
+    leadsGroupEmail: 'leads@octio.co.za',
+    outreachGroupEmail: 'outreach@octio.co.za',
     uploadDir: '/tmp/uploads',
     uploadPublicUrlBase: 'http://localhost:3000/uploads',
     googleClientId: undefined,
@@ -254,8 +268,10 @@ describe('POST /api/book', () => {
 
     mockCreateDiscoveryCallEvent.mockResolvedValue(CAL_RESULT);
     mockParseSlotToISO.mockReturnValue('2026-04-13T09:00:00+02:00');
-    mockSendBookingConfirmation.mockResolvedValue('msg-ok');
     mockSendInternalAlert.mockResolvedValue('msg-alert');
+    mockNotifyLeadsGroup.mockResolvedValue(undefined);
+    mockAddToOutreachList.mockResolvedValue(undefined);
+    mockCreateLeadContact.mockResolvedValue(undefined);
     mockSaveVoiceNote.mockResolvedValue({ url: 'http://localhost:3000/uploads/2026/04/voice.webm' });
     mockSaveAttachment.mockResolvedValue({ url: 'http://localhost:3000/uploads/2026/04/file.pdf' });
 
@@ -413,19 +429,19 @@ describe('POST /api/book', () => {
     expect(body.error).toMatch(/calendar event/i);
   });
 
-  // ── Test 9: Gmail failure → 200 with warning ─────────────────────────────
-  it('returns 200 with warning field when confirmation email fails', async () => {
-    mockSendBookingConfirmation.mockRejectedValue(
-      new Error('Gmail API transient error'),
-    );
-
+  // ── Test 9: Native Google invite is the only client email ──────────────
+  // No custom confirmation email is sent — Google Calendar's `sendUpdates: 'all'`
+  // in createDiscoveryCallEvent handles the ICS invite to the client natively.
+  // The response must NOT include a `warning` field (that field was tied to
+  // the old sendBookingConfirmation flow and has been removed).
+  it('returns 200 without a warning field (no custom email is sent)', async () => {
     const res = await postBook(app);
     const body = await res.json();
 
     expect(res.status).toBe(200);
     expect(body.ok).toBe(true);
     expect(body.meetLink).toBe(CAL_RESULT.meetLink);
-    expect(body.warning).toMatch(/email could not be sent/i);
+    expect(body.warning).toBeUndefined();
   });
 
   // ── Test 10: Hot lead triggers internal alert ─────────────────────────────

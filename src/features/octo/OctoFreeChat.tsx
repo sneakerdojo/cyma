@@ -1,4 +1,4 @@
-import FreeChatWidget from '../chat/FreeChatWidget';
+import InteractiveChat, { type OrbState } from '../chat/InteractiveChat';
 import { useChatSession } from '../chat/useChatSession';
 import type { WizardState } from './types';
 
@@ -20,6 +20,11 @@ interface OctoFreeChatProps {
     WizardState,
     'selectedService' | 'budget' | 'requirements' | 'contact' | 'meetLink' | 'calendarLink'
   >;
+  /**
+   * Forwarded from OctoConversation so orb state changes from the freechat
+   * agent are reflected in the 3D orb (Task #63).
+   */
+  onOrbStateChange?: (state: OrbState) => void;
   /** Legacy props kept for interface compatibility — not used by FreeChatWidget */
   history?: unknown;
   onAddMessage?: unknown;
@@ -31,13 +36,17 @@ interface OctoFreeChatProps {
  * It provides session persistence and wizard context to FreeChatWidget.
  * OctoScene (the 3D orb) continues to be rendered by OctoConversation.
  */
-export default function OctoFreeChat({ visible, wizardState }: OctoFreeChatProps) {
+export default function OctoFreeChat({
+  visible,
+  wizardState,
+  onOrbStateChange,
+}: OctoFreeChatProps) {
   const { sessionId } = useChatSession();
 
   if (!visible) return null;
 
   return (
-    <FreeChatWidget
+    <InteractiveChat
       sessionId={sessionId}
       wizardContext={{
         selectedService: wizardState.selectedService,
@@ -47,6 +56,7 @@ export default function OctoFreeChat({ visible, wizardState }: OctoFreeChatProps
         meetLink: wizardState.meetLink,
         calendarLink: wizardState.calendarLink,
       }}
+      onOrbStateChange={onOrbStateChange}
     />
   );
 }

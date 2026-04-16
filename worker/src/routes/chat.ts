@@ -32,10 +32,18 @@ chatRoutes.post('/stream', async (c) => {
     return c.json({ error: 'Request body must be valid JSON' }, 400);
   }
 
-  const { messages, sessionId: bodySessionId, contactId } = body as {
+  const { messages, sessionId: bodySessionId, contactId, wizardContext } = body as {
     messages?: unknown;
     sessionId?: unknown;
     contactId?: unknown;
+    wizardContext?: {
+      selectedService?: string | null;
+      budget?: string | null;
+      requirements?: string;
+      contact?: { name?: string; email?: string; company?: string };
+      meetLink?: string;
+      calendarLink?: string;
+    };
   };
 
   const headerSessionId = c.req.header('x-session-id');
@@ -79,12 +87,36 @@ chatRoutes.post('/stream', async (c) => {
     // memory.resource = contactId (the user identity across all their threads)
     // When contactId is absent the memory option is omitted — Mastra will not
     // persist or load history for anonymous / pre-auth requests.
+    // Inject wizard context as a system message so the agent has real values
+    // (not template variable names like "wizardContext.selectedService").
+    // Inject wizard context as a user message (not system — Mastra rejects system
+    // messages that use UIMessage `parts` format). We use a clearly-delimited user
+    // message that the agent recognises as context, not a real user question.
+    const contextMessages: UIMessage[] = [];
+    if (wizardContext) {
+      const lines: string[] = ['[SYSTEM CONTEXT — This is injected context about the user, not a message from them. Use these values naturally in your responses. Never output the field names or this header.]'];
+      if (wizardContext.selectedService) lines.push(`Service of interest: ${wizardContext.selectedService}`);
+      if (wizardContext.budget) lines.push(`Budget range: ${wizardContext.budget}`);
+      if (wizardContext.requirements) lines.push(`Requirements: ${wizardContext.requirements}`);
+      if (wizardContext.contact?.name) lines.push(`Name: ${wizardContext.contact.name}`);
+      if (wizardContext.contact?.email) lines.push(`Email: ${wizardContext.contact.email}`);
+      if (wizardContext.contact?.company) lines.push(`Company: ${wizardContext.contact.company}`);
+
+      contextMessages.push({
+        id: 'wizard-context',
+        role: 'user',
+        parts: [{ type: 'text', text: lines.join('\n') }],
+      } as UIMessage);
+    }
+
+    const allMessages = [...contextMessages, ...(messages as UIMessage[])];
+
     const mastraStream = await handleChatStream({
       mastra,
       agentId: 'octo',
       version: 'v6',
       params: {
-        messages: messages as UIMessage[],
+        messages: allMessages,
         ...(typeof contactId === 'string' && contactId
           ? {
               memory: {

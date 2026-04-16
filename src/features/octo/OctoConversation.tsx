@@ -1,5 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { MessageCircle, Video, CalendarPlus, AlertTriangle, RefreshCw, X } from 'lucide-react';
+import type { OrbState } from '../chat/InteractiveChat';
 import OctoMessage from './OctoMessage';
 import OctoChoices from './OctoChoices';
 import OctoTextInput from './OctoTextInput';
@@ -70,6 +71,19 @@ export default function OctoConversation({ onClose, onStateChange }: OctoConvers
   useEffect(() => {
     onStateChange?.(state.octoState);
   }, [state.octoState, onStateChange]);
+
+  // Task #63 — map freechat OrbState ('idle'|'listening'|'thinking'|'speaking')
+  // to the wizard's OctoAnimState ('idle'|'thinking'|'speaking').
+  // 'listening' has no direct equivalent in OctoAnimState so we map it to
+  // 'thinking' (orb visually indicates it is waiting/processing audio).
+  const handleFreeChatOrbState = useCallback(
+    (state: OrbState) => {
+      const mapped: OctoAnimState =
+        state === 'listening' ? 'thinking' : state;
+      dispatch({ type: 'SET_OCTO_STATE', payload: mapped });
+    },
+    [dispatch],
+  );
 
   const handleMessageComplete = useCallback(() => {
     showChoices();
@@ -241,6 +255,7 @@ export default function OctoConversation({ onClose, onStateChange }: OctoConvers
             meetLink: state.meetLink,
             calendarLink: state.calendarLink,
           }}
+          onOrbStateChange={handleFreeChatOrbState}
         />
       )}
 

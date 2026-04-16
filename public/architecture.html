@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Octio Conversational UI — Architecture & Design</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#06060C; font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif; color:#F0EDE8; padding:40px 20px 80px; line-height:1.7; }
+  .container { max-width:900px; margin:0 auto; }
+
+  h1 { font-size:32px; font-weight:700; color:#E8862A; margin-bottom:8px; }
+  h2 { font-size:22px; font-weight:700; color:#E8862A; margin:48px 0 16px; padding-bottom:8px; border-bottom:1px solid #1E1E30; }
+  h3 { font-size:16px; font-weight:600; color:#F0EDE8; margin:28px 0 10px; }
+  h4 { font-size:14px; font-weight:600; color:#7A7A8C; text-transform:uppercase; letter-spacing:1px; margin:20px 0 8px; }
+
+  p { font-size:15px; color:#B0ADB8; margin-bottom:14px; }
+  strong { color:#F0EDE8; }
+  code { background:#0D0D1A; padding:2px 6px; border-radius:4px; font-size:13px; color:#E8862A; }
+  em { color:#F5A54B; font-style:normal; }
+
+  ul, ol { padding-left:24px; margin-bottom:16px; }
+  li { font-size:14px; color:#B0ADB8; margin-bottom:6px; }
+  li strong { color:#F0EDE8; }
+
+  .subtitle { font-size:16px; color:#7A7A8C; margin-bottom:40px; }
+  .mermaid { background:#0D0D1A; border:1px solid #1E1E30; border-radius:12px; padding:24px; margin:20px 0 28px; overflow-x:auto; }
+  .card { background:#0D0D1A; border:1px solid #1E1E30; border-radius:12px; padding:20px 24px; margin:16px 0; }
+
+  table { width:100%; border-collapse:collapse; margin:16px 0 24px; font-size:14px; }
+  th { text-align:left; padding:10px 14px; background:#0D0D1A; border:1px solid #1E1E30; color:#E8862A; font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.5px; }
+  td { padding:10px 14px; border:1px solid #1E1E30; color:#B0ADB8; }
+  td:first-child { color:#F0EDE8; font-weight:500; }
+
+  .flow-step { display:flex; gap:16px; align-items:flex-start; margin:12px 0; }
+  .flow-num { width:28px; height:28px; border-radius:50%; background:#E8862A; color:#06060C; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; }
+  .flow-content { flex:1; }
+  .flow-content strong { display:block; margin-bottom:2px; }
+  .flow-content p { margin-bottom:4px; font-size:14px; }
+
+  .tag { display:inline-block; padding:2px 10px; border-radius:6px; font-size:11px; font-weight:600; margin-right:6px; }
+  .tag.input { background:#1a2a1a; color:#4ade80; }
+  .tag.output { background:#2a1a2a; color:#c084fc; }
+  .tag.data { background:#2a1a1a; color:#E8862A; }
+  .tag.frontend { background:#1a1a2a; color:#60a5fa; }
+
+  .decision-table td:nth-child(2) { color:#E8862A; font-weight:500; }
+  pre { background:#0D0D1A; border:1px solid #1E1E30; border-radius:8px; padding:16px; font-size:13px; color:#B0ADB8; overflow-x:auto; margin:12px 0 20px; line-height:1.6; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h1>Octio Conversational UI</h1>
+<p class="subtitle">Full architecture, interaction flow, component hierarchy, and design decisions</p>
+
+<!-- ================================================================== -->
+<h2>1. Design Decisions</h2>
+<!-- ================================================================== -->
+
+<table class="decision-table">
+  <tr><th>Aspect</th><th>Decision</th><th>Rationale</th></tr>
+  <tr><td>Interaction model</td><td>Agent-driven guided flow</td><td>Agent decides sequence — feels like a wizard but adapts to each user</td></tr>
+  <tr><td>UI appearance</td><td>Same as current wizard</td><td>Reuse proven components (OctoChoices, OctoTextInput patterns)</td></tr>
+  <tr><td>Previous steps</td><td>Hidden — "History" toggle</td><td>Clean focus on current step; history available on demand with Edit</td></tr>
+  <tr><td>Orb</td><td>Current size, pinned top</td><td>Brand presence without stealing space from interaction area</td></tr>
+  <tr><td>Thinking state</td><td>Orb pulses + dots + "thinking..."</td><td>Clear feedback that something is happening</td></tr>
+  <tr><td>Text fallback</td><td>Integrated into each component</td><td>No duplicate bottom bar — one clean component zone per step</td></tr>
+  <tr><td>Voice input</td><td>Mic button on text fallback</td><td>Speak to answer any question — transcribed + sent as text</td></tr>
+  <tr><td>Detail text</td><td>Always visible</td><td>Context helps users give better answers</td></tr>
+  <tr><td>Agent output</td><td>Markdown + Mermaid diagrams</td><td>Rich responses — agent can explain with visuals, not just text</td></tr>
+  <tr><td>Diagram display</td><td>Inline, tap-to-expand</td><td>Readable inline; expand for complex diagrams</td></tr>
+</table>
+
+<!-- ================================================================== -->
+<h2>2. System Architecture</h2>
+<!-- ================================================================== -->
+
+<div class="mermaid">
+graph TB
+    subgraph Browser ["Frontend — React + Vite"]
+        IC["InteractiveChat<br/>(orchestrator)"]
+        CS[ChoiceSelector]
+        MS[MultiSelector]
+        TI[TextInputPanel]
+        FU[FileUploadPanel]
+        FP[FormPanel]
+        MD[MermaidDiagram]
+        HD[HistoryDrawer]
+        OB["OctoOrb<br/>(3D, Three.js)"]
+        TF["TextFallback<br/>(input + mic + send)"]
+    end
+
+    subgraph Worker ["Backend — Hono + Mastra + Kimi"]
+        AG["Octo Agent<br/>Kimi LLM"]
+
+        subgraph UITools ["Input Tools (render components)"]
+            T1[show_choices]
+            T2[show_multi_select]
+            T3[show_text_input]
+            T4[show_file_upload]
+            T5[show_form]
+        end
+
+        subgraph OutputTools ["Output Tools (render content)"]
+            T6[show_diagram]
+        end
+
+        subgraph DataTools ["Data Tools (backend-only)"]
+            T7[enrich_lead]
+            T8[prepare_call_brief]
+            T9[generate_blueprint]
+            T10[answer_service_question]
+            T11[send_resources]
+            T12[handoff_to_human]
+        end
+
+        KB["services.json<br/>Knowledge Base"]
+        DB[(Postgres)]
+        GM[Gmail API]
+        GC[Google Calendar]
+    end
+
+    IC -->|"useChat SSE"| AG
+    AG --> UITools
+    AG --> OutputTools
+    AG --> DataTools
+
+    T1 -.->|renders| CS
+    T2 -.->|renders| MS
+    T3 -.->|renders| TI
+    T4 -.->|renders| FU
+    T5 -.->|renders| FP
+    T6 -.->|renders| MD
+
+    T10 --> KB
+    T7 & T8 --> DB
+    T8 & T9 & T11 --> GM
+    T9 --> GC
+
+    style Browser fill:#0D0D1A,stroke:#1E1E30,color:#F0EDE8
+    style Worker fill:#0D0D1A,stroke:#1E1E30,color:#F0EDE8
+    style AG fill:#E8862A,stroke:#c0601a,color:#06060C
+    style UITools fill:#1a2a1a,stroke:#4ade80,color:#F0EDE8
+    style OutputTools fill:#2a1a2a,stroke:#c084fc,color:#F0EDE8
+    style DataTools fill:#2a1a1a,stroke:#E8862A,color:#F0EDE8
+</div>
+
+<!-- ================================================================== -->
+<h2>3. Conversation Flow</h2>
+<!-- ================================================================== -->
+
+<div class="mermaid">
+flowchart TD
+    START([User opens chat]) --> P1
+
+    subgraph P1 ["Phase 1 — Acknowledge + Qualify"]
+        A1["🟠 Orb: thinking"] --> A2["show_choices<br/>'What service interests you?'"]
+        A2 --> A3["User taps choice → stored in history"]
+        A3 --> A4["show_text_input<br/>'What's the main problem?'"]
+        A4 --> A5["User types → stored + enrich_lead"]
+    end
+
+    P1 --> P2
+
+    subgraph P2 ["Phase 2 — Position + Educate"]
+        B1["answer_service_question<br/>(lookup knowledge base)"] --> B2["Agent writes markdown response<br/>framing Octio as the solution"]
+        B2 --> B3["show_diagram<br/>Proposed system architecture"]
+        B3 --> B4["show_choices<br/>'Which approach interests you?'"]
+    end
+
+    P2 --> P3
+
+    subgraph P3 ["Phase 3 — Deepen + Capture"]
+        C1["show_choices<br/>'Who's involved?'"] --> C2["enrich_lead(team_size)"]
+        C2 --> C3["show_choices<br/>'Hard deadline?'"]
+        C3 --> C4["enrich_lead(timeline)"]
+        C4 --> C5["show_multi_select<br/>'Which pain points apply?'"]
+        C5 --> C6["enrich_lead(pain_points)"]
+        C6 --> C7["show_file_upload<br/>'Got specs or mockups?'"]
+    end
+
+    P3 --> P4
+
+    subgraph P4 ["Phase 4 — Close + Bridge"]
+        D1["Agent markdown summary<br/>of what was learned"] --> D2["show_choices<br/>'Want a project blueprint?'"]
+        D2 -->|Yes| D3["generate_blueprint → email"]
+        D2 -->|No| D4["prepare_call_brief → email team"]
+        D3 --> D4
+        D4 --> D5(["✅ Conversation complete"])
+    end
+
+    style P1 fill:#1a1a0a,stroke:#E8862A,color:#F0EDE8
+    style P2 fill:#0a1a1a,stroke:#60a5fa,color:#F0EDE8
+    style P3 fill:#1a0a1a,stroke:#c084fc,color:#F0EDE8
+    style P4 fill:#0a1a0a,stroke:#4ade80,color:#F0EDE8
+</div>
+
+<!-- ================================================================== -->
+<h2>4. Per-Step Render Lifecycle</h2>
+<!-- ================================================================== -->
+
+<div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant F as Frontend
+    participant O as Orb
+    participant A as Agent (Kimi)
+
+    U->>F: Taps button / types / speaks / uploads
+    F->>F: Store previous step in history
+    F->>O: Set state → thinking
+    Note over O: Faster pulse + glow<br/>"thinking..." label
+    F->>A: POST /chat/stream
+
+    A-->>A: LLM generates response
+    A->>A: Calls answer_service_question (optional)
+    A->>A: Calls enrich_lead (optional)
+    A->>A: Writes text (question + detail)
+    A->>A: Calls UI tool (show_choices / show_diagram / etc.)
+    A-->>F: Stream complete (buffered)
+
+    F->>O: Set state → speaking
+    F->>F: Typewriter: question text
+    F->>F: Fade in: detail text
+    F->>F: Fade in: markdown content (if any)
+    F->>F: Render: Mermaid diagram (if show_diagram called)
+    F->>F: Slide up: interactive component
+    F->>F: Show: text fallback + mic + send
+    F->>O: Set state → idle
+
+    Note over F: User sees ONE step:<br/>Question + Detail + Component + "Or type"
+</div>
+
+<!-- ================================================================== -->
+<h2>5. Component Hierarchy</h2>
+<!-- ================================================================== -->
+
+<div class="mermaid">
+graph TD
+    IC["InteractiveChat<br/>(root orchestrator)"]
+
+    IC --> OZ["OrbZone<br/>(pinned top)"]
+    IC --> HD["HistoryDrawer<br/>(hidden by default)"]
+    IC --> SZ["StepZone<br/>(current step only)"]
+    IC --> DO["DiagramOverlay<br/>(full-screen expand)"]
+
+    OZ --> CB[CloseButton]
+    OZ --> HT[HistoryToggle]
+    OZ --> OB["OctoOrb<br/>(Three.js, existing)"]
+    OZ --> OL["OrbLabel<br/>('mina.')"]
+    OZ --> TH["ThinkingIndicator<br/>(dots + 'thinking...')"]
+
+    HD --> HI["HistoryItem × N<br/>({ label, value, onEdit })"]
+
+    SZ --> QT["QuestionText<br/>(bold, 20px, typewriter)"]
+    SZ --> DT["DetailText<br/>(muted, 13px, fade in)"]
+    SZ --> AC["AgentContent<br/>(markdown via react-markdown)"]
+    AC --> MDD["MermaidDiagram<br/>(if show_diagram)"]
+    SZ --> CP["ComponentPanel<br/>(one at a time)"]
+    CP --> CS["ChoiceSelector<br/>(show_choices)"]
+    CP --> MS["MultiSelector<br/>(show_multi_select)"]
+    CP --> TI["TextInputPanel<br/>(show_text_input)"]
+    CP --> FU["FileUploadPanel<br/>(show_file_upload)"]
+    CP --> FP["FormPanel<br/>(show_form)"]
+    SZ --> TFF["TextFallback<br/>(always visible)"]
+    TFF --> TIN[TextInput]
+    TFF --> MIC[MicButton]
+    TFF --> SND[SendButton]
+
+    style IC fill:#E8862A,stroke:#c0601a,color:#06060C
+    style CP fill:#1a2a1a,stroke:#4ade80,color:#F0EDE8
+    style AC fill:#2a1a2a,stroke:#c084fc,color:#F0EDE8
+    style OZ fill:#0D0D1A,stroke:#E8862A,color:#F0EDE8
+</div>
+
+<!-- ================================================================== -->
+<h2>6. Tool Reference</h2>
+<!-- ================================================================== -->
+
+<h3>Input Tools <span class="tag input">collect user response</span></h3>
+
+<table>
+  <tr><th>Tool</th><th>Renders</th><th>User Action</th><th>Response Sent</th></tr>
+  <tr><td><code>show_choices</code></td><td>Button grid (single select)</td><td>Tap a button</td><td>Button label as text message</td></tr>
+  <tr><td><code>show_multi_select</code></td><td>Checkbox list + Confirm</td><td>Check items, tap Confirm</td><td>Selected items joined with commas</td></tr>
+  <tr><td><code>show_text_input</code></td><td>Textarea</td><td>Type + send</td><td>Typed text as message</td></tr>
+  <tr><td><code>show_file_upload</code></td><td>Drag-and-drop zone + Skip</td><td>Upload or skip</td><td>File uploaded via multipart, or "Skipped"</td></tr>
+  <tr><td><code>show_form</code></td><td>Dynamic labeled fields + Submit</td><td>Fill fields, submit</td><td>Field values as structured JSON</td></tr>
+</table>
+
+<h3>Output Tools <span class="tag output">render rich content</span></h3>
+
+<table>
+  <tr><th>Tool</th><th>Renders</th><th>Behavior</th></tr>
+  <tr><td><code>show_diagram</code></td><td>Mermaid diagram</td><td>Inline at readable size. Tap-to-expand overlay for complex diagrams.</td></tr>
+</table>
+
+<p>Agent <strong>text</strong> is always rendered as <strong>formatted markdown</strong> via <code>react-markdown</code> — bold, italic, lists, headings, code blocks. No tool needed for text formatting.</p>
+
+<h3>Data Tools <span class="tag data">backend only — not rendered</span></h3>
+
+<table>
+  <tr><th>Tool</th><th>Purpose</th></tr>
+  <tr><td><code>enrich_lead</code></td><td>Store qualifying data (team size, timeline, pain points) in DB</td></tr>
+  <tr><td><code>prepare_call_brief</code></td><td>Email structured brief to team before discovery call</td></tr>
+  <tr><td><code>generate_blueprint</code></td><td>LLM-generated project plan emailed to lead</td></tr>
+  <tr><td><code>answer_service_question</code></td><td>Lookup knowledge base for grounded facts</td></tr>
+  <tr><td><code>send_resources</code></td><td>Email case studies to lead</td></tr>
+  <tr><td><code>handoff_to_human</code></td><td>Escalate to team via Gmail alert</td></tr>
+</table>
+
+<!-- ================================================================== -->
+<h2>7. Screen Layouts</h2>
+<!-- ================================================================== -->
+
+<h3>7.1 Active Step (Choices)</h3>
+<pre>
+┌──────────────────────────────────────────┐
+│  [x]                        [History]    │
+│                                          │
+│              ┌──────────┐                │
+│              │   ORB    │                │
+│              │  (eyes)  │                │
+│              └──────────┘                │
+│               mina.                      │
+│                                          │
+│  What's the main problem you're          │  ← Question (20px, bold)
+│  trying to solve?                        │
+│                                          │
+│  This helps us match you with the        │  ← Detail (13px, muted)
+│  right approach and prepare examples.    │
+│                                          │
+│  ┌───────────┐ ┌────────────────┐        │
+│  │ Manual    │ │ Legacy system  │        │  ← Choice buttons
+│  │ processes │ │ needs replacing│        │
+│  └───────────┘ └────────────────┘        │
+│  ┌───────────┐ ┌────────────────┐        │
+│  │ Scale ops │ │ CX improvement │        │
+│  └───────────┘ └────────────────┘        │
+│                                          │
+│  Or type your answer                     │
+│  ┌──────────────────────┐ [🎤] [▶]     │  ← Integrated: input + mic + send
+│  │ Describe situation   │               │
+│  └──────────────────────┘               │
+└──────────────────────────────────────────┘
+</pre>
+
+<h3>7.2 Thinking State</h3>
+<pre>
+┌──────────────────────────────────────────┐
+│  [x]                        [History]    │
+│                                          │
+│              ┌──────────┐                │
+│              │   ORB    │                │
+│              │(pulsing) │                │
+│              └──────────┘                │
+│               mina.                      │
+│                                          │
+│              ●  ●  ●                     │  ← Bouncing dots
+│            thinking...                   │  ← Label
+│                                          │
+└──────────────────────────────────────────┘
+</pre>
+
+<h3>7.3 Diagram Response</h3>
+<pre>
+┌──────────────────────────────────────────┐
+│  [x]                        [History]    │
+│              ┌──────────┐                │
+│              │   ORB    │                │
+│              └──────────┘                │
+│               mina.                      │
+│                                          │
+│  Here's how the system would work:       │  ← Markdown text
+│                                          │
+│  ┌──────────────────────────────────┐    │
+│  │         Mermaid Diagram          │    │  ← Rendered inline
+│  │    ┌───┐   ┌───┐   ┌───┐       │    │
+│  │    │ A │──→│ B │──→│ C │       │    │
+│  │    └───┘   └───┘   └───┘       │    │
+│  │            Tap to expand ↗       │    │  ← Expand link
+│  └──────────────────────────────────┘    │
+│                                          │
+│  Which approach makes more sense?        │  ← Next question
+│                                          │
+│  [Approach A]  [Approach B]              │  ← Choices
+│                                          │
+│  Or type your answer                     │
+│  [________________________] [🎤] [▶]    │
+└──────────────────────────────────────────┘
+</pre>
+
+<h3>7.4 History Drawer (toggled)</h3>
+<pre>
+┌──────────────────────────────────────────┐
+│  [x]                      [History ✓]    │
+│                                          │
+│  ┌ Your answers ─────────────────────┐   │
+│  │ Service: AI Agents        [Edit]  │   │
+│  │ Budget: R150K–R500K       [Edit]  │   │
+│  │ Problem: Manual processes [Edit]  │   │
+│  │ Team: 5 people            [Edit]  │   │
+│  └───────────────────────────────────┘   │
+│                                          │
+│              ┌──────────┐                │
+│              │   ORB    │                │
+│              └──────────┘                │
+│               ...current step below      │
+└──────────────────────────────────────────┘
+</pre>
+
+<h3>7.5 Multi-Select</h3>
+<pre>
+┌──────────────────────────────────────────┐
+│              ┌──────────┐                │
+│              │   ORB    │                │
+│              └──────────┘                │
+│                                          │
+│  Which pain points apply to you?         │
+│  Select all that are relevant.           │
+│                                          │
+│  [✓] Manual data entry eating hours      │
+│  [✓] No pipeline visibility             │
+│  [ ] Legacy system breaking              │
+│  [ ] Can't scale current process         │
+│                                          │
+│  [Confirm]                               │
+│                                          │
+│  Or type your answer                     │
+│  [________________________] [🎤] [▶]    │
+└──────────────────────────────────────────┘
+</pre>
+
+<h3>7.6 File Upload</h3>
+<pre>
+┌──────────────────────────────────────────┐
+│              ┌──────────┐                │
+│              │   ORB    │                │
+│              └──────────┘                │
+│                                          │
+│  Got any specs or mockups?               │
+│  Totally optional — helps us prepare.    │
+│                                          │
+│  ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐   │
+│  │                                   │   │
+│  │   Drop files here or tap to       │   │
+│  │   browse (PDF, images, docs)      │   │
+│  │                                   │   │
+│  └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘   │
+│                                          │
+│  [Skip this]                             │
+│                                          │
+│  Or describe what you'd share            │
+│  [________________________] [🎤] [▶]    │
+└──────────────────────────────────────────┘
+</pre>
+
+<!-- ================================================================== -->
+<h2>8. Data Flow</h2>
+<!-- ================================================================== -->
+
+<h3>8.1 User → Agent</h3>
+
+<div class="flow-step"><div class="flow-num">1</div><div class="flow-content"><strong>User interacts with component</strong><p>Taps a choice, checks boxes, types text, records voice, uploads file, or submits form</p></div></div>
+<div class="flow-step"><div class="flow-num">2</div><div class="flow-content"><strong>Previous step collapses</strong><p>Current step stored in local <code>history[]</code> array with <code>{ question, answer, toolId, toolInput }</code></p></div></div>
+<div class="flow-step"><div class="flow-num">3</div><div class="flow-content"><strong>Orb → thinking state</strong><p>Faster pulse, glow intensifies, "thinking..." label appears</p></div></div>
+<div class="flow-step"><div class="flow-num">4</div><div class="flow-content"><strong>Message sent to agent</strong><p><code>sendMessage({ text })</code> via useChat → <code>POST /chat/stream</code></p></div></div>
+<div class="flow-step"><div class="flow-num">5</div><div class="flow-content"><strong>Agent processes + responds</strong><p>Calls data tools (enrich_lead, answer_service_question), writes text, calls UI tool</p></div></div>
+<div class="flow-step"><div class="flow-num">6</div><div class="flow-content"><strong>Stream complete → render</strong><p>Orb → speaking. Question typewriters in. Detail fades. Component slides up. Text fallback appears.</p></div></div>
+
+<h3>8.2 Voice Input Flow</h3>
+
+<div class="flow-step"><div class="flow-num">1</div><div class="flow-content"><strong>User taps mic button</strong><p>MediaRecorder starts (reuses existing code from OctoTextInput.tsx)</p></div></div>
+<div class="flow-step"><div class="flow-num">2</div><div class="flow-content"><strong>User speaks → stops recording</strong><p>Audio blob created (webm on Chrome, mp4 on iOS Safari — dynamic MIME detection already built)</p></div></div>
+<div class="flow-step"><div class="flow-num">3</div><div class="flow-content"><strong>Transcription</strong><p>Audio sent to backend → transcribed via Whisper API or Kimi audio model → text returned</p></div></div>
+<div class="flow-step"><div class="flow-num">4</div><div class="flow-content"><strong>Text sent as answer</strong><p>Transcribed text sent as <code>sendMessage({ text })</code> — agent sees it as a normal text response</p></div></div>
+
+<h3>8.3 History + Edit Flow</h3>
+
+<div class="flow-step"><div class="flow-num">1</div><div class="flow-content"><strong>Each completed step stored locally</strong><p><code>{ stepId, question, answer, toolId, toolInput, timestamp }</code></p></div></div>
+<div class="flow-step"><div class="flow-num">2</div><div class="flow-content"><strong>User taps "History" button</strong><p>Drawer slides open showing all past answers as compact pills with "Edit" links</p></div></div>
+<div class="flow-step"><div class="flow-num">3</div><div class="flow-content"><strong>User taps "Edit" on an answer</strong><p>The original component re-renders with the previous value pre-filled</p></div></div>
+<div class="flow-step"><div class="flow-num">4</div><div class="flow-content"><strong>User changes their answer</strong><p>New value replaces old in history. Sent to agent as: <code>[Edited: {field} changed from "{old}" to "{new}"]</code></p></div></div>
+
+<!-- ================================================================== -->
+<h2>9. File Structure</h2>
+<!-- ================================================================== -->
+
+<h4>New Frontend Files <span class="tag frontend">frontend</span></h4>
+<ul>
+  <li><code>src/features/chat/InteractiveChat.tsx</code> — root orchestrator, replaces FreeChatWidget</li>
+  <li><code>src/features/chat/ChatMessage.tsx</code> — renders question + detail + agent markdown</li>
+  <li><code>src/features/chat/components/ChoiceSelector.tsx</code> — button grid (single select)</li>
+  <li><code>src/features/chat/components/MultiSelector.tsx</code> — checkbox list + confirm</li>
+  <li><code>src/features/chat/components/TextInputPanel.tsx</code> — styled textarea</li>
+  <li><code>src/features/chat/components/FileUploadPanel.tsx</code> — drag-and-drop zone</li>
+  <li><code>src/features/chat/components/FormPanel.tsx</code> — dynamic labeled form</li>
+  <li><code>src/features/chat/components/MermaidDiagram.tsx</code> — inline diagram + tap-to-expand overlay</li>
+  <li><code>src/features/chat/components/HistoryDrawer.tsx</code> — collapsible answer history</li>
+  <li><code>src/features/chat/components/ThinkingState.tsx</code> — dots + "thinking..." label</li>
+  <li><code>src/features/chat/components/TextFallback.tsx</code> — input + mic + send (integrated into each step)</li>
+</ul>
+
+<h4>New Backend Tools <span class="tag input">input</span> <span class="tag output">output</span></h4>
+<ul>
+  <li><code>worker/src/mastra/tools/show-choices.ts</code> — <span class="tag input">input</span></li>
+  <li><code>worker/src/mastra/tools/show-multi-select.ts</code> — <span class="tag input">input</span></li>
+  <li><code>worker/src/mastra/tools/show-text-input.ts</code> — <span class="tag input">input</span></li>
+  <li><code>worker/src/mastra/tools/show-file-upload.ts</code> — <span class="tag input">input</span></li>
+  <li><code>worker/src/mastra/tools/show-form.ts</code> — <span class="tag input">input</span></li>
+  <li><code>worker/src/mastra/tools/show-diagram.ts</code> — <span class="tag output">output</span></li>
+</ul>
+
+<h4>Modified Files</h4>
+<ul>
+  <li><code>src/features/octo/OctoFreeChat.tsx</code> — mount InteractiveChat</li>
+  <li><code>src/features/octo/OctoConversation.tsx</code> — adjust layout</li>
+  <li><code>src/components/Hero.tsx</code> — orb pinned to top</li>
+  <li><code>worker/src/mastra/agents/octo.ts</code> — register 6 new UI tools</li>
+  <li><code>worker/src/prompts/octo-freechat.md</code> — UI tool usage rules per phase</li>
+</ul>
+
+<!-- ================================================================== -->
+<h2>10. Tool Schemas</h2>
+<!-- ================================================================== -->
+
+<h3><code>show_choices</code> <span class="tag input">input</span></h3>
+<div class="card">
+  <p><strong>question</strong> <code>string</code> — main question (bold, 20px)</p>
+  <p><strong>detail</strong> <code>string?</code> — context text (muted, 13px)</p>
+  <p><strong>options</strong> <code>string[]</code> — button labels</p>
+  <p><strong>allowCustom</strong> <code>boolean = true</code> — show "or type" field + mic</p>
+</div>
+
+<h3><code>show_multi_select</code> <span class="tag input">input</span></h3>
+<div class="card">
+  <p><strong>question</strong> <code>string</code></p>
+  <p><strong>detail</strong> <code>string?</code></p>
+  <p><strong>options</strong> <code>string[]</code> — checkbox labels</p>
+  <p><strong>minSelect</strong> <code>number = 1</code></p>
+  <p><strong>maxSelect</strong> <code>number?</code></p>
+</div>
+
+<h3><code>show_text_input</code> <span class="tag input">input</span></h3>
+<div class="card">
+  <p><strong>question</strong> <code>string</code></p>
+  <p><strong>detail</strong> <code>string?</code></p>
+  <p><strong>placeholder</strong> <code>string?</code></p>
+  <p><strong>multiline</strong> <code>boolean = false</code></p>
+</div>
+
+<h3><code>show_file_upload</code> <span class="tag input">input</span></h3>
+<div class="card">
+  <p><strong>question</strong> <code>string</code></p>
+  <p><strong>detail</strong> <code>string?</code></p>
+  <p><strong>acceptTypes</strong> <code>string = ".pdf,.doc,.docx,.txt,image/*"</code></p>
+  <p><strong>allowSkip</strong> <code>boolean = true</code></p>
+</div>
+
+<h3><code>show_form</code> <span class="tag input">input</span></h3>
+<div class="card">
+  <p><strong>question</strong> <code>string</code></p>
+  <p><strong>detail</strong> <code>string?</code></p>
+  <p><strong>fields</strong> <code>Array&lt;{ name, label, type, required?, placeholder? }&gt;</code></p>
+  <p>Field types: <code>text</code> | <code>email</code> | <code>tel</code> | <code>textarea</code></p>
+</div>
+
+<h3><code>show_diagram</code> <span class="tag output">output</span></h3>
+<div class="card">
+  <p><strong>title</strong> <code>string?</code> — caption above diagram</p>
+  <p><strong>mermaidCode</strong> <code>string</code> — raw Mermaid syntax</p>
+  <p><strong>expandable</strong> <code>boolean = true</code> — show "tap to expand" link</p>
+</div>
+
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#E8862A',
+      primaryTextColor: '#F0EDE8',
+      primaryBorderColor: '#c0601a',
+      lineColor: '#7A7A8C',
+      secondaryColor: '#0D0D1A',
+      tertiaryColor: '#141428',
+      fontFamily: 'DM Sans, sans-serif',
+      fontSize: '13px',
+      noteBkgColor: '#141428',
+      noteTextColor: '#F0EDE8',
+      noteBorderColor: '#1E1E30',
+    }
+  });
+</script>
+
+</body>
+</html>
