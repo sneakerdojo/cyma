@@ -44,8 +44,24 @@ package:
     - docker push "registry.gitlab.com/octio-dev/octio-website:latest"
     - docker push "registry.gitlab.com/octio-dev/octio-website:$CI_COMMIT_SHORT_SHA"
 
+# Worker image — self-contained multi-stage build (no build stage artifact
+# needed; worker/Dockerfile runs pnpm install + tsc inside the builder).
+# Listens on :3000 and is reverse-proxied at /api/ and /chat/ by Traefik on
+# infra-01 (and the QA equivalent on demo-01).
+package:worker:
+  stage: package
+  only:
+    - main
+  script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.com
+    - docker build -f worker/Dockerfile
+        -t "registry.gitlab.com/octio-dev/octio-website/worker:latest"
+        -t "registry.gitlab.com/octio-dev/octio-website/worker:$CI_COMMIT_SHORT_SHA" .
+    - docker push "registry.gitlab.com/octio-dev/octio-website/worker:latest"
+    - docker push "registry.gitlab.com/octio-dev/octio-website/worker:$CI_COMMIT_SHORT_SHA"
+
 # =============================================================================
-# Deploy stage — SSH to target host, docker compose pull/up, reload gateway
+# Deploy stage — SSH to target host, docker compose pull/up
 # =============================================================================
 #
 # Both environments run the same image and pull from the same `:latest` tag.
@@ -82,14 +98,14 @@ deploy:qa:
       ssh -p $DEPLOY_SSH_PORT $DEPLOY_USER@$DEPLOY_HOST_QA bash -s <<'REMOTE'
         set -e
         cd /opt/stacks/octio-website-qa
-        echo "Pulling latest image..."
+        echo "Pulling latest images..."
         docker compose pull
-        echo "Recreating container..."
+        echo "Recreating containers..."
         docker compose up -d --force-recreate
         echo "Waiting for healthcheck..."
         timeout 60 bash -c 'until docker inspect octio-website-qa --format "{{.State.Health.Status}}" 2>/dev/null | grep -q healthy; do sleep 2; done'
-        echo "Reloading gateway..."
-        docker kill --signal=HUP gateway 2>/dev/null || docker restart gateway
+        # No gateway reload: demo-01 runs Traefik, which re-resolves upstream
+        # container IPs via Docker's embedded DNS automatically.
         docker compose ps
       REMOTE
   rules:
@@ -106,14 +122,14 @@ deploy:production:
       ssh -p $DEPLOY_SSH_PORT $DEPLOY_USER@$DEPLOY_HOST_PROD bash -s <<'REMOTE'
         set -e
         cd /opt/stacks/octio-website-prd
-        echo "Pulling latest image..."
+        echo "Pulling latest images..."
         docker compose pull
-        echo "Recreating container..."
+        echo "Recreating containers..."
         docker compose up -d --force-recreate
         echo "Waiting for healthcheck..."
         timeout 60 bash -c 'until docker inspect octio-website-prd --format "{{.State.Health.Status}}" 2>/dev/null | grep -q healthy; do sleep 2; done'
-        echo "Reloading gateway..."
-        docker kill --signal=HUP gateway 2>/dev/null || docker restart gateway
+        # No gateway reload: infra-01 runs Traefik, which re-resolves upstream
+        # container IPs via Docker's embedded DNS automatically.
         docker compose ps
       REMOTE
   rules:
