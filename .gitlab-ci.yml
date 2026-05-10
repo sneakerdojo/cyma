@@ -116,6 +116,15 @@ deploy:qa:
   environment:
     name: qa
   script:
+    # Authenticate the remote docker daemon to GitLab Container Registry using
+    # the pipeline's ephemeral job token, so `docker compose pull` can fetch
+    # private images (web + worker). Token is short-lived and scoped to this
+    # job; nothing persists on the host. Stdin = the auth payload so the token
+    # never appears in a process list on the remote.
+    - |
+      printf '%s\n' "$CI_JOB_TOKEN" \
+        | ssh -p $DEPLOY_SSH_PORT $DEPLOY_USER@$DEPLOY_HOST_QA \
+            "docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY"
     - |
       ssh -p $DEPLOY_SSH_PORT $DEPLOY_USER@$DEPLOY_HOST_QA bash -s <<'REMOTE'
         set -e
@@ -131,6 +140,8 @@ deploy:qa:
         # No gateway reload: demo-01 runs Traefik, which re-resolves upstream
         # container IPs via Docker's embedded DNS automatically.
         docker compose ps
+        # Wipe the cached registry creds so they don't outlive the pipeline.
+        docker logout registry.gitlab.com 2>/dev/null || true
       REMOTE
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
@@ -142,6 +153,12 @@ deploy:production:
   environment:
     name: production
   script:
+    # Auth the prod docker daemon to GitLab Container Registry — same pattern
+    # as deploy:qa, ephemeral CI_JOB_TOKEN piped via stdin, logout at the end.
+    - |
+      printf '%s\n' "$CI_JOB_TOKEN" \
+        | ssh -p $DEPLOY_SSH_PORT $DEPLOY_USER@$DEPLOY_HOST_PROD \
+            "docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY"
     - |
       ssh -p $DEPLOY_SSH_PORT $DEPLOY_USER@$DEPLOY_HOST_PROD bash -s <<'REMOTE'
         set -e
@@ -157,6 +174,7 @@ deploy:production:
         # No gateway reload: infra-01 runs Traefik, which re-resolves upstream
         # container IPs via Docker's embedded DNS automatically.
         docker compose ps
+        docker logout registry.gitlab.com 2>/dev/null || true
       REMOTE
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
