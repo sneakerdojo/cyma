@@ -60,6 +60,8 @@ import {
   summaryStepSchema,
 } from '../conversation/steps.js';
 import { getAvailabilityForNextBusinessDays } from '../services/calendar.js';
+import { getOrAssignVariant } from '../services/ab-test.js';
+import type { VariantOverride } from '../conversation/steps.js';
 
 // ---------------------------------------------------------------------------
 // Kimi model instance — reused across requests (connection pool friendly)
@@ -71,7 +73,11 @@ const kimi = createOpenAICompatible({
   apiKey: config.kimiApiKey ?? '',
 });
 
-const kimiModel = kimi.chatModel(config.kimiModel || 'kimi-k2-0905-preview');
+// Default to the K2 Turbo variant — same architecture as the standard K2
+// Preview but without the thinking overhead, optimised for streaming latency.
+// Override via KIMI_MODEL env var if you want kimi-k2-0905-preview (slower,
+// higher quality) or another variant.
+const kimiModel = kimi.chatModel(config.kimiModel || 'kimi-k2-turbo-preview');
 
 // ---------------------------------------------------------------------------
 // generateStepContent — calls Kimi with generateText + JSON parse + Zod guard
@@ -102,20 +108,20 @@ async function generateStepContent(
 
 const FALLBACKS: Record<string, unknown> = {
   main_problem: {
-    title: "What's the main problem you're hoping to solve?",
-    detail: 'This helps us prepare the right approach for your discovery call.',
+    title: 'How can we help you today?',
+    detail: 'Pick the closest fit — we’ll tailor the conversation from there.',
     options: [
-      'Manual processes eating time',
-      'Legacy system needs replacing',
-      'Need to scale operations',
-      'Customer experience improvement',
-      'Something else',
+      'Build a custom AI product or app',
+      'Get AI working in my business',
+      'I have a specific problem to solve',
+      'Just exploring — show me what Octio does',
+      'Talk to someone — I want to book a call',
     ],
   },
   problem_detail: {
-    title: "Tell us more about the problem in your own words",
+    title: "Tell me a bit more — what are you working on?",
     detail:
-      "There's no right or wrong answer — a few sentences is perfect. We read every response before the call.",
+      "A few sentences is plenty. The team reads every reply before your call, so the more colour the better.",
   },
   approach: {
     title: 'What approach sounds right to you?',
@@ -216,8 +222,26 @@ stepRoutes.post('/', async (c) => {
 
   const ctx: StepPromptContext = { answers, wizardContext };
 
+  // ---------------------------------------------------------------------------
+  // A/B test variant resolution
+  // Sessions that have variants defined for this step get a sticky assignment.
+  // The variant overrides fields on the base step definition before rendering.
+  // ---------------------------------------------------------------------------
+  let assignedVariant: string | null = null;
+  let variantOverride: VariantOverride | null = null;
+
+  if (step.variants && Object.keys(step.variants).length > 0) {
+    const sessionId = c.req.header('X-Session-Id') ?? '';
+    if (sessionId) {
+      const testName = `step_${step.id}`;
+      const variantNames = Object.keys(step.variants);
+      assignedVariant = await getOrAssignVariant(sessionId, testName, variantNames);
+      variantOverride = step.variants[assignedVariant] ?? null;
+    }
+  }
+
   logger.info(
-    { stepIndex, stepId: step.id, componentType: step.componentType },
+    { stepIndex, stepId: step.id, componentType: step.componentType, variant: assignedVariant },
     'generating step content',
   );
 
@@ -272,9 +296,12 @@ stepRoutes.post('/', async (c) => {
       done: false,
       stepId: step.id,
       componentType: 'scheduler',
-      title: step.title,
-      detail: step.detail,
+      title: variantOverride?.title ?? step.title,
+      detail: variantOverride?.detail ?? step.detail,
       slots,
+      slotsThisWeek: slots.length,
+      socialProof: variantOverride?.socialProof ?? step.socialProof ?? null,
+      variant: assignedVariant,
     });
   }
 
@@ -282,7 +309,8 @@ stepRoutes.post('/', async (c) => {
   // LLM-generated steps
   // ---------------------------------------------------------------------------
 
-  const prompt = step.promptFn(ctx);
+  const promptFn = variantOverride?.promptFn ?? step.promptFn;
+  const prompt = promptFn(ctx);
   let raw: unknown;
 
   try {
@@ -299,6 +327,7 @@ stepRoutes.post('/', async (c) => {
   // Each branch uses a typed fallback constant that satisfies the schema shape
   // so TypeScript can confirm all fields are present regardless of parse result.
   const stepId = step.id;
+  const socialProof = variantOverride?.socialProof ?? step.socialProof ?? null;
 
   switch (step.componentType) {
     case 'choice': {
@@ -314,6 +343,8 @@ stepRoutes.post('/', async (c) => {
         title: data.title,
         detail: data.detail,
         options: data.options,
+        socialProof,
+        variant: assignedVariant,
       });
     }
 
@@ -327,6 +358,8 @@ stepRoutes.post('/', async (c) => {
         componentType: 'text' as const,
         title: data.title,
         detail: data.detail,
+        socialProof,
+        variant: assignedVariant,
       });
     }
 
@@ -343,6 +376,8 @@ stepRoutes.post('/', async (c) => {
         title: data.title,
         detail: data.detail,
         options: data.options,
+        socialProof,
+        variant: assignedVariant,
       });
     }
 
@@ -356,6 +391,8 @@ stepRoutes.post('/', async (c) => {
         componentType: 'upload' as const,
         title: data.title,
         detail: data.detail,
+        socialProof,
+        variant: assignedVariant,
       });
     }
 
@@ -373,6 +410,8 @@ stepRoutes.post('/', async (c) => {
         detail: data.detail,
         summaryMarkdown: data.summaryMarkdown,
         agenda: data.agenda,
+        socialProof,
+        variant: assignedVariant,
       });
     }
 

@@ -18,6 +18,16 @@ export interface WizardContext {
   contact: ContactInfo;
   meetLink?: string;
   calendarLink?: string;
+  /** Page the user was on when they opened the wizard */
+  referrerPath?: string;
+  /** URL pathname when the wizard was opened */
+  entryPath?: string;
+  /**
+   * What the user was trying to do when they opened the chat. Drives the
+   * step-0 opener: 'general' / 'contact' / 'ask' / 'onboard'. See
+   * src/features/octo/WizardContext.tsx for the canonical enum.
+   */
+  intent?: 'general' | 'contact' | 'ask' | 'onboard';
 }
 
 // ---------------------------------------------------------------------------

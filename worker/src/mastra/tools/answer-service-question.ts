@@ -36,7 +36,7 @@ export const answerServiceQuestionTool = createTool({
     topic: z
       .string()
       .describe(
-        'The service topic to look up. Known keys: web-dev, custom-software, ai-agents, mobile-app, modernisation, pricing, process, general. Falls back to "general" if not recognised.',
+        'The Octio offering or topic to look up. Octio is a pure-play AI company with 4 autonomous products (lead-generation, voice-chat, social-media, newsletter) and 3 services (agentic-app-dev, custom-workflows, corporate-advisory). Plus general info topics: pricing, process, general. Falls back to "general" if not recognised.',
       ),
   }),
   execute: async (inputData): Promise<ServiceEntry> => {

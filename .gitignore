@@ -36,6 +36,7 @@ node_modules/
 .taskmaster/
 .playwright-cli/
 .claude/
+.screenshots/
 Screenshot*.png
 
 # Task files

@@ -1,0 +1,27 @@
+User-agent: *
+Allow: /
+Disallow: /privacy
+
+Sitemap: https://octio.co.za/sitemap.xml
+
+# AI / LLM crawlers — pointer to the LLM-readable summary
+# (per llmstxt.org standard — emerging convention adopted by Anthropic,
+# Mintlify, Cloudflare, and others as of late 2025)
+# See: https://octio.co.za/llms.txt
+
+# Allow major AI crawlers to read our content explicitly. Octio is a
+# pure-play AI company; being legible to AI search is a strategic asset.
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /

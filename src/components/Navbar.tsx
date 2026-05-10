@@ -1,17 +1,24 @@
 import { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
-import { useWizard } from '../features/octo/WizardContext';
 
 const NAV_LINKS = [
-  { label: 'Services', href: '#services' },
+  { label: 'Products', href: '#services' },
   { label: 'Approach', href: '#approach' },
   { label: 'About', href: '#about' },
 ];
 
+/**
+ * Navbar — wayfinding only.
+ *
+ * The conversion CTA used to live here too ("Let's get you started!"), but
+ * that meant the same button was rendered four times on the homepage
+ * (navbar, hero, contact, footer) plus the floating launcher. Conversion is
+ * now a single primary button in the hero plus the persistent
+ * "Talk to our AI agent" FAB. The navbar's job is wayfinding only.
+ */
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const { openWizard } = useWizard();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -29,9 +36,6 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex items-center justify-end h-20">
-          {/* Logo removed — hero displays Octio branding at large scale */}
-
-          {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-1">
             {NAV_LINKS.map((link) => (
               <a
@@ -42,15 +46,8 @@ export default function Navbar() {
                 {link.label}
               </a>
             ))}
-            <button
-              onClick={openWizard}
-              className="btn-glow ml-4 px-6 py-2.5 bg-orange text-bg text-sm font-semibold rounded-full transition-all duration-300 hover:bg-orange-light hover:shadow-lg hover:shadow-orange/20"
-            >
-              Let's Talk
-            </button>
           </div>
 
-          {/* Mobile menu button */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             className="md:hidden p-3 text-text-muted hover:text-text transition-colors"
@@ -61,7 +58,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile menu */}
       <div
         className={`md:hidden overflow-hidden transition-all duration-500 ease-in-out ${
           menuOpen ? 'max-h-80 opacity-100' : 'max-h-0 opacity-0'
@@ -78,15 +74,6 @@ export default function Navbar() {
               {link.label}
             </a>
           ))}
-          <button
-            onClick={() => {
-              setMenuOpen(false);
-              openWizard();
-            }}
-            className="mt-3 block w-full text-center px-6 py-3 bg-orange text-bg font-semibold rounded-full"
-          >
-            Let's Talk
-          </button>
         </div>
       </div>
     </nav>

@@ -68,7 +68,7 @@ function Scene({ state }: OctoSceneProps) {
 
 export default function OctoScene({ state, fullHeight = false }: OctoSceneProps) {
   return (
-    <div className={`w-full ${fullHeight ? 'h-full' : 'h-[35vh] sm:h-[40vh]'}`}>
+    <div className={`w-full ${fullHeight ? 'h-full' : 'h-[26vh] sm:h-[40vh]'}`}>
       <Canvas
         dpr={[1, 1.5]}
         camera={{ position: [0, 0, fullHeight ? 11 : 4.5], fov: 45 }}

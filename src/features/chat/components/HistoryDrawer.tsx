@@ -41,14 +41,16 @@ export default function HistoryDrawer({ isOpen, entries, onEdit }: HistoryDrawer
       {/* Inner content — padding only applies when open to avoid layout shift */}
       <div className="px-5 pb-2.5 pt-1">
         <p className="text-[10px] text-text-muted uppercase tracking-[1px] mb-1.5">
-          Your answers
+          {entries.length > 3 ? 'Your last 3 answers' : 'Your answers'}
         </p>
 
         <div className="flex flex-col gap-1.5">
           {entries.length === 0 ? (
             <p className="text-xs text-text-muted italic">No answers yet.</p>
           ) : (
-            entries.map((entry) => (
+            // Only ever show the most recent 3 — older answers stay editable
+            // through the conversation flow but don't clutter the drawer.
+            entries.slice(-3).map((entry) => (
               <div
                 key={entry.stepId}
                 className="flex items-center justify-between px-3 py-2 bg-surface border border-border rounded-lg text-xs"

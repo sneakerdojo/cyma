@@ -124,6 +124,64 @@ export const appointments = pgTable('appointments', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
 
+// ── emails_sent ──────────────────────────────────────────────────────────────
+// Tracks outbound automated emails to prevent duplicate sends.
+// Each row = one email sent. Append-only — never update or delete rows.
+export const emailsSent = pgTable(
+  'emails_sent',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    contactEmail: text('contact_email').notNull(),
+    emailType: text('email_type').notNull(), // 'abandonment_recovery' | 'prep' | 'reminder' | 'feedback'
+    sessionId: text('session_id'),
+    bookingId: uuid('booking_id'),
+    sentAt: timestamp('sent_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    index('emails_sent_contact_email_type_idx').on(table.contactEmail, table.emailType),
+    index('emails_sent_booking_id_idx').on(table.bookingId),
+  ],
+);
+
+// ── conversation_events ──────────────────────────────────────────────────────
+// Step-level analytics for funnel tracking. Each row records a single event
+// (step_view, step_answer, step_skip, session_start, session_complete).
+// Append-only — never update or delete rows.
+export const conversationEvents = pgTable(
+  'conversation_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sessionId: text('session_id').notNull(),
+    stepId: text('step_id'),
+    action: text('action').notNull(), // 'session_start' | 'step_view' | 'step_answer' | 'step_skip' | 'session_complete'
+    value: text('value'), // e.g. the selected option or typed text (truncated for privacy)
+    metadata: jsonb('metadata'), // optional extra context (entryPath, referrerPath, etc.)
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    index('conversation_events_session_id_idx').on(table.sessionId),
+    index('conversation_events_action_idx').on(table.action),
+    index('conversation_events_created_at_idx').on(table.createdAt),
+  ],
+);
+
+// ── ab_test_assignments ──────────────────────────────────────────────────────
+// Tracks which A/B test variant a session was assigned to.
+// One row per session per test. Append-only — never reassign variants.
+export const abTestAssignments = pgTable(
+  'ab_test_assignments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sessionId: text('session_id').notNull(),
+    testName: text('test_name').notNull(), // e.g. 'step_0_wording'
+    variant: text('variant').notNull(), // e.g. 'A' or 'B'
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    index('ab_test_session_test_idx').on(table.sessionId, table.testName),
+  ],
+);
+
 // ── consent_events ────────────────────────────────────────────────────────────
 // POPIA compliance audit trail. Append-only — never update or delete rows.
 // Captures grant / revoke / deletion requests with IP and UA for audit.

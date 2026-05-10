@@ -21,9 +21,9 @@
  *     no direct coupling to a specific HTTP library.
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, type FormEvent } from 'react';
 import Markdown from 'react-markdown';
-import { History } from 'lucide-react';
+import { History, Send, CheckCircle2 } from 'lucide-react';
 
 import ChoiceSelector from './components/ChoiceSelector';
 import MultiSelector from './components/MultiSelector';
@@ -49,6 +49,9 @@ export type { OrbState };
 interface BaseStepResponse {
   done: false;
   stepId: string;
+  socialProof?: string | null;
+  /** A/B test variant assigned for this step, if any */
+  variant?: string | null;
 }
 
 interface ChoiceStepResponse extends BaseStepResponse {
@@ -82,6 +85,7 @@ interface SchedulerStepResponse extends BaseStepResponse {
   title: string;
   detail: string;
   slots: AvailableSlot[];
+  slotsThisWeek?: number;
 }
 
 interface SummaryStepResponse extends BaseStepResponse {
@@ -132,17 +136,172 @@ interface VoiceState {
 // ---------------------------------------------------------------------------
 
 const STEP_ENDPOINT = '/chat/step';
+const EVENT_ENDPOINT = '/chat/event';
+// ---------------------------------------------------------------------------
+// trackEvent — fire-and-forget analytics to POST /chat/event
+// ---------------------------------------------------------------------------
+
+function trackEvent(
+  sessionId: string,
+  action: string,
+  stepId?: string,
+  value?: string,
+  metadata?: Record<string, unknown>,
+) {
+  fetch(EVENT_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId, stepId, action, value, metadata }),
+  }).catch(() => {
+    // Analytics must never block the user experience
+  });
+}
+
+// ---------------------------------------------------------------------------
+// DoneFollowUp — post-booking continuation surface
+//
+// Solves the dead-end: previously the chat hit `done: true` after booking and
+// showed two static lines with nothing else to do. Now the user can send the
+// team one more note before the call (or thank-you / clarification / extra
+// context they remembered after locking in the slot). The follow-up is
+// recorded as a `followup_question` event on the session so the team picks it
+// up alongside the brief.
+// ---------------------------------------------------------------------------
+
+function DoneFollowUp({ sessionId }: { sessionId: string }) {
+  const [text, setText] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const handleSubmit = useCallback(
+    async (e: FormEvent) => {
+      e.preventDefault();
+      const trimmed = text.trim();
+      if (!trimmed || submitting) return;
+      setSubmitting(true);
+      try {
+        await fetch(EVENT_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId,
+            action: 'followup_question',
+            value: trimmed.slice(0, 2000),
+          }),
+        });
+        setSent(true);
+        setText('');
+      } catch {
+        setSent(true);
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [text, submitting, sessionId],
+  );
+
+  return (
+    <div className="flex flex-col gap-5 animate-fade-up">
+      <div className="flex items-start gap-3">
+        <CheckCircle2
+          size={22}
+          className="mt-0.5 shrink-0 text-orange"
+          aria-hidden="true"
+        />
+        <div className="flex flex-col gap-1.5">
+          <p className="text-lg font-display font-semibold text-text">
+            All set — we&apos;ll see you on the call.
+          </p>
+          <p className="text-sm text-text-muted">
+            Check your email for the calendar invite with the Meet link.
+          </p>
+        </div>
+      </div>
+
+      {sent ? (
+        <div className="flex items-start gap-3 p-4 rounded-xl border border-border bg-surface/60">
+          <CheckCircle2
+            size={18}
+            className="mt-0.5 shrink-0 text-green-400"
+            aria-hidden="true"
+          />
+          <div className="flex flex-col gap-1">
+            <p className="text-sm text-text">
+              Got it — the team will see your note before the call.
+            </p>
+            <button
+              type="button"
+              onClick={() => setSent(false)}
+              className="self-start text-xs text-text-muted hover:text-orange transition-colors"
+            >
+              Send another note
+            </button>
+          </div>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <label
+            htmlFor="followup-textarea"
+            className="text-sm font-medium text-text"
+          >
+            Anything else? Send the team a note before the call.
+          </label>
+          <p className="text-xs text-text-muted -mt-1">
+            Optional — extra context, a question that came up, anything you
+            want them to see beforehand.
+          </p>
+          <textarea
+            id="followup-textarea"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={4}
+            maxLength={2000}
+            placeholder="e.g. We're hoping to start in early June if scoping looks good."
+            className="w-full px-4 py-3 rounded-xl bg-surface border border-border text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-orange/60 transition-colors resize-none"
+            disabled={submitting}
+          />
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xs text-text-muted">
+              {text.length}/2000
+            </span>
+            <button
+              type="submit"
+              disabled={!text.trim() || submitting}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-orange text-bg font-display font-semibold text-sm transition-all duration-200 hover:bg-orange-light hover:shadow-lg hover:shadow-orange/30 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none"
+            >
+              {submitting ? 'Sending…' : 'Send to the team'}
+              {!submitting && <Send size={14} />}
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // QuestionHeader — title + detail above each interactive component
 // ---------------------------------------------------------------------------
 
-function QuestionHeader({ title, detail }: { title: string; detail: string }) {
+function QuestionHeader({
+  title,
+  detail,
+  socialProof,
+}: {
+  title: string;
+  detail: string;
+  socialProof?: string | null;
+}) {
   return (
     <div className="mb-4">
       <p className="text-xl font-bold leading-snug text-text">{title}</p>
       {detail && (
         <p className="mt-1 text-[13px] text-text-muted leading-relaxed">{detail}</p>
+      )}
+      {socialProof && (
+        <p className="mt-2.5 text-xs text-orange/80 italic leading-relaxed border-l-2 border-orange/30 pl-3">
+          {socialProof}
+        </p>
       )}
     </div>
   );
@@ -293,6 +452,9 @@ export default function InteractiveChat({
               budget: wizardContext.budget,
               requirements: wizardContext.requirements,
               contact: wizardContext.contact,
+              referrerPath: wizardContext.referrerPath,
+              entryPath: wizardContext.entryPath,
+              intent: wizardContext.intent,
             },
           }),
         });
@@ -305,9 +467,13 @@ export default function InteractiveChat({
 
         if (data.done) {
           setDone(true);
+          trackEvent(sessionId, 'session_complete');
         } else {
           setStepData(data);
           setStepKey((k) => k + 1);
+          trackEvent(sessionId, 'step_view', data.stepId, undefined, {
+            variant: data.variant ?? undefined,
+          });
           notifyOrbState('speaking');
           // Brief speaking window then back to idle
           window.setTimeout(() => notifyOrbState('idle'), 500);
@@ -331,6 +497,13 @@ export default function InteractiveChat({
   useEffect(() => {
     if (hasStartedRef.current) return;
     hasStartedRef.current = true;
+    trackEvent(sessionId, 'session_start', undefined, undefined, {
+      entryPath: wizardContext.entryPath,
+      referrerPath: wizardContext.referrerPath,
+      email: wizardContext.contact?.email,
+      name: wizardContext.contact?.name,
+      phone: wizardContext.contact?.phone,
+    });
     void fetchStep(0, {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -341,6 +514,11 @@ export default function InteractiveChat({
   const handleAnswer = useCallback(
     (value: string) => {
       if (!stepData) return;
+
+      // Track the answer (truncate value for privacy)
+      trackEvent(sessionId, 'step_answer', stepData.stepId, value.slice(0, 200), {
+        variant: stepData.variant ?? undefined,
+      });
 
       const updatedAnswers = { ...answers, [stepData.stepId]: value };
       setAnswers(updatedAnswers);
@@ -382,7 +560,7 @@ export default function InteractiveChat({
       // Map stepId back to stepIndex using STEP_ID_TO_INDEX mapping
       const stepId = editedStepId;
       const stepDefs = [
-        'main_problem',   // 0
+        'main_problem',   // 0  — opener (intent-aware)
         'problem_detail', // 1
         'approach',       // 2
         'team_size',      // 3
@@ -527,7 +705,7 @@ export default function InteractiveChat({
       case 'choice':
         return (
           <div className="flex flex-col gap-4">
-            <QuestionHeader title={data.title} detail={data.detail} />
+            <QuestionHeader title={data.title} detail={data.detail} socialProof={data.socialProof} />
             <ChoiceSelector
               options={data.options}
               allowCustom={true}
@@ -539,7 +717,7 @@ export default function InteractiveChat({
       case 'text':
         return (
           <div className="flex flex-col gap-4">
-            <QuestionHeader title={data.title} detail={data.detail} />
+            <QuestionHeader title={data.title} detail={data.detail} socialProof={data.socialProof} />
             <TextInputPanel
               multiline={true}
               onSubmit={handleAnswer}
@@ -553,7 +731,7 @@ export default function InteractiveChat({
       case 'multi':
         return (
           <div className="flex flex-col gap-4">
-            <QuestionHeader title={data.title} detail={data.detail} />
+            <QuestionHeader title={data.title} detail={data.detail} socialProof={data.socialProof} />
             <MultiSelector
               options={data.options}
               minSelect={1}
@@ -565,7 +743,7 @@ export default function InteractiveChat({
       case 'upload':
         return (
           <div className="flex flex-col gap-4">
-            <QuestionHeader title={data.title} detail={data.detail} />
+            <QuestionHeader title={data.title} detail={data.detail} socialProof={data.socialProof} />
             <FileUploadPanel
               allowSkip={true}
               onUpload={(file) => handleAnswer(`[File: ${file.name}]`)}
@@ -581,9 +759,10 @@ export default function InteractiveChat({
       case 'scheduler':
         return (
           <div className="flex flex-col gap-4">
-            <QuestionHeader title={data.title} detail={data.detail} />
+            <QuestionHeader title={data.title} detail={data.detail} socialProof={data.socialProof} />
             <SchedulerPanel
               slots={data.slots}
+              slotsThisWeek={data.slotsThisWeek}
               onSelect={(slot: AvailableSlot) => handleAnswer(slot.label)}
               onTextSend={handleAnswer}
               onMicStart={handleMicStart}
@@ -596,7 +775,7 @@ export default function InteractiveChat({
       case 'summary':
         return (
           <div className="flex flex-col gap-4">
-            <QuestionHeader title={data.title} detail={data.detail} />
+            <QuestionHeader title={data.title} detail={data.detail} socialProof={data.socialProof} />
             <SummaryView
               summaryMarkdown={data.summaryMarkdown}
               agenda={data.agenda}
@@ -651,14 +830,7 @@ export default function InteractiveChat({
       {loading ? (
         <ThinkingState />
       ) : done ? (
-        <div className="flex flex-col gap-3 animate-fade-up">
-          <p className="text-lg font-semibold text-text">
-            All set — we'll see you on the call.
-          </p>
-          <p className="text-sm text-text-muted">
-            Check your email for the calendar invite with the Meet link.
-          </p>
-        </div>
+        <DoneFollowUp sessionId={sessionId} />
       ) : error ? (
         <div className="flex flex-col gap-3 animate-fade-up">
           <p className="text-sm text-red-400">

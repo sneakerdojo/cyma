@@ -44,7 +44,8 @@ function buildModel(): ReturnType<ReturnType<typeof createOpenAICompatible>['cha
       throw new Error('LLM_PROVIDER=kimi but KIMI_API_KEY is not set');
     }
     const baseURL = config.kimiBaseUrl ?? 'https://api.moonshot.ai/v1';
-    const modelId = config.kimiModel ?? 'kimi-k2-0905-preview';
+    // Default to K2 Turbo — same architecture, lower first-token latency.
+    const modelId = config.kimiModel ?? 'kimi-k2-turbo-preview';
     const kimi = createOpenAICompatible({
       name: 'kimi',
       baseURL,

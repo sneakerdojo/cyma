@@ -270,8 +270,12 @@ export async function createDiscoveryCallEvent(intake: {
     'inserting calendar event',
   );
 
+  // Write to the team booking calendar when configured. Otherwise fall back
+  // to the OAuth-owner's primary calendar (single-user mode).
+  const calendarId = config.bookingCalendarId || 'primary';
+
   const result = await calendar.events.insert({
-    calendarId: 'primary',
+    calendarId,
     requestBody,
     conferenceDataVersion: 1,
     sendUpdates: 'all',
@@ -340,16 +344,21 @@ export async function getAvailabilityForNextBusinessDays(
   const auth = getOAuth2Client();
   const calendar = google.calendar({ version: 'v3', auth });
 
+  // Free/busy is checked against the team booking calendar when configured,
+  // so availability reflects what's already booked across the whole team.
+  // Falls back to the OAuth-owner's primary calendar in single-user mode.
+  const calendarId = config.bookingCalendarId || 'primary';
+
   const freebusyResponse = await calendar.freebusy.query({
     requestBody: {
       timeMin: firstSlotStart,
       timeMax: lastSlotEnd,
-      items: [{ id: 'primary' }],
+      items: [{ id: calendarId }],
     },
   });
 
   const busyPeriods: Array<{ startMs: number; endMs: number }> =
-    (freebusyResponse.data.calendars?.['primary']?.busy ?? []).map((b) => ({
+    (freebusyResponse.data.calendars?.[calendarId]?.busy ?? []).map((b) => ({
       startMs: new Date(b.start!).getTime(),
       endMs: new Date(b.end!).getTime(),
     }));

@@ -40,6 +40,17 @@ const configSchema = z.object({
   googleRefreshToken: z.string().optional(),
   googleSenderEmail: z.string().optional(),
   octioTeamEmail: z.string().optional(),
+  /**
+   * Calendar ID where discovery-call bookings are written. When unset,
+   * falls back to the OAuth-owner's primary calendar — a single-user
+   * mode. For team usage, create a shared calendar (e.g. "Octio Discovery
+   * Calls") and put its calendar ID here. Everyone on the team can then
+   * see and manage bookings without forking their own calendars.
+   *
+   * Format: typically "c_xxxxxxx@group.calendar.google.com" or a user
+   * email for a personal calendar.
+   */
+  bookingCalendarId: z.string().optional(),
   leadsGroupEmail: z.string().email().optional().default('leads@octio.co.za'),
   outreachGroupEmail: z.string().email().optional().default('outreach@octio.co.za'),
   uploadDir: z
@@ -82,6 +93,18 @@ const configSchema = z.object({
     .string()
     .optional()
     .transform((val) => val ?? 'dev-deletion-secret-change-in-production'),
+  /** Twilio WhatsApp — set TWILIO_WHATSAPP_FROM to the sandbox or approved sender */
+  twilioAccountSid: z.string().optional(),
+  twilioAuthToken: z.string().optional(),
+  /** E.164 WhatsApp sender, e.g. "whatsapp:+14155238886" for sandbox */
+  twilioWhatsappFrom: z.string().optional(),
+  /**
+   * Pre-approved template content SIDs for production messaging outside the
+   * 24h session window. Leave empty to fall back to freeform (sandbox only).
+   */
+  twilioTemplateAbandonment: z.string().optional(),
+  twilioTemplateReminder: z.string().optional(),
+  twilioTemplatePrep: z.string().optional(),
 });
 
 const parsed = configSchema.safeParse({
@@ -103,12 +126,19 @@ const parsed = configSchema.safeParse({
   googleRefreshToken: process.env.GOOGLE_REFRESH_TOKEN,
   googleSenderEmail: process.env.GOOGLE_SENDER_EMAIL,
   octioTeamEmail: process.env.OCTIO_TEAM_EMAIL,
+  bookingCalendarId: process.env.BOOKING_CALENDAR_ID,
   leadsGroupEmail: process.env.LEADS_GROUP_EMAIL,
   outreachGroupEmail: process.env.OUTREACH_GROUP_EMAIL,
   uploadDir: process.env.UPLOAD_DIR,
   uploadPublicUrlBase: process.env.UPLOAD_PUBLIC_URL_BASE,
   apiBaseUrl: process.env.API_BASE_URL,
   deletionSecret: process.env.DELETION_SECRET,
+  twilioAccountSid: process.env.TWILIO_ACCOUNT_SID,
+  twilioAuthToken: process.env.TWILIO_AUTH_TOKEN,
+  twilioWhatsappFrom: process.env.TWILIO_WHATSAPP_FROM,
+  twilioTemplateAbandonment: process.env.TWILIO_TEMPLATE_ABANDONMENT,
+  twilioTemplateReminder: process.env.TWILIO_TEMPLATE_REMINDER,
+  twilioTemplatePrep: process.env.TWILIO_TEMPLATE_PREP,
 });
 
 if (!parsed.success) {

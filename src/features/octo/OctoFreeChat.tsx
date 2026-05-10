@@ -1,5 +1,6 @@
 import InteractiveChat, { type OrbState } from '../chat/InteractiveChat';
 import { useChatSession } from '../chat/useChatSession';
+import { useWizard } from './WizardContext';
 import type { WizardState } from './types';
 
 /**
@@ -42,6 +43,7 @@ export default function OctoFreeChat({
   onOrbStateChange,
 }: OctoFreeChatProps) {
   const { sessionId } = useChatSession();
+  const { intent } = useWizard();
 
   if (!visible) return null;
 
@@ -55,6 +57,9 @@ export default function OctoFreeChat({
         contact: wizardState.contact,
         meetLink: wizardState.meetLink,
         calendarLink: wizardState.calendarLink,
+        referrerPath: document.referrer ? new URL(document.referrer, window.location.origin).pathname : undefined,
+        entryPath: window.location.pathname,
+        intent,
       }}
       onOrbStateChange={onOrbStateChange}
     />

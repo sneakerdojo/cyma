@@ -72,7 +72,7 @@ async function generateBlueprintMarkdown(
   });
 
   const { text } = await generateText({
-    model: kimi.chatModel(config.kimiModel ?? 'kimi-k2-0905-preview'),
+    model: kimi.chatModel(config.kimiModel ?? 'kimi-k2-turbo-preview'),
     system:
       'You are a senior technical consultant at Octio, a South Africa-based software and AI agency. Generate a concise project blueprint based on the inputs provided. Be specific, practical, and confident — this document represents Octio\'s expertise.',
     prompt: `Generate a project blueprint for this lead:

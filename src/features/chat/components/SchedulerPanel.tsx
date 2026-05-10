@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Clock } from 'lucide-react';
+import { Clock, AlertTriangle } from 'lucide-react';
 import TextFallback from './TextFallback';
 
 export interface AvailableSlot {
@@ -10,6 +10,8 @@ export interface AvailableSlot {
 
 export interface SchedulerPanelProps {
   slots: AvailableSlot[];
+  /** Total available slots this week — used for urgency badge */
+  slotsThisWeek?: number;
   onSelect: (slot: AvailableSlot) => void;
   onTextSend?: (text: string) => void;
   onMicStart?: () => void;
@@ -58,6 +60,7 @@ function formatTimeDisplay(time: string): string {
  */
 export default function SchedulerPanel({
   slots,
+  slotsThisWeek,
   onSelect,
   onTextSend,
   onMicStart,
@@ -113,8 +116,20 @@ export default function SchedulerPanel({
     );
   }
 
+  const showUrgency = typeof slotsThisWeek === 'number' && slotsThisWeek > 0 && slotsThisWeek < 5;
+
   return (
     <div className="flex flex-col gap-4 animate-fade-up">
+      {/* Urgency badge — shown when fewer than 5 slots remain */}
+      {showUrgency && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-orange/30 bg-orange/5 animate-fade-in">
+          <AlertTriangle size={14} className="shrink-0 text-orange" />
+          <span className="text-xs font-medium text-orange">
+            Only {slotsThisWeek} {slotsThisWeek === 1 ? 'slot' : 'slots'} left this week
+          </span>
+        </div>
+      )}
+
       {/* Day picker — horizontal scroll */}
       <div className="relative">
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">

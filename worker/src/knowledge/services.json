@@ -1,324 +1,410 @@
 {
-  "web-dev": {
-    "title": "Web Development",
-    "summary": "Custom websites and web applications built with React, Next.js, and modern full-stack frameworks. We design and ship production-grade web platforms — from marketing sites and customer portals to complex internal tools — with AI capabilities built in from day one.",
-    "details": "Every web project starts with a requirements workshop, not a template. We architect your frontend with React or Next.js, back it with a purpose-built API layer (Node.js or Hono on Cloudflare Workers), and wire it to a database that fits your data model — typically PostgreSQL via Supabase or Drizzle. Authentication, role-based access, file storage, email, and real-time features are handled as first-class concerns, not afterthoughts. We deploy to the edge where it makes sense — Cloudflare Pages and Workers for globally distributed performance — or to traditional cloud infrastructure when the workload demands it. Type safety runs end-to-end: TypeScript on both client and server, with Zod schema validation at API boundaries. Every project ships with CI/CD pipelines, environment-based config, and structured logging so your team can own it after handover.",
-    "typical_timeline": "4–12 weeks depending on complexity",
-    "technologies": ["React", "Next.js", "TypeScript", "Tailwind CSS", "Hono", "Node.js", "Supabase", "PostgreSQL", "Drizzle ORM", "Cloudflare Workers", "Zod"],
+  "lead-generation": {
+    "title": "AI Lead Generation & Pipeline",
+    "category": "product",
+    "tagline": "Every inbound lead. Qualified. In 30 seconds.",
+    "summary": "An autonomous lead engine. Captures every inbound lead in real time, scores it 0–100 against your ICP, replies in your brand voice, follows up on a configurable cadence, and books qualified meetings directly into your sales team's calendar. Octio's most-deployed product.",
+    "details": "We unify intake from your website forms, Google Ads, Meta lead-gen forms, LinkedIn ads + DMs, inbound email, and WhatsApp Business — every lead surfaces in one pipeline within seconds. Each lead is scored across three signal layers: firmographic fit (industry, size, geography from Clearbit + Apollo enrichment, weighted 30%), behavioural signals (pages visited, content engaged with, response patterns, weighted 50%), and intent signals (Bombora topic surge, G2 category research, hiring patterns, weighted 20%). Score thresholds are calibrated to your closed-won data. Anything below 40 goes to nurture; 40–70 gets longer qualification; 70+ goes straight to your sales team with a 'respond now' tag. The first reply to every lead lands within 30 seconds, in a voice we tune to match your past outbound and brand. Every message includes lead-specific context — the page they came from, what they downloaded, an industry signal — never a template. When a qualified lead is ready to book, the AI proposes 3 slots from the right team member's actual calendar (live read from Google Calendar / Outlook), books the meeting, sends a Meet link, and updates your CRM. Every meeting booked includes a structured pre-call brief delivered 30 minutes before the call.",
+    "stats": ["<30s first response", "48hr setup to live", "3.5× more meetings booked", "0 leads slipping through"],
+    "typical_timeline": "48 hours from kickoff to live agent",
+    "pricing_range": "Starter R8 500/month (up to 200 leads, single channel) → Growth R18 500/month (up to 1 000 leads, multi-channel) → Enterprise custom",
+    "page_url": "/products/lead-generation",
     "ideal_for": [
-      "Businesses that need a bespoke web platform their off-the-shelf tools cannot handle",
-      "Companies replacing a slow or fragile existing site with a scalable, maintainable codebase",
-      "Founders launching a product and needing a technical team to own the full build"
+      "B2B businesses where speed-to-lead determines deal outcomes (most do — 74% of B2B companies miss the 5-minute response window)",
+      "Sales teams overwhelmed by inbound from multiple channels with no unified pipeline",
+      "Marketing teams paying for ads but losing 60-80% of leads to slow follow-up",
+      "Founders who need outbound qualification without hiring a full SDR team yet"
     ],
-    "pricing_range": "R50 000 – R250 000 depending on scope and feature complexity",
-    "note": "Discovery call required to scope accurately. Simple marketing sites sit at the lower end; full-stack platforms with auth, integrations, and AI features sit higher.",
     "pain_points": [
-      "Existing website is slow, breaks under traffic, or costs a fortune to update",
-      "Business has outgrown a templated CMS and needs a platform that fits its actual workflow",
-      "Sales and operations teams are working around the website instead of through it"
+      "We pay for leads then lose them because nobody replies fast enough",
+      "Senior reps are buried in unqualified inbound and can't get to real prospects",
+      "Inbound is scattered across 5+ tools and we have no unified pipeline view",
+      "We've tried generic AI chatbots and they sound like ChatGPT — leads disengage"
     ],
     "social_proof": [
-      "A professional services firm had their client portal rebuilt — reduced their onboarding admin from 3 hours per client to a 10-minute self-serve flow, cutting their ops overhead by 60%",
-      "A B2B SaaS company replaced a WordPress site that was costing R8 000/month in maintenance with a Next.js platform their own team could update — maintenance cost dropped to near zero",
-      "A logistics company's customer-facing booking portal went from a 4-second load time to under 800ms after a full rebuild — their conversion rate on the booking flow increased by 34%"
+      "A B2B SaaS company cut their average response time from 4 hours to 30 seconds — 3× more qualified meetings booked per week within 90 days",
+      "A professional services firm filtered 80% of inbound out of their senior partners' inboxes; partners only saw genuine prospects",
+      "A logistics company unified intake from 6 channels into a single pipeline — pipeline visibility went from days to real-time"
     ],
     "common_objections": [
       {
-        "objection": "We already have a website, why rebuild it?",
-        "response": "The question is what the existing site is costing you — in lost conversions, in developer time, in maintenance bills. If it cannot do what your business needs it to do, that's a real cost. We'll tell you honestly on the call whether a rebuild makes sense or whether targeted improvements would get you there."
+        "objection": "Our leads are too specialised — generic AI won't qualify them properly",
+        "response": "That's why we tune the scoring to your closed-won data during onboarding, not against a generic ICP template. The first 30 days is calibration — we adjust the weighting against your real data. After that the AI is making the same judgement calls your senior SDR would, just 24/7 without the bottleneck."
       },
       {
-        "objection": "Can't we just use WordPress or Webflow?",
-        "response": "For a marketing site with standard content, absolutely — and we'll tell you that if it's the right answer. Where those tools break down is when you need custom data models, complex user roles, integrations with internal systems, or serious performance at scale. We scope projects with that question in mind from the start."
+        "objection": "Our brand voice is critical — AI replies will sound generic",
+        "response": "Generic AI replies do kill conversion. We onboard with 30+ examples of your past outbound + sales replies + landing copy, extract your tone and structural patterns, and tune the model against your actual voice. The first month is a feedback loop — flag anything that doesn't sound like you and the model adapts. Most clients can't tell our drafts from human-written ones by week 4."
+      },
+      {
+        "objection": "We already use HubSpot / Salesforce — what's the difference?",
+        "response": "We integrate with both. HubSpot's native lead scoring is rules-based and doesn't actually qualify against intent. We add the layer on top: real-time AI scoring, personalised first-touch in your voice, calendar booking, and pre-call briefs — feeding back into your existing CRM as the source of truth."
       }
     ],
     "call_prep_questions": [
-      "What is the primary job the website needs to do — is it lead generation, client self-service, e-commerce, or something else?",
+      "What CRM are you currently using?",
+      "What channels are most of your inbound leads coming from?",
+      "What's your current average response time to a new inbound lead?",
+      "How is sales currently handling lead qualification — manual rep review, scoring rules, or none?",
+      "Roughly how many leads per month across all channels?"
+    ]
+  },
+
+  "voice-chat": {
+    "title": "Voice & Chat Agents",
+    "category": "product",
+    "tagline": "Pick up every call. Book every appointment. Never miss another inbound.",
+    "summary": "24/7 AI receptionists across phone, web chat, and WhatsApp. Natural-sounding, brand-tuned, and indistinguishable from a real receptionist for the first minute of conversation. Books appointments, qualifies callers, takes detailed messages, and warm-transfers to your team when it matters.",
+    "details": "Most businesses miss 62% of their inbound calls — only 37.8% are actually answered, per industry data. Voicemail doesn't fix it: 85% of callers don't leave one, and of those who do, less than 20% get called back in time. Each unanswered call costs an estimated $200–$1,200 depending on industry. Octio's voice agents fix this by picking up sub-1-second every call, every time. The agent uses neural TTS tuned to your brand voice, handles mid-call interruptions, accents, background noise, and rapid speech. Multilingual on Enterprise: English, Afrikaans, Zulu, Xhosa, Sesotho. The same agent answers your phone, your website's live chat widget, and your WhatsApp Business number — context is preserved across channels. It runs your defined qualification flow conversationally (not as a script), reads availability live from Google Calendar / Outlook, books appointments with the right team member based on routing logic (territory, language, expertise area), and warm-transfers to a human when defined triggers fire (price >R50K, frustrated caller, legal questions, anything outside the trained scope).",
+    "stats": ["100% inbound calls answered", "<1s pickup time", "24/7 availability", "4 languages on Enterprise"],
+    "typical_timeline": "5–7 days from kickoff to live (includes voice tuning + escalation rules)",
+    "pricing_range": "Voice Starter R6 500/month (500 calls, single line) → Voice + Chat R12 500/month (2 000 conversations) → Enterprise custom",
+    "page_url": "/products/voice-chat",
+    "ideal_for": [
+      "Practices and clinics (dental, medical, veterinary) overwhelmed at peak hours and missing after-hours calls",
+      "Professional services firms whose senior partners spend 2+ hours/day on intake calls",
+      "Real estate agencies losing leads to competitors who answer first",
+      "Any business where missed calls directly cost revenue"
+    ],
+    "pain_points": [
+      "Front desk gets buried in calls during peak hours; reception suffers",
+      "After-hours calls go to voicemail and never get returned",
+      "Senior staff waste hours on intake calls before deciding if a lead is worth their time",
+      "Receptionist turnover is high; quality is inconsistent"
+    ],
+    "social_proof": [
+      "A dental practice group reduced after-hours missed calls from 40% to zero — emergency cases now triaged and booked directly into the morning's schedule",
+      "A legal firm replaced manual intake interviews — partners now only handle pre-qualified cases, freeing 2 hours a day per partner",
+      "A real estate agency captured leads while agents were showing properties — agent walks into the next showing already briefed on the next caller's needs"
+    ],
+    "common_objections": [
+      {
+        "objection": "Won't callers know they're talking to AI and hang up?",
+        "response": "Most don't notice for the first 60 seconds. When they ask directly, the agent is upfront — 'I'm an AI assistant for [Company], here to help with bookings and quick questions.' We've found being honest about the AI doesn't kill the conversation; trying to hide it does. You can also configure the agent to disclose by default if your industry requires it."
+      },
+      {
+        "objection": "What about complex questions or angry callers?",
+        "response": "Defined escalation triggers warm-transfer to a human in seconds — you set the rules. Pricing above a threshold, mention of a competitor, sentiment turning negative, anything legal — all hand off automatically. The AI stays on the line during transfer to brief your human, so the caller doesn't repeat themselves."
+      },
+      {
+        "objection": "We have a switchboard / IVR already — why replace it?",
+        "response": "Most IVRs are decision trees that frustrate callers. The agent is conversational — it listens, understands intent, and acts. We can run it alongside your existing system as an after-hours fallback first if you want to test before fully replacing."
+      }
+    ],
+    "call_prep_questions": [
+      "How many inbound calls do you typically receive per day / per week?",
+      "What % currently go to voicemail or unanswered?",
+      "What does a typical inbound call look like — booking, FAQ, support, sales?",
+      "Do you need multilingual support (Afrikaans, Zulu, Xhosa)?",
+      "What's the existing phone setup — VoIP provider, call routing rules?"
+    ]
+  },
+
+  "social-media": {
+    "title": "AI Social Media Manager",
+    "category": "product",
+    "tagline": "Industry-specific content in your voice — drafted, scheduled, published, measured.",
+    "summary": "Auto-generates 40+ posts per month across LinkedIn, Instagram, TikTok, X, and your blog — in your brand voice, with AI-generated visuals, on smart timing tuned to your audience. You approve. The AI does the rest.",
+    "details": "Most company social accounts post for 8 weeks then go silent. Not because content marketing doesn't work — it does — but because curating, drafting, designing, and shipping every week is a real job nobody has time for. The Social Media Manager replaces that work. Every Monday, the system scans 50–100 industry sources you nominated: news sites, competitor accounts, trending hashtags in your niche, recent earnings calls of public companies you sell to, and discussions on relevant subreddits / X communities / LinkedIn comments. It ranks what's surfacing by recency × relevance × novelty, producing a weekly content brief of 8–12 angles to post about. From there, drafts arrive in your voice (trained on 30–50 of your past posts during onboarding), with on-brand AI-generated visuals (carousels for LinkedIn, lifestyle shots for Instagram, video scripts for TikTok), scheduled to your audience's specific peak engagement windows. You approve, edit, or skip. After 30–60 days most clients move to hybrid auto-publish — trusted formats auto-post, opinion pieces still get manual review.",
+    "stats": ["40+ posts per month", "4 channels at once", "0 hours from your team", "50+ sources scanned weekly"],
+    "typical_timeline": "10–14 days from kickoff to first scheduled post (voice tuning takes the time)",
+    "pricing_range": "Single Channel R4 500/month → Multi-Channel R9 500/month → Agency custom",
+    "page_url": "/products/social-media",
+    "ideal_for": [
+      "B2B firms whose senior team should be doing thought leadership but has no bandwidth",
+      "Specialised practices (dentistry, accounting, legal) needing industry-specific weekly content",
+      "Solo founders building a personal brand without 10 hours a week to spend writing",
+      "Marketing teams of 1 who can't keep up with content + ads + email"
+    ],
+    "pain_points": [
+      "We started a LinkedIn / Instagram strategy and went silent in month 3 because nobody had time",
+      "Our content sounds like every other generic AI tool — readers can spot it",
+      "We have great ideas in our heads but they never become posts",
+      "We need more content output than our team can sustain"
+    ],
+    "social_proof": [
+      "A dentistry posting weekly oral-health tips: 4 LinkedIn + 3 Instagram per week, on-brand. Engagement up 8× in 90 days",
+      "An accounting firm where partners hated writing: daily LinkedIn posts in each partner's voice. Two enterprise leads attributed directly to LinkedIn content",
+      "A B2B SaaS marketer of 1 who freed up for higher-value work — AI handled blog + social, marketer focused on campaigns and partnerships"
+    ],
+    "common_objections": [
+      {
+        "objection": "Generic AI content is recognisable and damages our brand",
+        "response": "We don't do generic AI content. Onboarding spends 30+ examples of your past posts plus competitor examples you admire — the AI extracts your tone, structural patterns, and signature CTAs. The first month is feedback-driven; you flag anything that doesn't sound like you. Most clients can't pick AI posts from human-written ones by week 4."
+      },
+      {
+        "objection": "We need to approve everything — won't that just shift the bottleneck?",
+        "response": "It's a bulk review, not a per-post review. You approve a week's worth in 5–10 minutes vs spending hours writing them. Edit-in-place is in the dashboard. After 30 days most clients move to hybrid: trusted formats (e.g. weekly stat posts) auto-publish, opinion pieces stay manual. You control the rules."
+      }
+    ],
+    "call_prep_questions": [
+      "Which channels matter most for your audience (LinkedIn, Instagram, TikTok, blog)?",
+      "Do you have past content / brand guidelines we can use to tune voice?",
+      "Who is your target audience and what topics do they care about?",
+      "What's your current posting cadence and engagement baseline?"
+    ]
+  },
+
+  "newsletter": {
+    "title": "The Newsletter Engine",
+    "category": "product",
+    "tagline": "Weekly newsletter. In your voice. On autopilot.",
+    "summary": "Tell us your niche and audience. The Newsletter Engine scans 50–100 industry sources weekly, drafts a newsletter in your voice with your perspective, generates the artwork, and ships it through your existing email tool (Mailchimp, Beehiiv, Substack, ConvertKit). You approve. It runs forever.",
+    "details": "Newsletter is the highest-ROI marketing channel in 2026 — average open rates are 41% across the industry — but only if it actually goes out. Most newsletters started this year will stop publishing within 6 months because curating + writing + designing + shipping every week is a job nobody actually has time for. The engine replaces that job. Each week the system scans 50–100 sources: news sites, blog feeds, podcast transcripts, YouTube channel uploads, Twitter / LinkedIn discussions, and any custom sources you give us (SEC filings, regulatory updates, internal company blogs). It deduplicates, filters out PR fluff, and ranks what's left by recency × source quality × relevance to your audience. Drafts are written in your voice with your perspective — extracted from your past writing during onboarding — not flat summaries. Each issue gets a custom AI-generated header image, your colour palette, your logo, and inbox-friendly formatting. Engagement data (opens, click-throughs by section, reply rate, unsubscribes, forwards) feeds back into next week's content selection — within 6–8 issues the brief looks like an editor who's been with you for years.",
+    "stats": ["50–100 sources scanned weekly", "35%+ avg open rate", "0 weeks skipped", "5 email tools supported"],
+    "typical_timeline": "10–14 days from kickoff to first issue",
+    "pricing_range": "Solo R3 500/month (bi-weekly) → Business R6 500/month (weekly + branded design) → Enterprise custom",
+    "page_url": "/products/newsletter",
+    "ideal_for": [
+      "Independent consultants wanting to stay top-of-mind with past clients",
+      "Niche SaaS founders building thought leadership without hiring a content team",
+      "Personal brands / creators who want the audience without writing long-form weekly",
+      "Companies needing newsletter as a top-of-funnel channel they can sustain"
+    ],
+    "pain_points": [
+      "We started a newsletter, sent 3 issues, then it died because nobody had bandwidth",
+      "Our list is going cold because we haven't sent anything in months",
+      "We want a newsletter but have no idea what to write about every week",
+      "Our writing voice is hard to replicate — generic AI summaries don't sound like us"
+    ],
+    "social_proof": [
+      "A consultant's bi-weekly newsletter on industry trends: 35% open rate, 2 reactivated clients within 90 days",
+      "A niche SaaS founder's weekly newsletter ranking #1 in its niche; 5× newsletter-driven sign-ups in 6 months",
+      "A creator's weekly 'best of' newsletter summarising their YouTube + LinkedIn output — audience grew 4× in a year"
+    ],
+    "common_objections": [
+      {
+        "objection": "AI-generated newsletter content sounds like flat summaries",
+        "response": "We don't write summaries. The AI extracts your perspective from your past writing — your hot takes, recurring themes, the angles you reach for. Every story in every issue gets framed through that lens. Readers feel like they're hearing from you, not a content mill. The proof is in the first 2-3 issues; if they don't sound like you, we keep tuning."
+      },
+      {
+        "objection": "What happens if I want to skip a week or add my own content?",
+        "response": "Skip in the dashboard — toggle off and the AI resumes the next cycle. Your own content drops in as a custom section and the AI builds the issue around it. You're never locked into the AI's content calendar; the engine works with you."
+      }
+    ],
+    "call_prep_questions": [
+      "What's your topic / niche and who reads it?",
+      "What's your unique angle or perspective in this space?",
+      "What email tool are you using (or thinking of) — Mailchimp, ConvertKit, Beehiiv, Substack?",
+      "What cadence — weekly, bi-weekly, monthly?",
+      "Do you have 2–3 newsletters you admire we should reference for tone?"
+    ]
+  },
+
+  "agentic-app-dev": {
+    "title": "Agentic Web & App Development",
+    "category": "service",
+    "tagline": "Production apps in weeks, not quarters. At a quarter of the cost.",
+    "summary": "Custom web and mobile applications built using AI agents to do the boilerplate (70% of any build) and senior human developers to do the judgement (30% that matters). Agency-quality output, fraction of agency cost and timeline. You own the code outright.",
+    "details": "Traditional agency timelines are dominated by repetitive work — auth flows, CRUD endpoints, form validation, basic UI components, deployment plumbing. None of it is intellectually challenging; all of it costs time. We use AI agents to produce these layers in parallel from the architecture spec we agree at kickoff. A typical web app that an agency would scope at 12–16 weeks ships from us in 3–6 weeks. Senior developer time is reserved for what AI can't be trusted with: data model decisions, edge-case logic, security review, product judgement. Stack defaults: Next.js 15 + Postgres + Vercel for web, React Native + Expo for mobile, with shared TypeScript types between them. Where a project genuinely needs native (iOS/Android-only or heavy device integration), we go native — Swift, Kotlin. We pick stacks based on what's easiest for any developer to maintain after handover, not what's exciting to build with. Every line is reviewed (or rewritten) by a senior developer with 8+ years of production experience before you see it. You see a working version every week. 30 days of post-launch support included.",
+    "stats": ["3 weeks MVP shipped", "4× faster than typical agency", "100% code ownership", "30 days post-launch support"],
+    "typical_timeline": "MVP Sprint: 2–3 weeks → Production Build: 6–10 weeks → Long-term Partner: ongoing retainer",
+    "pricing_range": "MVP Sprint from R85 000 → Production Build from R220 000 → Long-term Partner custom retainer",
+    "page_url": "/services/agentic-app-dev",
+    "ideal_for": [
+      "Founders validating an idea who need a real working MVP fast on a tight budget",
+      "Operations teams replacing 4 spreadsheets with a custom internal tool",
+      "Existing apps needing a rewrite (legacy stack, performance issues) without R1.5M+ quotes",
+      "Companies tired of agency hand-offs to junior developers and project managers"
+    ],
+    "pain_points": [
+      "Agency quotes are R600K–R1.5M for what feels like a basic web app",
+      "Existing platform is slow, hard to maintain, and rebuild quotes feel insane",
+      "We need to ship something to validate before sinking 6 months of runway into it",
+      "Past agency engagements gave us code we couldn't maintain after handover"
+    ],
+    "social_proof": [
+      "A B2B SaaS founder's MVP shipped in 3 weeks for R85K — validated, raised seed in month 2",
+      "An ops team's spreadsheet replacement reclaimed ~80 hours/month of manual work",
+      "A native rewrite quoted at R1.5M and 6 months done in React Native + AI scaffolding for R280K in 7 weeks"
+    ],
+    "common_objections": [
+      {
+        "objection": "AI-generated code is unmaintainable — we'll be locked in",
+        "response": "We don't ship AI slop. Every line is reviewed by a senior developer, follows standard patterns, has tests, and is documented. Stacks are boring and proven (Next.js, React Native, Postgres) so any developer in the world can pick up where we left off. You get the source, deployment access, all credentials. No lock-in, no license fees."
+      },
+      {
+        "objection": "How is this different from a normal agency?",
+        "response": "Most agencies sell senior names then staff your project with juniors. We don't have a junior layer — AI does the volume work, seniors do the judgement. That's why our timelines compress 3–4×: we skip the round-trips between juniors and seniors that consume agency hours."
+      },
+      {
+        "objection": "Can you take over an existing codebase or just build new?",
+        "response": "Yes — modernising legacy code is exactly the work AI accelerates the most. Most of legacy maintenance is repetitive refactoring; the AI handles that and our seniors focus on architectural decisions. We've taken over codebases from agencies, freelancers, and in-house teams and shipped them to production."
+      }
+    ],
+    "call_prep_questions": [
+      "What are you building / what does success look like in 6 months?",
       "Who are the users — external customers, internal staff, or both?",
-      "What are the biggest frustrations with the current site or platform?",
-      "Are there third-party systems the new platform needs to integrate with (CRM, payment gateway, ERP)?"
+      "Is there an existing codebase to extend / replace, or is this greenfield?",
+      "What's the absolute deadline if any — funding round, customer commitment, season?",
+      "What's your in-house technical capacity for maintenance after handover?"
     ]
   },
 
-  "custom-software": {
-    "title": "Custom Software",
-    "summary": "Bespoke software built specifically for your business processes — internal tools, workflow platforms, dashboards, and customer-facing systems that off-the-shelf products simply cannot replicate. AI-native from the ground up.",
-    "details": "Custom software is the right call when your team is stitching together three SaaS tools and still working around them in spreadsheets — or when your domain is specialised enough that a generic product will never fit. We scope the system properly: data model first, then API contracts, then the interface. We work in 2-week sprints with demos so you validate direction early, not after months of build. On the backend we lean on TypeScript, Node.js, and PostgreSQL. For compute-heavy or data-intensive workloads we bring in Python where it earns its place. Containerisation with Docker, orchestration with Kubernetes or managed cloud services, and observability tooling (structured logs, health checks, alerting) are part of every delivery. We design for handover — clear README, environment documentation, and a post-launch support window so your team can run it confidently.",
-    "typical_timeline": "8–20 weeks depending on feature scope and integrations",
-    "technologies": ["TypeScript", "Node.js", "Python", "PostgreSQL", "Docker", "Kubernetes", "Supabase", "Hono", "Zod", "GitHub Actions"],
+  "custom-workflows": {
+    "title": "Custom Agentic Workflows",
+    "category": "service",
+    "tagline": "Replace your team's busywork with workflows that think.",
+    "summary": "Connect your disjointed tools (CRM, calendar, support, project, finance) into a unified AI brain. Custom workflows route, decide, summarise, escalate, and act on their own — replacing the human glue that ops teams spend 4–6 hours a day on.",
+    "details": "Your CRM, calendar, support tool, project tracker, and finance system all do their jobs. They just don't talk to each other. So your team plays human glue — copy-pasting, status-updating, reminding, escalating. We've seen ops teams spend 4–6 hours a day on this work; that's 25% of payroll going to something AI does in seconds and gets right more often than humans do. We start with a 1-week audit: we sit with your ops, sales, and support teams and map the real flow — where work originates, where it stalls, who picks it up, what they do, where they hand it off, what gets dropped. Output is a current-state diagram and a target-state diagram side by side. We then build the target state with 100+ pre-built integrations (Salesforce, HubSpot, Pipedrive, Slack, Teams, Notion, Asana, Google Workspace, Microsoft 365, Stripe, Xero, Sage, Zendesk, Intercom, Calendly + many more) plus custom integrations for anything bespoke. AI agents are inserted at decision points: 'is this support ticket urgent?' (classifies), 'which sales rep should this lead go to?' (territory + capacity + expertise), 'should we escalate this invoice?' (history + value + customer health). Every decision is auditable — the agent logs its reasoning. 30-day pilot side-by-side before cutover.",
+    "stats": ["4+ hrs/day reclaimed per ops person", "100+ pre-built integrations", "30 days pilot before cutover", "R35K audit credited toward build"],
+    "typical_timeline": "1-week audit → 2–4 week build → 30-day pilot → cutover",
+    "pricing_range": "Workflow Audit R35 000 (one-off) → Build + Pilot from R150 000 → Ongoing Operations from R25 000/month",
+    "page_url": "/services/custom-workflows",
     "ideal_for": [
-      "Operations-heavy businesses whose workflow does not fit any existing SaaS product",
-      "Teams spending more time working around their tools than with them",
-      "Companies that need full ownership of their core software rather than being locked into a vendor"
+      "Ops-heavy companies whose teams spend hours per day on coordination work",
+      "Businesses where data is right but lives in 5+ tools that don't sync",
+      "Teams whose handoffs (sales→onboarding, support→engineering) routinely lose context",
+      "Mid-market companies wanting AI value without buying a new platform"
     ],
-    "pricing_range": "R80 000 – R500 000+ depending on scope",
-    "note": "Complex multi-role systems with deep integrations and reporting sit toward the upper end. We will be honest with you if your problem is better solved by a configured SaaS than a custom build.",
     "pain_points": [
-      "Team is running critical processes across three or four SaaS tools that don't talk to each other",
-      "Manual data re-entry between systems is creating errors and consuming hours per day",
-      "No single source of truth — management can't get a clear picture of operations without pulling reports from multiple places"
+      "Our ops team spends 4 hours a day on Slack updates, CRM entry, and follow-up emails",
+      "Things fall through the cracks between sales and onboarding constantly",
+      "We have 6 tools and management still can't get a unified view",
+      "We tried Zapier / Make but they can't handle the decisions we need automated"
     ],
     "social_proof": [
-      "A property management company was reconciling tenant payments manually across spreadsheets and email — we built a unified platform that automated reconciliation and cut their month-end close from 3 days to 4 hours",
-      "A healthcare services provider had four disconnected systems for scheduling, billing, and patient records — we built an integrated platform that reduced data entry errors by 85% and freed up 2 full-time staff from admin work",
-      "A freight company's dispatch process lived in email and a whiteboard — we built a real-time dispatch platform that gave their operations team full visibility and reduced double-bookings to zero"
+      "A professional services firm replaced 4-hour/day post-call workflow with an AI workflow handling 90% of it; ops manager freed up for higher-leverage work",
+      "An e-commerce support team's tickets — AI triages, escalates VIPs, drafts responses; 35% faster routing",
+      "A real estate agency: listing updates that took 6 platforms now propagate in minutes from a single source of truth"
     ],
     "common_objections": [
       {
-        "objection": "Custom software is too expensive",
-        "response": "Compared to what? The real cost comparison is against what your current setup is costing you in staff time, errors, and missed opportunities. We scope and price per project — the call will give you a concrete number to compare against the status quo."
+        "objection": "We use Zapier — why do we need this?",
+        "response": "Zapier moves data between systems but can't make decisions. That's where workflows fall apart — every interesting decision still needs a human. We insert AI agents at exactly the points that need judgement: 'is this urgent?', 'who should handle this?', 'should we escalate?'. Zapier handles the plumbing; we handle the brain."
       },
       {
-        "objection": "We're worried about what happens if you're not around to maintain it",
-        "response": "Every project we ship includes full documentation, a clean handover, and a 30-day support window. We build so that a competent developer you hire in the future can understand and extend it — not so it becomes a dependency on us."
+        "objection": "What if my tool isn't on your integration list?",
+        "response": "Custom integration is part of the work. We've connected bespoke ERPs, legacy databases, even SOAP APIs. If it has any kind of programmatic interface, we can connect it."
+      },
+      {
+        "objection": "How do we know it actually saved time?",
+        "response": "Every workflow we build comes with a real-time dashboard: time in stage, where bottlenecks are, % of decisions the AI handled vs escalated, error rates. We define metrics during the audit (usually hours saved per week, error rate reduction, or specific business outcomes) and measure them monthly."
       }
     ],
     "call_prep_questions": [
-      "Walk me through your current process step by step — where does it start, where does it end, and where does it break?",
-      "Which parts of the process involve the most manual work or the most errors?",
-      "Have you tried any existing tools to solve this — what did they get right and where did they fall short?",
-      "Who would use this system day-to-day, and what are their technical skills?"
+      "What's the most painful manual workflow your ops team handles right now?",
+      "How many tools is your team using day-to-day across CRM, support, projects, finance?",
+      "Where do handoffs between departments break down most often?",
+      "What's the ideal ratio of automated-to-manual work for your business?",
+      "Have you tried Zapier / Make / similar — what worked, what didn't?"
     ]
   },
 
-  "ai-agents": {
-    "title": "AI Agents & Automations",
-    "summary": "Autonomous AI agents and agentic workflows that do real work — qualifying leads, handling customer queries, automating document workflows, coordinating multi-step operations, and integrating with your existing tools. Built on Claude, OpenAI, Mastra, and purpose-built infrastructure, not chatbot wrappers.",
-    "details": "There is a meaningful difference between a chatbot and an agent. A chatbot responds. An agent acts: it can call tools, make decisions across multiple steps, read and write to your systems, and escalate to a human only when it genuinely needs to. We build the latter. Our agent architecture is built primarily on Mastra (our preferred agentic framework), with Claude and OpenAI as the reasoning layer depending on the task profile. For retrieval-augmented workflows we implement vector databases with semantic search so agents answer from your own knowledge base rather than hallucinating. We cover the full spectrum — customer service agents, sales and BDR agents, operations automation, research and summarisation agents, document intake workflows, and multi-agent orchestration where one coordinator routes work to specialist sub-agents. Everything is connected to your stack via API integrations: CRM, calendar, email, Slack, WhatsApp, and custom internal tools. We also build lighter-weight automation pipelines using n8n for businesses that need reliable workflow automation without the overhead of a full agentic system.",
-    "typical_timeline": "4–12 weeks for single-agent deployments; 12–24 weeks for multi-agent orchestration systems",
-    "technologies": ["Claude API", "OpenAI", "Mastra", "LangChain", "n8n", "Pinecone", "pgvector", "TypeScript", "Cloudflare Workers", "Hono", "Zod"],
+  "corporate-advisory": {
+    "title": "Corporate AI Advisory & Adoption",
+    "category": "service",
+    "tagline": "From 'we should try AI' to AI generating real revenue — in 90 days.",
+    "summary": "AI strategy + governance + execution for mid-market and enterprise. We assess readiness, build POPIA / GDPR / ISO 42001 governance, prioritise high-ROI use cases against your specific business, train your staff role-by-role, and pilot the top 2–3 use cases ourselves so you have wins on the board.",
+    "details": "80% of AI projects fail to deliver business value (RAND, 2025). 88% of agent pilots never make it to production. Average abandoned AI initiative cost: $7.2M before being shelved. The pattern is consistent: chosen because of vendor pitch (not internal pain), scoped wider than feasible, no measurable success criteria, no executive sponsor, no plan for production handover. We start with a 2-week readiness assessment covering four dimensions: data (what you have, where it lives, what you can legally use it for), infrastructure (cloud maturity, identity, integration capability), processes (which workflows are AI-ready vs need cleaning up first), and people (skill levels by role, current adoption patterns, change-management capacity). Output: written readiness report with 5–10 specific 90-day quick wins identified. Governance framework follows: POPIA + GDPR + ISO 42001 (the 2026 gold standard — 83% of Fortune 500 procurement teams plan to require alignment by 2027; certified companies already getting 15–25% lower AI liability insurance premiums). We then prioritise use cases against impact / effort / risk, building a sequenced 12-month roadmap. Critical: we don't just advise — the Adoption Programme includes piloting the top 2–3 use cases ourselves so you have measurable wins, not a glossy PowerPoint. Role-specific training (marketing, ops, finance, support each get separate hands-on programmes) measured at 30/60/90 days for actual adoption, not attendance.",
+    "stats": ["90 days kickoff to first wins", "3 compliance frameworks (POPIA / GDPR / ISO 42001)", "15-25% lower AI liability premiums when ISO 42001-aligned", "2-3 pilots delivered, not just advised"],
+    "typical_timeline": "Readiness Audit: 2–3 weeks → Adoption Programme: 90 days (audit + governance + roadmap + first pilots) → Embedded AI Office: ongoing",
+    "pricing_range": "Readiness Audit R125 000 (one-off, credited toward programme) → Adoption Programme from R450 000 (90 days) → Embedded AI Office from R65 000/month",
+    "page_url": "/services/corporate-advisory",
     "ideal_for": [
-      "Businesses with repetitive, high-volume tasks that currently rely on manual human effort",
-      "Sales and customer success teams who need 24/7 responsiveness without hiring headcount",
-      "Companies sitting on unstructured data (documents, emails, forms) that need to be queryable and actionable"
+      "Mid-market and enterprise (typically 50+ employees, R50M+ revenue) — below that our products usually deliver more value than advisory",
+      "Boards that need an AI strategy but are wary of vendor pitches",
+      "Compliance-sensitive industries (financial services, healthcare, professional services) where governance comes first",
+      "CEOs who've watched 80% of AI projects fail and want a different approach"
     ],
-    "pricing_range": "R50 000 – R500 000+ depending on agent complexity, integrations, and volume",
-    "note": "AI agent projects are scoped carefully on a discovery call. Pricing depends heavily on the number of integrations, expected message volume, and whether you need a single-agent deployment or a coordinated multi-agent system.",
     "pain_points": [
-      "Sales or support team is overwhelmed with repetitive first-response queries that don't require human judgment",
-      "Leads are sitting unqualified for 24–48 hours because there's no capacity to respond faster",
-      "Documents, forms, and emails contain valuable data that nobody has time to extract and act on"
+      "We have 'AI strategy' on the board agenda but no clear plan to execute",
+      "Our last AI vendor sold us tools nobody adopted; we sunk R1M for no return",
+      "Compliance team is blocking AI rollouts and we can't unstick it",
+      "Staff are using ChatGPT with customer data and we have no policy"
     ],
     "social_proof": [
-      "A financial services company's inbound lead response time dropped from 4 hours to 30 seconds after deploying a qualification agent — their lead-to-call conversion rate improved by 28%",
-      "A legal firm automated their client intake process with a document-reading agent — what previously required a paralegal to spend 45 minutes per intake now takes 3 minutes with human review only on exceptions",
-      "A property developer deployed a 24/7 enquiry agent across their website and WhatsApp — handled 80% of inbound queries without human intervention and qualified leads before routing to sales"
+      "A bank built private AI infrastructure + governance — 4 productive use cases live in 90 days, zero data incidents",
+      "A healthcare practice group whose staff feared AI adoption — trained + compliant tooling saved 30% of admin time across 12 practices",
+      "A mid-market manufacturer's roadmap identified 3 high-ROI use cases (procurement, quality, scheduling); ~R4M savings projected year 1"
     ],
     "common_objections": [
       {
-        "objection": "AI agents hallucinate — we can't trust them with real client interactions",
-        "response": "That's the right concern, and it's why architecture matters. We ground agents in your own knowledge base using retrieval, set strict tool boundaries, and build human escalation paths for anything the agent isn't confident about. The agent we're discussing would be scoped to what it can reliably do — not deployed recklessly."
+        "objection": "Pure advisory firms hand you a roadmap and disappear — how is this different?",
+        "response": "The Adoption Programme includes piloting the first 2–3 use cases ourselves. We build them, run them, measure them, and hand off only after they've delivered measurable value. Most pure-advisory firms can't or won't do that. The wins on the board create the political capital your team needs to expand AI internally without us."
       },
       {
-        "objection": "We tried a chatbot before and it was useless",
-        "response": "Chatbots are script-runners — they follow a decision tree and fall over the moment the user goes off script. Agents are different: they reason, use tools, and handle novel situations. We'd be happy to walk through what went wrong with your previous attempt on the call."
+        "objection": "Compliance is our biggest blocker — can you actually navigate POPIA + ISO 42001?",
+        "response": "POPIA + GDPR + ISO 42001 (and EU AI Act where relevant) are baked into the governance framework from day one. Every AI vendor and tool we recommend is vetted against these standards. We've worked with financial services and healthcare clients where compliance was the gating concern, and got them to live deployments inside 90 days."
+      },
+      {
+        "objection": "Our staff are very junior on AI — generic ChatGPT training didn't stick",
+        "response": "Generic training never sticks because it doesn't translate to specific work. We do role-specific programmes — marketing learns AI for content + analysis + competitor research; ops learns AI for routing + summarisation + reporting; finance learns AI for variance analysis + audit prep. We measure adoption at 30/60/90 days, not attendance — and update the programme if uptake stalls."
+      },
+      {
+        "objection": "Will you recommend tools we have to buy?",
+        "response": "Sometimes — but no kickback arrangements with any vendor. Recommendations are based purely on what fits your business. Plenty of recommendations end up being 'use what you already have, just differently'."
       }
     ],
     "call_prep_questions": [
-      "Which specific task or workflow would the agent handle — be as precise as possible?",
-      "What does the current manual process look like, and how many hours per week does it consume?",
-      "What systems would the agent need to read from or write to?",
-      "What does a failed or wrong response look like in your context — what are the stakes?"
-    ]
-  },
-
-  "mobile-app": {
-    "title": "Mobile App Development",
-    "summary": "Native-feeling iOS and Android apps built with React Native and Expo — one codebase, both platforms, production quality. We build mobile apps that are AI-ready from day one and designed to work seamlessly with your backend systems.",
-    "details": "React Native with Expo is our default choice for mobile because it delivers genuine native performance and native UI components across iOS and Android without maintaining two separate codebases. For projects where a specific platform's native APIs are core to the product — complex animations, Bluetooth, advanced camera workflows — we will scope Swift or Kotlin accordingly and be transparent about the trade-offs. Every mobile app we build connects to a properly designed API backend, handles offline states gracefully, and ships with a CI/CD pipeline using EAS Build for automated iOS and Android releases. We handle App Store and Google Play submission, including provisioning profiles, signing certificates, and review preparation. AI capabilities — on-device inference for fast interactions, server-side agents for complex reasoning — are designed in from the requirements stage rather than bolted on later. State management is handled with Zustand or TanStack Query depending on the data access patterns, and we enforce type safety with TypeScript throughout.",
-    "typical_timeline": "8–18 weeks for a full featured app; 4–8 weeks for a focused MVP",
-    "technologies": ["React Native", "Expo", "TypeScript", "EAS Build", "Zustand", "TanStack Query", "React Navigation", "Tailwind (NativeWind)", "Swift (when required)", "Kotlin (when required)"],
-    "ideal_for": [
-      "Businesses that need a mobile app as a primary customer touchpoint or field tool",
-      "Companies with an existing web platform looking to extend to mobile without duplicating their backend",
-      "Product founders who want a production-quality app to validate traction before scaling"
-    ],
-    "pricing_range": "R80 000 – R350 000 depending on feature scope and platform targets",
-    "note": "Prices include deployment and App Store submission preparation. Ongoing maintenance and update cycles are quoted separately.",
-    "pain_points": [
-      "Field staff or clients are using a desktop web app on mobile because no native app exists — the experience is broken",
-      "Building two separate native apps (iOS and Android) is financially out of reach",
-      "A previous agency delivered an app that was rejected by the App Store or crashes in production"
-    ],
-    "social_proof": [
-      "A construction site inspection company replaced paper-based checklists with a React Native app — their site managers complete inspections 3x faster and defect reports now arrive at head office in real time instead of at week end",
-      "A retail chain deployed a field sales app to their 40-person sales team — order capture time dropped from 15 minutes per order to under 3 minutes, and order accuracy went from 94% to 99.8%",
-      "A healthcare startup launched an MVP patient-facing app in 6 weeks using Expo — it passed App Store review on the first submission and reached 500 active users within the first month"
-    ],
-    "common_objections": [
-      {
-        "objection": "Why not just make the website mobile-responsive instead?",
-        "response": "Responsive web works for content. Where it falls apart is offline access, push notifications, device hardware (camera, GPS, biometrics), and the performance expectations users have of a native experience. If your use case needs any of those, a native app is the right answer. If it doesn't, we'll tell you that."
-      },
-      {
-        "objection": "Building two separate apps is too expensive",
-        "response": "React Native solves exactly this — one codebase, iOS and Android, with genuine native performance. You get both platforms at roughly the cost of one. Where you'd pay double is if you went fully native Swift and Kotlin — we'd only recommend that if the product genuinely required it."
-      }
-    ],
-    "call_prep_questions": [
-      "Who are the primary users — customers, internal staff, or field teams?",
-      "What are the 3–5 core actions users need to do in the app?",
-      "Does the app need to work offline, or is connectivity reliable in the use context?",
-      "Do you have a backend API already, or does that need to be built as well?"
-    ]
-  },
-
-  "modernisation": {
-    "title": "Legacy Modernisation",
-    "summary": "Legacy systems rebuilt as intelligent, maintainable platforms. We migrate monolithic codebases, redesign brittle APIs, move infrastructure to the cloud, and add AI agents where your team is currently doing manual work — without shutting your business down to do it.",
-    "details": "Legacy modernisation is one of the most technically demanding engagements we take on, and we are honest about that upfront. The goal is never a big-bang rewrite — it is a structured migration that keeps your operations running while systematically replacing the parts that are slowing you down. We start with a codebase and infrastructure audit: understand the current architecture, map the integrations, identify the highest-risk areas, and define a migration path that can be executed incrementally. We use the strangler fig pattern where appropriate — new services wrap old ones and gradually take over traffic. Database migrations are handled with zero-downtime strategies: dual writes, backfill jobs, cut-over windows timed to low-traffic periods. On the infrastructure side, we containerise workloads with Docker, establish proper environment separation, and set up CI/CD pipelines that the existing team was likely lacking. We bring AI into the modernised system where it earns its place — agents replacing manual data entry, automated reconciliation, intelligent document processing — not as a marketing feature but as a real operational improvement.",
-    "typical_timeline": "12–24 weeks for phased migrations; complex enterprise systems may run longer",
-    "technologies": ["Docker", "Kubernetes", "Terraform", "PostgreSQL", "Cloud migration (AWS, GCP, Cloudflare)", "TypeScript", "Node.js", "API-first redesign", "CI/CD pipelines", "Zero-downtime migration strategies"],
-    "ideal_for": [
-      "Businesses running on systems built 5–15 years ago that are expensive to change and fragile under load",
-      "Companies whose development velocity has slowed because the codebase is too risky to touch",
-      "Organisations moving from on-premises infrastructure to cloud-native deployments"
-    ],
-    "pricing_range": "R150 000 – R750 000+ depending on system complexity and migration scope",
-    "note": "We require a technical discovery session before scoping modernisation engagements. The cost varies significantly based on the size of the existing system, quality of existing documentation, and the agreed migration strategy.",
-    "pain_points": [
-      "Every change to the system takes weeks and carries high risk of breaking something else — developers are scared to touch it",
-      "System goes down under peak load and nobody fully understands why or how to fix it reliably",
-      "The original developer who built the system is no longer available and there is minimal documentation"
-    ],
-    "social_proof": [
-      "A manufacturing company's decade-old inventory system was taking 45 minutes to generate a stock report — after a phased migration to a cloud-native architecture, the same report runs in under 4 seconds",
-      "A financial services firm was running a monolith on a single server with no backups — we migrated to containerised microservices on the cloud with automated failover, reducing their unplanned downtime from several incidents per month to zero in the 8 months following migration",
-      "A logistics company's legacy dispatch software was costing R120 000 per year in vendor support fees and could not integrate with modern APIs — the modernised platform eliminated that cost and connected to their ERP and route optimisation tools in the first phase"
-    ],
-    "common_objections": [
-      {
-        "objection": "A rewrite is too risky — what if it breaks the business?",
-        "response": "That's exactly why we don't do big-bang rewrites. The strangler fig approach means the old system keeps running while the new one takes over piece by piece — you're never exposed to an all-or-nothing moment. We'll walk through the specific migration strategy for your system on the call."
-      },
-      {
-        "objection": "We don't have documentation for the existing system",
-        "response": "Most legacy systems don't. Our technical discovery process is designed to work with what exists — code analysis, infrastructure inspection, interviews with whoever knows the system best. Lack of documentation slows things down but it doesn't make it impossible."
-      }
-    ],
-    "call_prep_questions": [
-      "How old is the system and what technology is it built on?",
-      "What are the specific symptoms — is it performance, reliability, development speed, cost, or all of the above?",
-      "Are there integrations with other systems we need to preserve during migration?",
-      "Is there still a developer who understands the existing system, or has that knowledge walked out the door?"
-    ]
-  },
-
-  "pricing": {
-    "title": "Pricing",
-    "summary": "We scope and price every project individually based on complexity, integrations, team size, and timeline. Budget ranges in ZAR: under R50K for small automations and simple sites, R50K–R150K for focused web apps and single-agent deployments, R150K–R500K for full platforms and complex AI systems, R500K+ for enterprise-scale builds and multi-agent orchestration. All pricing is project-based — no retainers required unless you want ongoing support.",
-    "details": "We do not publish fixed price lists because software complexity varies too much for that to be honest. What we can tell you is how we structure pricing and where your project is likely to land. Scoping starts with a discovery call where we understand your requirements in detail. We then produce a written proposal with a fixed-price quote for the agreed scope — not time and materials, not open-ended. If the scope changes, we discuss it and adjust together. We do not bill for the discovery call. For most web and mobile projects, the primary cost drivers are the number of user roles, integrations with third-party systems, and the depth of AI features. For AI agent work specifically, volume matters too — a system handling 10 000 monthly interactions has different infrastructure and cost implications than one handling 100. We are a South African agency billing in ZAR, operating in SAST (UTC+2), and familiar with the local market, local payment infrastructure, and the constraints South African businesses operate under.",
-    "typical_timeline": "Discovery to proposal: 3–5 business days",
-    "technologies": [],
-    "ideal_for": [
-      "Businesses that want a clear, fixed-price proposal before committing to a build",
-      "Companies that have been burned by scope creep on previous development engagements",
-      "Startups and SMEs who need to plan their budget accurately before starting"
-    ],
-    "pricing_range": "R25 000 (small automation) to R750 000+ (enterprise platform)",
-    "note": "All pricing is in ZAR. We do not require a deposit until the proposal is agreed and contracts are signed. Discovery calls are free.",
-    "pain_points": [
-      "Been burned by a time-and-materials agency where the final bill bore no resemblance to the initial estimate",
-      "Cannot get budget approval without a clear fixed number — open-ended quotes are a non-starter",
-      "Previous project ran over budget and over time with no clear accountability"
-    ],
-    "social_proof": [
-      "A retail client came to us after a previous agency had billed R400 000 over two years with nothing shipped — we delivered a fixed-scope platform in 14 weeks at an agreed R180 000, on budget",
-      "A startup founder got three agency quotes ranging from R50 000 to R800 000 for the same brief — our scoping call identified what was actually needed, and the final build came in at R120 000 with a clear scope document both sides signed before work began"
-    ],
-    "common_objections": [
-      {
-        "objection": "How do I know the fixed price won't just be padded with contingency?",
-        "response": "Our proposals itemise the scope in detail — not a lump sum with a project name. You can see exactly what you're paying for. If something gets added, we discuss it and quote it separately. No hidden contingency buffers."
-      },
-      {
-        "objection": "What if we need changes mid-project?",
-        "response": "We build in a change process. Minor adjustments within scope are absorbed. Meaningful scope changes are quoted and agreed before work begins. You will always know where you stand."
-      }
-    ],
-    "call_prep_questions": [
-      "Has the business had previous software development engagements — how did those go?",
-      "Is there an approved budget for this project, or does the proposal need to inform the budget request?",
-      "Who has authority to sign off on the proposal and contract?"
-    ]
-  },
-
-  "process": {
-    "title": "Our Process",
-    "summary": "Discovery call to understand the problem. Requirements workshop to define the scope in writing. Architecture design with your input before a line of code is written. Sprint-based development with demos every two weeks so you see progress and can redirect early. QA testing with a structured test plan. Deployment to production with proper environment config. Post-launch support window included in every project.",
-    "details": "Our process is designed to eliminate the most common reasons software projects fail: unclear requirements, no visibility into progress, and handovers that leave clients stranded. Phase one is discovery — a structured call where we ask the hard questions about your business problem, your users, your constraints, and your existing tech landscape. From that we produce a written requirements document you sign off on before we start designing. Phase two is architecture — we define the data model, API structure, tech stack selection, and deployment approach. We share this with you for review; your input is genuinely useful here because you know your domain better than we do. Phase three is the build, run in two-week sprints. At the end of each sprint there is a demo and a short retrospective. You can re-prioritise the backlog between sprints — we build in that flexibility by design. Phase four is QA: structured test plans covering happy paths, edge cases, and integration scenarios. We catch bugs before you do. Phase five is deployment: production environment setup, CI/CD, monitoring, and documentation for your team. Phase six is support: a defined post-launch support window (typically 30 days) where we resolve any issues that surface in production at no extra charge.",
-    "typical_timeline": "Varies by project. Discovery to delivery typically ranges from 6 weeks (focused scope) to 24 weeks (large platform). We will give you a realistic timeline in the proposal.",
-    "technologies": ["GitHub Actions (CI/CD)", "Vitest / Playwright (testing)", "Cloudflare / AWS / GCP (deployment)", "Linear (project management)", "Structured sprint ceremonies"],
-    "ideal_for": [
-      "Clients who have had bad experiences with agencies that disappeared or went quiet mid-build",
-      "Businesses that want to be informed participants in the development process, not passive recipients",
-      "Teams who need a clear handover so they can maintain and extend the system themselves"
-    ],
-    "pricing_range": "Process is included in every engagement — not billed separately",
-    "note": "We work with clients in South Africa, and across time zones where the overlap allows for regular communication. All project management is handled in SAST (UTC+2).",
-    "pain_points": [
-      "Previous agency went quiet for weeks at a time — no visibility, no updates, just a delivery date that kept slipping",
-      "Handover documentation was non-existent — team inherited a system nobody could maintain",
-      "Requirements kept changing because they were never properly written down and agreed upfront"
-    ],
-    "social_proof": [
-      "A client who had been burned by two previous agencies — both going silent for months — described our sprint demo cadence as 'the first time I've felt in control of a software project'",
-      "A company received a full handover package including architecture diagrams, environment documentation, and a runbook — their internal developer was able to make independent changes within the first week after handover"
-    ],
-    "common_objections": [
-      {
-        "objection": "We've worked with agencies before and it always goes wrong",
-        "response": "The most common reasons are unclear requirements, no visibility during the build, and poor handover. Our process is specifically designed to address all three. We can walk you through exactly how on the call."
-      },
-      {
-        "objection": "Two-week sprints sound bureaucratic — we want to move fast",
-        "response": "Sprints make you move faster, not slower — because they create forcing functions that prevent scope drift and keep the build aligned with what you actually need. The alternative is building for months and discovering misalignment at the end."
-      }
-    ],
-    "call_prep_questions": [
-      "Have you been through a software development process before — what worked and what didn't?",
-      "How involved do you want to be during the build — weekly check-ins, bi-weekly demos, or more hands-off?",
-      "Who on your side would own the relationship with our team day-to-day?"
+      "What size is your organisation (employees, revenue) and what industry?",
+      "What's currently driving the AI conversation — board pressure, competitive threat, regulation, customer demand?",
+      "What past AI initiatives have you tried? What worked, what didn't?",
+      "Where is your compliance posture currently (POPIA / GDPR / sector-specific)?",
+      "Who are the executive sponsors and what's their tolerance for measurable risk vs measurable upside?"
     ]
   },
 
   "general": {
     "title": "About Octio",
-    "summary": "Octio is a software development and AI consultancy based in Pretoria, South Africa. We build intelligent, production-grade systems for ambitious businesses — AI agents and automations, custom applications, mobile apps, and legacy modernisation. Our team combines deep technical craft with a straightforward approach: honest scoping, fixed-price proposals, and software that ships and lasts.",
-    "details": "Octio was built on the belief that most businesses deserve better software than they currently have — and that better software means intelligent software. We are not a body shop adding headcount to your team for time and materials. We are a product-focused consultancy that takes ownership of the problem, designs the right solution, and ships it. Our team has shipped production systems across fintech, operations, e-commerce, and professional services. We have built everything from event-driven microservices handling high transaction volumes to lean mobile apps used in the field. We bring that breadth of experience to every engagement. As a Pretoria-based agency we operate in South African business hours (SAST, UTC+2), bill in ZAR, and understand the constraints and opportunities of the local market — load-shedding resilience in system design, South African payment gateways, POPIA compliance considerations, and the realities of building on South African infrastructure. We are small enough to give every client genuine senior attention, and we are disciplined about taking on only what we can deliver well. That means we sometimes turn down work that is not a good fit — because a failed project serves nobody.",
-    "typical_timeline": "Discovery call can be booked within 1–2 business days",
-    "technologies": ["React", "Next.js", "React Native", "TypeScript", "Node.js", "Python", "PostgreSQL", "Supabase", "Mastra", "Claude API", "OpenAI", "Docker", "Cloudflare Workers"],
-    "ideal_for": [
-      "Businesses that want a technical partner, not just a vendor executing a ticket queue",
-      "Companies that need AI integrated into their operations in a practical, measurable way",
-      "Founders and operators who value directness and honest assessment over a sales pitch"
-    ],
-    "pricing_range": "Scoped per project — discovery call is free",
-    "note": "Learn more at octio.co.za or book a discovery call directly through the website.",
-    "pain_points": [
-      "Working with an agency that over-promised and under-delivered — want a team that is straight about what is realistic",
-      "Technology decisions are being made without a clear understanding of the business problem",
-      "Software projects keep failing or stalling — looking for a partner who takes genuine ownership"
-    ],
-    "social_proof": [
-      "A fintech founder came to us with a failed build from a previous agency — we completed a working MVP in 10 weeks that went on to secure a seed round of funding",
-      "An operations director described Octio as 'the first technical partner we've worked with who pushed back on our brief when it needed pushing back on — and were right every time'"
-    ],
-    "common_objections": [
-      {
-        "objection": "You're a small agency — can you handle our scale?",
-        "response": "Small means every client gets senior engineers, not junior developers managed from a distance. We are deliberate about not over-committing — we take on 3 to 4 projects at a time. If your project is beyond our capacity at a given time, we will tell you upfront rather than take your money and underdeliver."
-      },
-      {
-        "objection": "We'd prefer to work with a larger, more established firm",
-        "response": "Larger firms typically assign junior teams to projects under your size threshold. At Octio, the people you meet on the discovery call are the people who build your system. That's a structural difference, not a marketing claim."
-      }
-    ],
-    "call_prep_questions": [
-      "What is the core problem you are trying to solve — describe it in business terms, not technical terms?",
-      "What does success look like 6 months after this project ships?",
-      "Have you worked with external software agencies before — how did those engagements go?",
-      "What is your timeline expectation and what is driving it?"
+    "summary": "Octio is a pure-play AI company. We build, deploy, and train autonomous AI agents that run your marketing, manage your leads, automate your back-office, and develop your custom software at unprecedented speeds. Based in Pretoria, South Africa.",
+    "details": "Octio is structured around four autonomous AI products (Lead Generation, Voice & Chat, Social Media Manager, Newsletter Engine) and three services (Agentic App Development, Custom Workflows, Corporate AI Advisory). Our differentiator is that we are our own Patient Zero — every product we sell powers Octio's own business operations first. We don't sell theories; we sell tested agentic systems. Senior-led, no junior layer, BYOK-friendly pricing where it makes sense. We take on a limited number of advisory engagements at any time so each client gets genuine senior attention.",
+    "page_url": "/",
+    "company_info": {
+      "founded": "2023",
+      "location": "Pretoria, South Africa",
+      "team_size": "Small senior team",
+      "engagement_capacity": "3–4 active advisory engagements at any time",
+      "specialisation": "Pure-play AI — products, services, and adoption"
+    }
+  },
+
+  "pricing": {
+    "title": "Octio Pricing",
+    "summary": "Octio combines productised SaaS-style pricing for autonomous AI products with project-based engagements for custom services. Discovery call required to scope correctly.",
+    "details": "Pricing across the catalogue:",
+    "products_subscription": {
+      "AI Lead Generation": "Starter R8 500/mo · Growth R18 500/mo · Enterprise custom",
+      "Voice & Chat Agents": "Voice Starter R6 500/mo · Voice + Chat R12 500/mo · Enterprise custom",
+      "AI Social Media Manager": "Single Channel R4 500/mo · Multi-Channel R9 500/mo · Agency custom",
+      "Newsletter Engine": "Solo R3 500/mo · Business R6 500/mo · Enterprise custom"
+    },
+    "services_project": {
+      "Agentic App Development": "MVP Sprint from R85 000 · Production Build from R220 000 · Long-term Partner custom retainer",
+      "Custom Agentic Workflows": "Audit R35 000 · Build + Pilot from R150 000 · Ongoing Operations from R25 000/month",
+      "Corporate AI Advisory": "Readiness Audit R125 000 · Adoption Programme from R450 000 · Embedded AI Office from R65 000/month"
+    },
+    "pricing_philosophy": [
+      "BYOK (bring your own keys) where it makes sense — flexible, transparent, scales with your usage",
+      "Audits credit toward implementation projects — no double-charging",
+      "Senior-led, fixed scope where possible — no hourly-billing surprises",
+      "Discovery call required to scope accurately — we don't quote without understanding the work"
+    ]
+  },
+
+  "process": {
+    "title": "How Octio Engagements Work",
+    "summary": "For autonomous products: 3-step deployment (Define Rules → Connect Systems → Go Autonomous). For custom builds: 6-step delivery (Talk → Design → Prototype → Review → Build → Go Live).",
+    "details": "Both flows start with a discovery call. For products, we typically go from kickoff to live in 5–14 days depending on the product. For custom services, project sprints with weekly demos give you a working version every 5 working days — feedback loops are 24-hour, not 2-week.",
+    "engagement_steps": {
+      "products": [
+        "1. Define your rules — business domain, audience, brand voice (kickoff call)",
+        "2. Connect your systems — calendars, CRMs, social accounts via secure portal",
+        "3. Go autonomous — AI agent live, you approve and monitor"
+      ],
+      "custom_builds": [
+        "1. Let's talk — discovery call to understand vision, challenges, goals",
+        "2. Let's design — wireframes + architecture",
+        "3. Let's prototype — working prototype to validate before full build",
+        "4. Let's review — refine together, iterate",
+        "5. Let's build — full development with rigorous testing",
+        "6. Let's go live — deployment + handover + 30-day support"
+      ]
+    },
+    "ownership_principles": [
+      "You own all source code and infrastructure outright",
+      "Documentation + handover support included on every project",
+      "Standard, boring stacks so any developer can take over",
+      "30-day post-launch support included; ongoing retainer optional"
     ]
   }
 }

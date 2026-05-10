@@ -6,14 +6,18 @@ import { Hono } from 'hono';
 import { bookRoutes } from './routes/book.js';
 import { chatRoutes } from './routes/chat.js';
 import { stepRoutes } from './routes/step.js';
+import { eventRoutes } from './routes/event.js';
 import { privacyRoutes } from './routes/privacy.js';
 import { identifyRoutes } from './routes/identify.js';
+import { oauthRoutes } from './routes/oauth.js';
 import { cors } from 'hono/cors';
 import { logger as honoLogger } from 'hono/logger';
 import { serve } from '@hono/node-server';
 import { sql } from 'drizzle-orm';
 import { db } from './db/client.js';
 import { rateLimitMiddleware } from './middleware/rate-limit.js';
+import { startCronJobs } from './cron/index.js';
+import { checkGoogleScopes } from './services/google-scope-check.js';
 
 const app = new Hono();
 
@@ -47,6 +51,8 @@ app.route('/api', bookRoutes);
 app.route('/api', identifyRoutes);
 app.route('/chat', chatRoutes);
 app.route('/chat/step', stepRoutes);
+app.route('/chat/event', eventRoutes);
+app.route('/oauth', oauthRoutes);
 app.route('/privacy', privacyRoutes);
 
 app.get('/health', async (c) => {
@@ -96,6 +102,9 @@ const server = serve(
       { port: info.port, nodeEnv: config.nodeEnv },
       `Octio worker started on port ${info.port}`,
     );
+    startCronJobs();
+    // Fire-and-forget — non-blocking. Logs missing scopes if any.
+    void checkGoogleScopes();
   },
 );
 

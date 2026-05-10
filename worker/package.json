@@ -14,7 +14,8 @@
     "db:migrate": "tsx src/db/migrate.ts",
     "db:studio": "drizzle-kit studio",
     "get-refresh-token": "tsx --env-file .env scripts/get-refresh-token.ts",
-    "create-groups": "tsx --env-file .env scripts/create-groups.ts"
+    "create-groups": "tsx --env-file .env scripts/create-groups.ts",
+    "setup-team-calendar": "tsx --env-file .env scripts/setup-team-calendar.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.69",
@@ -30,13 +31,16 @@
     "drizzle-orm": "^0.36.0",
     "googleapis": "^171.4.0",
     "hono": "^4.6.0",
+    "node-cron": "^4.2.1",
     "open": "^11.0.0",
     "pino": "^9.0.0",
     "postgres": "^3.4.0",
+    "twilio": "^5.13.1",
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@types/node-cron": "^3.0.11",
     "@vitest/ui": "^2.0.0",
     "drizzle-kit": "^0.28.0",
     "pino-pretty": "^11.0.0",

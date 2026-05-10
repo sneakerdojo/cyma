@@ -200,7 +200,15 @@ bookRoutes.post('/book', async (c) => {
   }
 
   // ── Step 8: Create Google Calendar event ────────────────────────────────
-  let calResult: Awaited<ReturnType<typeof createDiscoveryCallEvent>>;
+  // Graceful degradation: when Google Calendar isn't configured (or its
+  // OAuth token is missing scopes), we don't fail the booking. Instead the
+  // booking is saved with status 'pending' and the team gets a best-effort
+  // alert email so they can manually create the calendar event. The user
+  // sees a success response without a Meet link.
+  //
+  // This lets the website be live and capture leads even when the
+  // calendar integration is intentionally disabled or temporarily broken.
+  let calResult: Awaited<ReturnType<typeof createDiscoveryCallEvent>> | null = null;
   try {
     calResult = await createDiscoveryCallEvent({
       contact: intake.contact,
@@ -213,56 +221,42 @@ bookRoutes.post('/book', async (c) => {
     });
     logger.info({ eventId: calResult.eventId }, 'book: calendar event created');
   } catch (err) {
-    logger.error({ err }, 'book: calendar event creation failed');
-
-    // Mark booking as failed
-    try {
-      await db
-        .update(bookings)
-        .set({ status: 'failed' })
-        .where(
-          // Drizzle eq helper
-          eq(bookings.id, bookingId),
-        );
-    } catch (dbErr) {
-      logger.error({ dbErr }, 'book: could not update booking status to failed');
-    }
-
-    return c.json(
-      {
-        ok: false,
-        error:
-          'Could not create calendar event — please try again or email hello@octio.co.za',
-      },
-      502,
+    logger.warn(
+      { err },
+      'book: calendar event creation failed — falling back to manual booking',
     );
   }
 
-  // ── Steps 9–11: Non-critical DB updates ─────────────────────────────────
+  // ── Steps 9–11: DB updates (always run, with whatever calendar data we have)
   try {
     await db
       .update(bookings)
       .set({
-        googleCalendarEventId: calResult.eventId,
-        googleMeetLink: calResult.meetLink,
-        googleCalendarLink: calResult.calendarLink,
-        status: 'confirmed',
+        googleCalendarEventId: calResult?.eventId,
+        googleMeetLink: calResult?.meetLink,
+        googleCalendarLink: calResult?.calendarLink,
+        // 'confirmed' when we have a calendar event; 'pending' means the
+        // team needs to manually book the slot. The cron + dashboard surface
+        // pending bookings so they don't fall through the cracks.
+        status: calResult ? 'confirmed' : 'pending',
       })
       .where(eq(bookings.id, bookingId));
   } catch (err) {
-    logger.error({ err }, 'book: booking update (confirmed status) failed — non-fatal');
+    logger.error({ err }, 'book: booking update failed — non-fatal');
   }
 
-  try {
-    await db.insert(appointments).values({
-      contactId,
-      bookingId,
-      calBookingId: calResult.eventId,
-      scheduledAt: slotStartAt,
-      status: 'booked',
-    });
-  } catch (err) {
-    logger.error({ err }, 'book: appointments insert failed — non-fatal');
+  if (calResult) {
+    try {
+      await db.insert(appointments).values({
+        contactId,
+        bookingId,
+        calBookingId: calResult.eventId,
+        scheduledAt: slotStartAt,
+        status: 'booked',
+      });
+    } catch (err) {
+      logger.error({ err }, 'book: appointments insert failed — non-fatal');
+    }
   }
 
   try {
@@ -300,13 +294,20 @@ bookRoutes.post('/book', async (c) => {
     logger.error({ dbErr }, 'book: emailSent flag update failed — non-fatal');
   }
 
-  // ── Step 13: Hot lead internal alert ────────────────────────────────────
-  if (olsResult.band === 'hot') {
+  // ── Step 13: Internal alert ─────────────────────────────────────────────
+  // Always notify the team for hot leads. If the calendar event failed
+  // (manual booking mode), notify regardless of band so the team can
+  // manually create the calendar event for the chosen slot.
+  const needsManualBooking = !calResult;
+  if (olsResult.band === 'hot' || needsManualBooking) {
     try {
       const companyLabel = intake.contact.company
         ? ` from ${intake.contact.company}`
         : '';
-      const subject = `HOT LEAD: ${intake.contact.name}${companyLabel}`;
+      const subjectPrefix = needsManualBooking
+        ? '⚠️ MANUAL BOOKING REQUIRED'
+        : 'HOT LEAD';
+      const subject = `${subjectPrefix}: ${intake.contact.name}${companyLabel}`;
 
       const dimensionBreakdown = olsResult.dimensions
         .map((d) => `  ${d.dimension}: ${d.points}/4 — ${d.reason}`)
@@ -317,8 +318,16 @@ bookRoutes.post('/book', async (c) => {
           ? `${intake.requirements.slice(0, 300)}...`
           : intake.requirements;
 
+      const calendarLines = calResult
+        ? [`Meet Link: ${calResult.meetLink}`, `Calendar: ${calResult.calendarLink}`]
+        : [
+            'CALENDAR EVENT WAS NOT CREATED — please manually create the calendar event for this slot and email the lead with the Meet link.',
+          ];
+
       const body = [
-        `HOT LEAD ALERT — OLS Score: ${olsResult.total}/20`,
+        needsManualBooking
+          ? `MANUAL BOOKING REQUIRED — OLS Score: ${olsResult.total}/20`
+          : `HOT LEAD ALERT — OLS Score: ${olsResult.total}/20`,
         '',
         `Name: ${intake.contact.name}`,
         `Email: ${intake.contact.email}`,
@@ -333,13 +342,12 @@ bookRoutes.post('/book', async (c) => {
         'Requirements:',
         requirementsPreview,
         '',
-        `Meet Link: ${calResult.meetLink}`,
-        `Calendar: ${calResult.calendarLink}`,
+        ...calendarLines,
       ].join('\n');
 
       await sendInternalAlert(subject, body);
     } catch (err) {
-      logger.error({ err }, 'book: internal hot-lead alert failed — non-fatal');
+      logger.error({ err }, 'book: internal alert failed — non-fatal');
     }
   }
 
@@ -353,7 +361,7 @@ bookRoutes.post('/book', async (c) => {
         requirements: intake.requirements,
         olsScore: olsResult.total,
         scoreBand: olsResult.band,
-        meetLink: calResult.meetLink,
+        meetLink: calResult?.meetLink ?? '',
         slotLabel: intake.selectedSlot.label,
       }),
       addToOutreachList(intake.contact.email, intake.contact.name),
@@ -373,10 +381,11 @@ bookRoutes.post('/book', async (c) => {
   // ── Response ─────────────────────────────────────────────────────────────
   return c.json({
     ok: true as const,
-    meetLink: calResult.meetLink,
-    eventId: calResult.eventId,
-    calendarLink: calResult.calendarLink,
+    meetLink: calResult?.meetLink,
+    eventId: calResult?.eventId,
+    calendarLink: calResult?.calendarLink,
     scoreBand: olsResult.band,
+    pendingManualBooking: needsManualBooking,
   });
 });
 

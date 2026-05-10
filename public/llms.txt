@@ -1,0 +1,40 @@
+# Octio
+
+> Octio is a pure-play AI company based in Pretoria, South Africa. We build, deploy, and train autonomous AI agents that run marketing, manage leads, automate back-office work, and develop custom software at unprecedented speeds.
+
+Octio sells four autonomous AI products and three custom services. Every offering Octio sells is technology Octio uses internally first — we are our own Patient Zero.
+
+The website at https://octio.co.za is itself an example of the company's AI Lead Generation product: a conversational AI assistant called Octo qualifies inbound visitors and books discovery calls automatically. Octo is built on the Mastra agent framework with Moonshot's Kimi K2 Turbo model.
+
+Pricing is on enquiry — every engagement is scoped to the customer's setup before pricing is confirmed. Currency: South African Rand (ZAR / R). Engagement model varies by offering — autonomous products are subscription-based; services are project-based with optional ongoing retainers.
+
+## Autonomous AI Products
+
+- [AI Lead Generation & Pipeline](https://octio.co.za/products/lead-generation): Captures every inbound lead in <30 seconds, scores against ICP, replies in your brand voice, and books qualified meetings. Pricing on enquiry.
+- [Voice & Chat Agents](https://octio.co.za/products/voice-chat): 24/7 AI receptionist for phone, web chat, and WhatsApp. Picks up sub-1-second, books appointments, escalates to humans. Pricing on enquiry.
+- [AI Social Media Manager](https://octio.co.za/products/social-media): Drafts and publishes 40+ posts a month across LinkedIn, Instagram, TikTok, and your blog — in your brand voice. Pricing on enquiry.
+- [Newsletter Engine](https://octio.co.za/products/newsletter): Curates, drafts, and ships a weekly newsletter in your voice. Integrates with Mailchimp, Beehiiv, Substack. Pricing on enquiry.
+
+## Services
+
+- [Agentic Web & App Development](https://octio.co.za/services/agentic-app-dev): Custom web and mobile apps built using AI for boilerplate + senior humans for judgement. Production builds in 2-10 weeks. Pricing on enquiry.
+- [Custom Agentic Workflows](https://octio.co.za/services/custom-workflows): Connect disjointed tools (CRM, calendar, support, project) into AI-driven workflows. Pricing on enquiry.
+- [Corporate AI Advisory & Adoption](https://octio.co.za/services/corporate-advisory): AI strategy + governance + execution for mid-market and enterprise. POPIA / GDPR / ISO 42001 compliant. Pricing on enquiry.
+
+## Company
+
+- [About Octio](https://octio.co.za/#about): Patient Zero positioning — every product Octio sells powers Octio's own operations first.
+- [Approach](https://octio.co.za/#approach): For products, deploy in 3 steps; for custom builds, 6-step delivery process.
+- [Privacy](https://octio.co.za/privacy): POPIA-compliant data handling. Includes a self-serve deletion endpoint.
+
+## Optional
+
+- Founded: 2023
+- Location: Pretoria, South Africa
+- Engagement capacity: 3-4 active advisory engagements at any time
+- Specialisation: Pure-play AI — products, services, and adoption (no general-purpose dev work; not a generalist agency)
+- Languages supported: English (Afrikaans, Zulu, Xhosa, Sesotho available on Voice & Chat Agents Enterprise tier)
+- Compliance frameworks: POPIA (South Africa), GDPR (EU), ISO 42001 (AI management systems)
+- Team: senior-led, no junior hand-offs
+- Tech stack defaults: React + Next.js + TypeScript + Postgres for web; React Native for mobile; Mastra agents on Node.js + Hono; Moonshot Kimi K2 Turbo for LLM
+- BYOK pricing: customers can supply their own AI API keys for transparent, scaling-with-usage cost

@@ -1,23 +1,32 @@
 /**
  * get-refresh-token.ts
  *
- * ONE-TIME script. Run this once to capture a Google OAuth refresh token.
- * The token is printed to the terminal — copy it to worker/.env.
+ * Captures a Google OAuth refresh token for Octio's own setup.
+ *
+ * Sequence:
+ *   1. Spin up a temporary HTTP server on the registered redirect port (3005)
+ *   2. Build the OAuth URL using shared primitives
+ *   3. Open the user's browser (or print the URL for manual paste)
+ *   4. Catch the callback, exchange the code for tokens
+ *   5. Print the refresh token to copy into worker/.env
+ *
+ * For multi-tenant customer onboarding, do NOT use this script — use the
+ * HTTP endpoints in worker/src/routes/oauth.ts instead. Both paths share
+ * the same primitives in worker/src/services/google-oauth-flow.ts so
+ * scope changes propagate to both flows automatically.
  *
  * Usage:
  *   pnpm --filter @octio/worker run get-refresh-token
- *
- * Prerequisites:
- *   - GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set in worker/.env
- *   - The redirect URI http://localhost:3005/oauth2callback must be registered
- *     in your Google Cloud Console OAuth 2.0 credentials.
- *
- * See worker/README.md for the full setup walkthrough.
  */
 
 import http from 'node:http';
-import { google } from 'googleapis';
 import open from 'open';
+import {
+  buildAuthUrl,
+  exchangeCodeForRefreshToken,
+  verifyTokenScopes,
+  OCTIO_GOOGLE_SCOPES,
+} from '../src/services/google-oauth-flow.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -27,16 +36,8 @@ const OAUTH_PORT = 3005;
 const REDIRECT_URI = `http://localhost:${OAUTH_PORT}/oauth2callback`;
 const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
-const SCOPES = [
-  'https://www.googleapis.com/auth/calendar.events',
-  'https://www.googleapis.com/auth/gmail.send',
-  'https://www.googleapis.com/auth/meetings.space.readonly',
-  'https://www.googleapis.com/auth/admin.directory.group.member',
-  'https://www.googleapis.com/auth/contacts',
-];
-
 // ---------------------------------------------------------------------------
-// Env validation — fail fast with a clear message
+// Env validation
 // ---------------------------------------------------------------------------
 
 function requireEnv(name: string): string {
@@ -56,36 +57,22 @@ const clientId = requireEnv('GOOGLE_CLIENT_ID');
 const clientSecret = requireEnv('GOOGLE_CLIENT_SECRET');
 
 // ---------------------------------------------------------------------------
-// OAuth2 client setup
-// ---------------------------------------------------------------------------
-
-const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, REDIRECT_URI);
-
-const authUrl = oauth2Client.generateAuthUrl({
-  access_type: 'offline',
-  prompt: 'consent',
-  scope: SCOPES,
-});
-
-// ---------------------------------------------------------------------------
 // HTML helpers — rendered inside the temporary browser tab
 // ---------------------------------------------------------------------------
 
-function buildSuccessPage(token: string): string {
+function buildSuccessPage(): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><title>OAuth success</title>
 <style>
   body { font-family: system-ui, sans-serif; max-width: 640px; margin: 80px auto; padding: 0 24px; color: #111; }
   h1 { color: #16a34a; }
-  pre { background: #f3f4f6; border-radius: 6px; padding: 16px; overflow-x: auto; word-break: break-all; white-space: pre-wrap; }
-  p.note { color: #6b7280; font-size: 0.875rem; }
 </style>
 </head>
 <body>
   <h1>OAuth flow complete</h1>
   <p>Your refresh token has been printed in the terminal. You can close this tab.</p>
-  <p class="note">Do not share this token. Add it to <code>worker/.env</code> as <code>GOOGLE_REFRESH_TOKEN</code>.</p>
+  <p style="color:#6b7280;font-size:0.875rem;">Add the printed token to <code>worker/.env</code> as <code>GOOGLE_REFRESH_TOKEN</code>.</p>
 </body>
 </html>`;
 }
@@ -109,10 +96,33 @@ function buildErrorPage(message: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Main — spin up temporary HTTP server and open the browser
+// Cleanup helper
+// ---------------------------------------------------------------------------
+
+function cleanup(
+  server: http.Server,
+  timeoutHandle: ReturnType<typeof setTimeout> | null,
+  exitCode: number,
+): void {
+  if (timeoutHandle !== null) {
+    clearTimeout(timeoutHandle);
+  }
+  server.close(() => {
+    process.exit(exitCode);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Main — temporary HTTP server + browser open
 // ---------------------------------------------------------------------------
 
 async function main(): Promise<void> {
+  const authUrl = buildAuthUrl({
+    clientId,
+    clientSecret,
+    redirectUri: REDIRECT_URI,
+  });
+
   let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
 
   const server = http.createServer(async (req, res) => {
@@ -124,7 +134,6 @@ async function main(): Promise<void> {
       return;
     }
 
-    // Google sends an error param when the user denies consent.
     const googleError = url.searchParams.get('error');
     if (googleError) {
       console.error(`\nGoogle returned an error: ${googleError}`);
@@ -146,38 +155,42 @@ async function main(): Promise<void> {
       return;
     }
 
-    // Exchange the authorization code for tokens.
     try {
-      const { tokens } = await oauth2Client.getToken(code);
+      const tokens = await exchangeCodeForRefreshToken({
+        clientId,
+        clientSecret,
+        redirectUri: REDIRECT_URI,
+        code,
+      });
 
-      if (!tokens.refresh_token) {
-        console.error(
-          '\nGoogle did not return a refresh_token.\n' +
-            'This usually means a refresh token already exists for this client + user.\n' +
-            'Revoke access at https://myaccount.google.com/permissions and run the script again.\n',
-        );
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(
-          buildErrorPage(
-            'No refresh_token in response. Revoke access at https://myaccount.google.com/permissions and re-run.',
-          ),
-        );
-        cleanup(server, timeoutHandle, 1);
-        return;
+      // Verify scopes — we want every Octio scope to be present
+      const verification = await verifyTokenScopes(
+        { clientId, clientSecret, redirectUri: REDIRECT_URI },
+        tokens.refreshToken,
+      );
+
+      const border = '═'.repeat(72);
+      console.log(`\n${border}`);
+      console.log('SUCCESS — Google OAuth refresh token captured');
+      console.log(border);
+
+      console.log('\nGranted scopes:');
+      for (const s of tokens.grantedScopes) console.log(`  ✓ ${s}`);
+
+      if (verification.missing.length > 0) {
+        console.log('\nMissing scopes (will need to re-run):');
+        for (const s of verification.missing) console.log(`  ✗ ${s}`);
+      } else {
+        console.log('\nAll Octio scopes present — token is ready for production use.');
       }
 
-      // Print the refresh token clearly — this is the only place it appears.
-      const border = '═'.repeat(61);
-      console.log(`\n${border}`);
-      console.log('SUCCESS - Google OAuth refresh token captured');
-      console.log(border);
-      console.log('Add this to worker/.env:\n');
-      console.log(`GOOGLE_REFRESH_TOKEN=${tokens.refresh_token}`);
+      console.log('\nAdd this to worker/.env:\n');
+      console.log(`GOOGLE_REFRESH_TOKEN=${tokens.refreshToken}`);
       console.log(`\nThen restart the worker: pnpm --filter @octio/worker run dev`);
       console.log(`${border}\n`);
 
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      res.end(buildSuccessPage(tokens.refresh_token));
+      res.end(buildSuccessPage());
       cleanup(server, timeoutHandle, 0);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -188,7 +201,6 @@ async function main(): Promise<void> {
     }
   });
 
-  // 5-minute hard timeout — avoid leaving a dangling server.
   timeoutHandle = setTimeout(() => {
     console.error(
       '\nTimeout: no OAuth callback received within 5 minutes.\n' +
@@ -197,7 +209,6 @@ async function main(): Promise<void> {
     cleanup(server, null, 1);
   }, TIMEOUT_MS);
 
-  // Clean SIGINT — user pressed Ctrl+C.
   process.on('SIGINT', () => {
     console.log('\nInterrupted. Closing temporary server.\n');
     cleanup(server, timeoutHandle, 0);
@@ -206,6 +217,8 @@ async function main(): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     server.listen(OAUTH_PORT, () => {
       console.log(`\nTemporary OAuth callback server listening on port ${OAUTH_PORT}`);
+      console.log(`Requesting ${OCTIO_GOOGLE_SCOPES.length} scopes:`);
+      for (const s of OCTIO_GOOGLE_SCOPES) console.log(`  • ${s}`);
       resolve();
     });
 
@@ -213,8 +226,7 @@ async function main(): Promise<void> {
       if (err.code === 'EADDRINUSE') {
         console.error(
           `\nPort ${OAUTH_PORT} is already in use.\n` +
-            `Find and stop the process using that port, or edit OAUTH_PORT in the script\n` +
-            `(and update the redirect URI in Google Cloud Console to match).\n`,
+            `Find and stop the process using that port (commonly the Workspace MCP).\n`,
         );
       } else {
         console.error(`\nServer error: ${err.message}\n`);
@@ -223,7 +235,6 @@ async function main(): Promise<void> {
     });
   });
 
-  // Print the URL as a fallback for environments that cannot auto-open a browser.
   console.log('\nOpening your browser to complete the OAuth flow...');
   console.log('If the browser does not open, navigate to this URL manually:\n');
   console.log(authUrl);
@@ -231,27 +242,6 @@ async function main(): Promise<void> {
 
   await open(authUrl);
 }
-
-// ---------------------------------------------------------------------------
-// Cleanup helper — close server and exit with the given code
-// ---------------------------------------------------------------------------
-
-function cleanup(
-  server: http.Server,
-  timeoutHandle: ReturnType<typeof setTimeout> | null,
-  exitCode: number,
-): void {
-  if (timeoutHandle !== null) {
-    clearTimeout(timeoutHandle);
-  }
-  server.close(() => {
-    process.exit(exitCode);
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Entry point
-// ---------------------------------------------------------------------------
 
 main().catch((err: unknown) => {
   const message = err instanceof Error ? err.message : String(err);

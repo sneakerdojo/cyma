@@ -15,6 +15,20 @@
       "when": 1775921480796,
       "tag": "0001_nice_next_avengers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776339345740,
+      "tag": "0002_tricky_gideon",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1776355918795,
+      "tag": "0003_gifted_mojo",
+      "breakpoints": true
     }
   ]
 }
