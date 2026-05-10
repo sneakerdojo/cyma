@@ -66,10 +66,10 @@ package:
     - docker push "registry.gitlab.com/octio-dev/octio-website:latest"
     - docker push "registry.gitlab.com/octio-dev/octio-website:$CI_COMMIT_SHORT_SHA"
 
-# =============================================================================
-# Package stage — build the worker image and push to registry
-# =============================================================================
-
+# Worker image — self-contained multi-stage build (no build stage artifact
+# needed; worker/Dockerfile runs pnpm install + tsc inside the builder).
+# Listens on :3000 and is reverse-proxied at /api/ and /chat/ by Traefik on
+# infra-01 (and the QA equivalent on demo-01).
 package:worker:
   stage: package
   only:
@@ -83,7 +83,7 @@ package:worker:
     - docker push "registry.gitlab.com/octio-dev/octio-website/worker:$CI_COMMIT_SHORT_SHA"
 
 # =============================================================================
-# Deploy stage — SSH to target host, docker compose pull/up, reload gateway
+# Deploy stage — SSH to target host, docker compose pull/up
 # =============================================================================
 #
 # Both environments run the same image and pull from the same `:latest` tag.
@@ -128,8 +128,8 @@ deploy:qa:
         timeout 60 bash -c 'until docker inspect octio-website-qa --format "{{.State.Health.Status}}" 2>/dev/null | grep -q healthy; do sleep 2; done'
         echo "Waiting for worker healthcheck..."
         timeout 60 bash -c 'until docker inspect octio-worker-qa --format "{{.State.Health.Status}}" 2>/dev/null | grep -q healthy; do sleep 2; done'
-        echo "Reloading gateway..."
-        docker kill --signal=HUP gateway 2>/dev/null || docker restart gateway
+        # No gateway reload: demo-01 runs Traefik, which re-resolves upstream
+        # container IPs via Docker's embedded DNS automatically.
         docker compose ps
       REMOTE
   rules:
@@ -154,8 +154,8 @@ deploy:production:
         timeout 60 bash -c 'until docker inspect octio-website-prd --format "{{.State.Health.Status}}" 2>/dev/null | grep -q healthy; do sleep 2; done'
         echo "Waiting for worker healthcheck..."
         timeout 60 bash -c 'until docker inspect octio-worker-prd --format "{{.State.Health.Status}}" 2>/dev/null | grep -q healthy; do sleep 2; done'
-        echo "Reloading gateway..."
-        docker kill --signal=HUP gateway 2>/dev/null || docker restart gateway
+        # No gateway reload: infra-01 runs Traefik, which re-resolves upstream
+        # container IPs via Docker's embedded DNS automatically.
         docker compose ps
       REMOTE
   rules:
