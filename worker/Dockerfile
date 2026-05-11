@@ -16,7 +16,10 @@ RUN pnpm install --frozen-lockfile
 COPY worker/ ./worker/
 COPY shared/ ./shared/
 
-RUN pnpm --filter @octio/worker build
+# Build @octio/shared first so its compiled JS exists before the worker's tsc
+# pass type-checks against its declarations. Both packages emit to ./dist.
+RUN pnpm --filter @octio/shared build \
+ && pnpm --filter @octio/worker build
 
 # ---- Stage 2: Runtime ----
 FROM node:20-alpine AS runtime
@@ -37,8 +40,9 @@ RUN pnpm install --frozen-lockfile --prod
 # Copy compiled worker output
 COPY --from=builder /app/worker/dist ./worker/dist
 
-# Copy shared source — Zod schemas are imported at runtime
-COPY --from=builder /app/shared/src ./shared/src
+# Copy compiled @octio/shared — package.json `exports` resolves @octio/shared
+# to ./dist/schemas.js, so the runtime only needs the compiled JS.
+COPY --from=builder /app/shared/dist ./shared/dist
 
 EXPOSE 3000
 
