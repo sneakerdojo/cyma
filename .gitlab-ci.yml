@@ -42,9 +42,13 @@ build:worker:
     - corepack prepare pnpm@10.33.0 --activate
   script:
     - pnpm install --frozen-lockfile
+    # @octio/shared exports compiled JS (./dist/schemas.js); the worker's tsc
+    # pass needs the .d.ts to resolve `import ... from '@octio/shared'`.
+    - pnpm --filter @octio/shared run build
     - pnpm --filter @octio/worker run build
   artifacts:
     paths:
+      - shared/dist/
       - worker/dist/
       - worker/src/knowledge/
       - worker/src/prompts/
