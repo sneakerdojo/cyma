@@ -9,9 +9,9 @@ description: The market we're playing in, sized, segmented, with the why-now fra
 
 | Layer | Definition | Size | Source |
 |---|---|---|---|
-| **TAM** (total addressable market) | All SA SMBs that could conceivably buy AI-powered ops tools | ~2.5M SMMEs | [DSBD SA](https://www.thedtic.gov.za/) baseline + SBI |
-| **SAM** (serviceable available market) | SA service-business SMBs with a website + phone-driven funnel | ~250,000 businesses | SA government registry filtered for service NAICS codes |
-| **SOM** (serviceable obtainable market) | Octio's realistic reach in 24 months — bootstrapped, founder-led, English-first | 5,000 businesses | 2% capture of SAM, ambitious but not absurd |
+| **TAM** (total addressable market) | All SA MSMEs that could conceivably buy AI-powered ops tools | **~3M total MSMEs / ~2.5M micro / ~250k formal SMMEs** | [FinScope MSME 2024](https://finmark.org.za/knowledge-hub/articles/finscope-msme-south-africa-2024-key-findings-highlight-urgent-need-for-informal-sector-support) + [SBI baseline](https://www.smallbusinessinstitute.co.za/) |
+| **SAM** (serviceable available market) | SA service-business SMBs with website + phone-driven funnel — **needs bottom-up rebuild** | **~100k–250k businesses (estimate band)** | Current estimate is unsourced; Xero 2025 found 45% of SA SMBs use online invoicing — better proxies needed |
+| **SOM** (serviceable obtainable market) | Octio's realistic reach in 24 months — bootstrapped, founder-led, English-first | 3,000–5,000 businesses | 2–5% capture of low-end SAM estimate; ambitious but not absurd |
 
 At R6,500/month average revenue per customer × 5,000 SOM = R32.5M/month theoretical ceiling. Octio doesn't need to capture all of SOM to be a successful business; we need ~300 to clear R2M/month MRR (year 1 target).
 
@@ -21,7 +21,7 @@ Four trends converge in 2026 that make this market buyable, not just buildable:
 
 ### 1. SMB AI adoption is past the experimentation phase
 
-Generative AI usage among small firms jumped from 40% (2024) to 58% (2025), and 76% of small businesses are now actively using or exploring AI ([SBE Council](https://sbecouncil.org/2026/04/25/the-ai-tools-small-businesses-are-using/)). The buyer doesn't need to be convinced AI works — they need to be convinced your specific implementation works.
+Generative AI usage among US small firms jumped from 40% (2024) to 58% (2025) ([US Chamber of Commerce](https://www.uschamber.com/technology/empowering-small-business-the-impact-of-technology-on-u-s-small-business)). The SBE Council Tech Use Survey (Mar 2026) finds **82% of US small business employers have invested in AI tools** and 77% are optimistic about AI's role ([SBE Council Mar 2026](https://sbecouncil.org/2026/03/11/new-sbe-council-tech-use-survey-the-digital-state-of-small-business/)). The buyer doesn't need to be convinced AI works — they need to be convinced your specific implementation works.
 
 ### 2. The ROI-or-die mood
 
@@ -33,13 +33,19 @@ Of the AI categories, marketing and customer engagement is leading SMB adoption 
 
 ### 4. API costs collapsed enough to make services viable at R3.5k–R8.5k/month
 
-- Kimi K2 Turbo: ~$0.50/1M tokens
-- Claude Sonnet: ~$3/1M tokens
-- ElevenLabs Flash: ~$0.30/1k chars
-- Deepgram Nova-2 streaming STT: $0.0043/min
-- Twilio voice: $0.013/min
+Verified prices, May 2026 (see [appendix/verification-status.md](/appendix/verification-status/)):
 
-At these prices, a customer running 200 voice calls/month + 1,000 chat sessions + 4 LinkedIn posts/week + 1 newsletter costs Octio ~R200/month in marginal API spend. Margin at R6,500 entry price: 96%. (See chapter 9 for full unit economics.)
+- Claude Sonnet 4.6: $3 in / **$15 out** per 1M tokens
+- Claude Haiku 4.5: $1 in / $5 out per 1M tokens
+- Gemini 2.5 Flash: $0.30 / $2.50 per 1M tokens
+- Llama 3.3 70B on Groq: $0.59 / $0.79 per 1M tokens at **250+ tok/s** (the sub-1s voice-reasoning sweet spot)
+- Gemma 3 27B (Together/Fireworks): ~$0.08 / $0.16 per 1M tokens
+- Kimi K2 Turbo: $1.15 / $8 per 1M tokens (base K2 $0.60 / $2.50)
+- ElevenLabs Flash TTS: **$0.05/1k chars (API direct)** — Afrikaans supported; Zulu/Xhosa/Sesotho not (use Lelapa AI Inkuba or Google Chirp for Nguni)
+- Deepgram Nova-3 streaming STT: **$0.0077/min PAYG** (Nova-2 is deprecated; original $0.0043/min figure is stale) — note ~10% WER on African-accented English; Speechmatics is the stronger alt
+- Twilio Voice SA inbound: **$0.010/min** + $1.50–4.00/month per number
+
+With routed model selection (see [appendix/model-routing](/appendix/model-routing/) — Gemma/Haiku for cheap tasks, Sonnet for harder work, Opus only for code), a customer running 200 voice calls/month + 1,000 chat sessions + 4 LinkedIn posts/week + 1 newsletter costs Octio approximately R300–R450/month in marginal API + telephony spend. Margin at R6,500 entry price: ~93%. Detailed cost stack in chapter 9.
 
 ## Buyer segmentation (who specifically)
 
@@ -105,12 +111,37 @@ We don't need to create the demand. We need to be the most legible answer when t
 | Reference point | Price | What you get | Octio relationship |
 |---|---|---|---|
 | Local web designer for a custom site | R10,000–R30,000 one-time | A site, no operations | Different category — we don't compete |
-| Local marketing agency retainer | R5,000–R15,000/month | Ad management + 4 social posts | Substitute; we win on cost + scope |
+| Local marketing agency retainer (social-only / SME) | R5,000–R15,000/month | Social management; ad spend usually billed separately | Substitute; we win on cost + scope |
+| Full digital marketing retainer (2026 SA market) | R15,000–R30,000/month typical; R10k–R100k+ full range | Strategy + ads + content + reporting | Replacement; we deliver more, recur, scale |
 | HighLevel platform subscription | R5,500/month per location | Tools, no AI agent operating it | Complement; we wrap our agents around their tools |
 | Adam Erhart $2k website + $297/mo | R37k one-time + R5,400/mo | Built site + reputation management | Substitute; we replace the website-first framing with AI-first |
 | Hiring a junior marketer | R15,000–R25,000/month + management overhead | One human, 40h/week | Substitute; our agents work 168h/week and never quit |
 
 Our pricing slots in **below** an additional employee and **above** a single SaaS tool — exactly where service-as-software should price.
+
+## 2026 SA regulatory + payment tailwinds
+
+Four newly-relevant 2026 facts the original draft missed:
+
+| Fact | Source | Why it matters for Octio |
+|---|---|---|
+| **Compulsory VAT threshold raised R1M → R2.3M** (Apr 2026 Budget) | [SARS Budget 2026 FAQ](https://www.sars.gov.za/about/sars-tax-and-customs-system/budget/budget-2026-frequently-asked-questions/) | Most of our ICP (solo operators, small teams under R190k/mo) now fall below VAT threshold. Cleaner sales motion; less admin objection. |
+| **Turnover Tax**: covers up to R2.3M, first R600k tax-free, capped at 3% | SARS Budget 2026 | Octio subscription is a 100% deductible business expense for our ICP at minimal effective tax friction. |
+| **SARS e-invoicing pilots begin 2026, mandatory phases 2026–2029** | [KPMG SA e-invoicing](https://kpmg.com/us/en/taxnewsflash/news/2026/02/south-africa-tax-authority-confirms-multi-year-e-invoicing-digital-reporting-reform.html) | Future product hook — agentic e-invoicing integration is on the 2027 roadmap. |
+| **POPIA enforcement uplift**: mandatory eServices breach-reporting portal (effective 1 Apr 2025); Regulator's 2025/26 APP shifted to proactive industry sweeps; fines becoming real | [Werksmans 2025/26 APP](https://werksmans.com/south-africas-information-regulator-what-the-2025-26-annual-performance-plan-means-for-business-as-presented-to-the-portfolio-committee-on-5-may-2026/), [Cov Africa e-portal](https://www.covafrica.com/2025/04/south-africa-introduces-mandatory-e-portal-reporting-for-data-breaches/) | Compliance-by-default is no longer optional. POPIA-compliant AI is a sales differentiator vs offshore tools. |
+
+## Payment rails (Stripe is NOT available in SA)
+
+Original draft assumed Stripe SA was live — it is **not** as of May 2026. SA Reserve Bank exchange controls require ZAR-only domestic settlement. The actual SA SMB payment stack:
+
+| Rail | Fees | Best for |
+|---|---|---|
+| **Payfast** | No monthly fee; ~3.5% + R2.00 per txn | Subscriptions (used by Octio for SaaS billing) |
+| **Peach Payments** | ~3.5% + R2.00 per txn | Alternative to Payfast; better card-present support |
+| **Yoco** | 2.55–2.95% local card; 24h payout | Card-present (Octio doesn't need; flagged for completeness) |
+| **Stitch** | ~1.5% on Instant EFT | High-value transactions; EFT preference |
+
+**Octio's choice:** Payfast as primary subscription gateway; Stitch for high-value annual prepays; Stripe is not on the table for SA-based revenue.
 
 ## What the market is NOT
 
@@ -139,8 +170,14 @@ It's worth being clear about what doesn't fit our market:
 
 ## Citations
 
-- South Africa SMME contribution to GDP (~34%) and employment (~60%): [SAP Africa News Center](https://news.sap.com/africa/2026/03/the-essential-tech-trends-for-african-smes/)
-- 2026 SMB AI adoption pattern (76% using / exploring): [SBE Council](https://sbecouncil.org/2026/04/25/the-ai-tools-small-businesses-are-using/)
+- South Africa SMME contribution to GDP (~34%) and employment (~60%): [SARS SMME Connect #13 Feb 2026](https://www.sars.gov.za/businesses-and-employers/small-businesses-taxpayers/smme-connect-13-february-2026-edition/)
+- US SMB AI investment pattern (82% invested): [SBE Council Tech Use Survey Mar 2026](https://sbecouncil.org/2026/03/11/new-sbe-council-tech-use-survey-the-digital-state-of-small-business/)
+- Gen-AI usage rose 40% (2024) to 58% (2025): [US Chamber of Commerce](https://www.uschamber.com/technology/empowering-small-business-the-impact-of-technology-on-u-s-small-business)
+- SA AI market size US$537M (2025) → US$3.27B (2031): [Statista](https://www.statista.com/outlook/tmo/artificial-intelligence/south-africa)
+- SA total MSMEs ~3M / micro ~2.5M / formal ~250k: [FinScope MSME SA 2024](https://finmark.org.za/knowledge-hub/articles/finscope-msme-south-africa-2024-key-findings-highlight-urgent-need-for-informal-sector-support)
+- SA digital marketing agency 2026 pricing: [Syte](https://syte.co.za/digital-marketing-agency-costs-in-south-africa-2026-pricing-guide-for-business-owner/)
+- SA web design 2026 pricing: [Bunnypants](https://www.bunnypants.co.za/how-much-does-web-design-cost-in-south-africa/)
+- ZAR/USD rate May 2026: [Trading Economics](https://tradingeconomics.com/usdzar:cur)
 - ROI-or-die SMB mood: [The Small Business Site](https://www.thesmallbusinesssite.co.za/ai-adoption-realities-for-smbs-how-to-move-past-fear-to-measurable-impact/)
 - South Africa AI market outlook: [Statista AI South Africa](https://www.statista.com/outlook/tmo/artificial-intelligence/south-africa)
 - Digital transformation GDP projection 2028: [SAP Africa](https://news.sap.com/africa/2026/01/how-south-african-businesses-can-unlock-roi-from-investment-into-ai/)

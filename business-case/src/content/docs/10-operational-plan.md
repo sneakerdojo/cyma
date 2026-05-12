@@ -181,10 +181,10 @@ Founder (Simekani) — CEO + product + senior eng
 | CRM | Pipedrive ($14/mo) + our own Lead Gen for top-of-funnel |
 | Accounting | Xero (R750/mo) + monthly bookkeeper |
 | Banking | First National Bank Business Zero |
-| Payments | Stripe SA (3.5% + R2 per txn) |
+| Payments | **Payfast** (3.5% + R2 per txn) — Stripe is NOT available in SA as of May 2026; SARB exchange controls require ZAR-only domestic settlement. Stitch as alt for Instant EFT. |
 | Infra | Hetzner Cloud (Frankfurt) + Cloudflare (CDN/DNS) |
 | Monitoring | Better Stack (Uptime + logs) + Grafana for product metrics |
-| Voice | Twilio SA + Deepgram + ElevenLabs |
+| Voice | Twilio SA (voice; +27 11 / +27 21 geographic numbers) + Deepgram Nova-3 (test Speechmatics for SA-accent quality) + ElevenLabs Flash (English/Afrikaans only; Lelapa AI Inkuba for Nguni). WhatsApp via Meta Cloud API direct (NOT via Twilio — 30–60% cheaper). |
 
 Total tool subscription cost (excluding API spend): ~R3,500/month. Cheap by design.
 
@@ -202,13 +202,13 @@ Total tool subscription cost (excluding API spend): ~R3,500/month. Cheap by desi
 - Map products to pain
 - Quote pricing (transparent, from website)
 - Handle objections
-- Send Stripe checkout link
+- Send Payfast checkout link (or Stitch for high-value EFT)
 - Promise: live in 24 hours
 
 ### Phase 3 — onboarding (Tenant Onboarding wizard, 15 min)
 
 - Customer self-serves via `octio.co.za/start`
-- Wizard collects: company info, brand voice, calendar OAuth, Twilio number (provisioned automatically), Stripe subscription
+- Wizard collects: company info, brand voice, calendar OAuth, Twilio number (provisioned automatically), Payfast subscription
 - AI agents auto-tune to brand voice on first run
 
 ### Phase 4 — go-live (founder, 30 min if needed)
@@ -293,7 +293,7 @@ These exist to protect the operation:
 ## Open questions
 
 1. Should we use Notion or just Markdown files for internal docs? Hypothesis: Markdown in this repo for engineering + business case; Notion for short-form ops docs (playbooks, onboarding scripts). Re-evaluate at month 3.
-2. Do we ever use external consultants (POPIA officer, marketing strategist) vs hiring fractional? Hypothesis: external for compliance (specialised, infrequent); hire fractional for marketing if growth stalls.
+2. Do we ever use external consultants (POPIA Information Officer, marketing strategist) vs hiring fractional? Hypothesis: external for compliance (specialised, infrequent); hire fractional for marketing if growth stalls. **Note POPIA terminology:** the official role is "Information Officer" (registered via Regulator's eServices); founder defaults to that role, can appoint Deputies as the team grows.
 3. Office vs fully-remote? Hypothesis: fully remote for first 12 months. Pretoria home office + co-working day passes when needed.
 
 ## Citations

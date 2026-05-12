@@ -43,6 +43,32 @@ Risks are ordered by **(Likelihood × Impact)**.
 - **Mitigation:** Bootstrap-mode discipline, conservative OPEX, hiring deferred until revenue justifies
 - **Response:** Drop OPEX to minimum (cut all tools to free tiers, kill paid ads, defer all subscriptions), founder takes zero salary, focus exclusively on closing 3 customers. If 90 days at < R30k MRR, evaluate strategic options (channel-partner JV, bridge loan, pivot product mix)
 
+## Tier 1.5 — Newly identified threats (from May 2026 research pass)
+
+### R1.4 Lindy AI (or similar US VC-backed agent builder) lands in SA
+
+- **Likelihood:** Medium-High (next 12 months)
+- **Impact:** High
+- **Leading indicator:** Lindy or similar VC-backed AI-agent platform launches SA-targeted marketing, ZAR pricing, or local sales hires
+- **Mitigation:** SA-local moat (POPIA, ZAR pricing, accent-trained voice, local references); founder is hands-on which platforms can't replicate; bundle pricing creates switching cost
+- **Response:** Run price-point arbitrage publicly — Lindy Business $299.99/mo ≈ R4,900 — undercut on Lead Gen entry. Triple down on local references + Patient Zero proof. Co-marketing with SA-only channel partners.
+
+### R1.5 Outcome-pricing collapse (Intercom Fin AI at $0.99/resolution)
+
+- **Likelihood:** Medium
+- **Impact:** High (kills R/month retainer math if buyers adopt the comparison)
+- **Leading indicator:** Sales conversations start with "your competitor charges per resolution / per booking — why are you a monthly retainer?"
+- **Mitigation:** Pre-emptive reframe — sell "AI operator running your inbound" not "AI chat tool"; emphasise bundle stickiness; Patient Zero proof bypasses pricing-model conversations
+- **Response:** Phase 2 product addition — outcome-priced SKU at R10/booking for very small customers. Doesn't replace the retainer; protects against the comparison.
+
+### R1.6 Twilio AI Assistants going GA (Dev Preview at $0.07/min)
+
+- **Likelihood:** High in 12 months (currently Dev Preview)
+- **Impact:** Medium-High (commoditises voice-agent infra; every Twilio partner becomes potential competitor)
+- **Leading indicator:** Twilio announces GA pricing OR a local SA agency starts reselling Twilio AI Assistants
+- **Mitigation:** Differentiate on SA-localised prompts + accent training (Speechmatics + Lelapa AI Inkuba); bundle voice with Lead Gen + Newsletter so customers buy the operator not the dialer
+- **Response:** If GA undercuts our marginal cost meaningfully, consider building ON Twilio AI Assistants for our own voice infra (cost reduction) rather than competing with it
+
 ## Tier 2 — High likelihood × High impact
 
 ### R2.1 LinkedIn algorithm change kills founder distribution

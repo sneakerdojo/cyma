@@ -120,8 +120,8 @@ A 24/7 AI phone receptionist + chat agent:
 - Takes messages if appointment not available, emails to operator
 - Warm transfer to human operator when escalation rules trigger
 - Multi-channel: phone + web chat + WhatsApp (Twilio)
-- Per-tenant voice (ElevenLabs voice IDs)
-- English Day 1; Afrikaans, Zulu, Xhosa, Sesotho on Enterprise tier (Phase 2)
+- Per-tenant voice (ElevenLabs Flash voice IDs)
+- English Day 1; **Afrikaans on ElevenLabs Phase 2**; **Zulu / Xhosa / Sesotho require alternative provider** (Lelapa AI Inkuba, Google Chirp, or Meta MMS) — Nguni roadmap Phase 3 contingent on local provider partnership
 
 ### Why this is the second-biggest seller
 
@@ -133,7 +133,7 @@ A 24/7 AI phone receptionist + chat agent:
 |---|---|---|
 | Starter | R6,500 | 1 SA number, up to 200 calls/mo + 500 chats |
 | Growth | R12,500 | 3 numbers, up to 1,000 calls + 2,000 chats, after-hours handoff |
-| Enterprise | Custom (R20k+) | Multi-language (zu/af/xh/st), call recording + sentiment analysis, custom IVR |
+| Enterprise | Custom (R20k+) | Multi-language (af confirmed via ElevenLabs; zu/xh/st via Lelapa AI partnership in Phase 3), call recording + sentiment analysis, custom IVR |
 
 ### Status
 

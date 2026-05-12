@@ -57,6 +57,8 @@ export default defineConfig({
             { label: 'A · Frameworks reference', link: '/appendix/frameworks-reference/' },
             { label: 'B · Glossary', link: '/appendix/glossary/' },
             { label: 'C · Research citations', link: '/appendix/citations/' },
+            { label: 'D · Cost-optimised model routing', link: '/appendix/model-routing/' },
+            { label: 'E · Verification status (research log)', link: '/appendix/verification-status/' },
           ],
         },
       ],

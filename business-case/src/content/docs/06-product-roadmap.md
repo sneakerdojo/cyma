@@ -44,7 +44,7 @@ The compressed schedule. Lift-and-shift from spec docs already written. This is 
 | Window | Output |
 |---|---|
 | AM | Voice Agent: warm transfer, after-hours routing, voicemail-to-email |
-| PM | Tenant Onboarding: 15-min wizard at `octio.co.za/start` → business info, brand voice, calendar OAuth, Twilio number provision, Stripe Checkout |
+| PM | Tenant Onboarding: 15-min wizard at `octio.co.za/start` → business info, brand voice, calendar OAuth, Twilio number provision (SA geographic +27 11 / +27 21 for voice), **Payfast Checkout** (Stripe not available in SA) |
 | Stretch | First end-to-end test: founder runs Tenant Onboarding as a brand-new tenant, verifies Lead Gen + Voice both work |
 
 **Done when:** anyone with a credit card can self-onboard and have a working AI Lead Gen + Voice Agent within 30 minutes.
@@ -54,17 +54,17 @@ The compressed schedule. Lift-and-shift from spec docs already written. This is 
 | Window | Output |
 |---|---|
 | AM | `octio-content` repo scaffolded; DB migrations; auth |
-| PM | LinkedIn OAuth + Strategist agent + Drafter agent + approval queue + Publisher cron |
+| PM | LinkedIn OAuth (`w_member_social` scope on Development tier; **Standard tier requires manual review + screen-recording demo — apply day 1 in parallel, allow 2–4 weeks**) + Strategist agent + Drafter agent + approval queue + Publisher cron |
 | Stretch | First LinkedIn post drafted and approved for Octio's own page via the engine |
 
 **Done when:** Octio's own LinkedIn posts are running through the engine, founder-approved.
 
-### Day 5 — Newsletter + Discord curator + Stripe billing
+### Day 5 — Newsletter + Discord curator + Payfast billing
 
 | Window | Output |
 |---|---|
 | AM | Newsletter Drafter + Gmail sender + unsubscribe page + tracking |
-| PM | Discord curator bot live in Octio Discord; Stripe Checkout + webhook → tenant.subscription_status |
+| PM | Discord curator bot live in Octio Discord (no manual verification needed under 75 servers); Payfast Checkout + webhook → tenant.subscription_status |
 | Stretch | First newsletter assembled from Discord-curated sources, test-sent to founder, approved, sent to internal beta list |
 
 **Done when:** dropping a URL in `#newsletter-sources` Discord channel appears in the newsletter draft within 5 minutes.
@@ -223,10 +223,24 @@ If we're behind on revenue mid-year, things we cut without breaking the core:
 | Item | Why we don't cut it |
 |---|---|
 | Audit tool | It's the top-of-funnel for everything else. Don't kill the funnel. |
-| Stripe billing | No billing = no revenue. Must work. |
+| Payfast billing | No billing = no revenue. Must work. (Stripe SA unavailable; Payfast is primary.) |
 | POPIA compliance | Legal requirement. Non-negotiable. |
 | Multi-tenancy on every product | Single-tenant = no scale path. We don't ship "single-tenant first, refactor later." |
 | Patient Zero proof for each product | The credibility moat. If we don't run our own products, we don't sell them. |
+
+## Compliance gates (must-pass before each milestone)
+
+These are non-negotiable for legal/operational reasons. Don't go live with a customer until each is green.
+
+| Gate | When | Specifics |
+|---|---|---|
+| Information Officer registered with POPIA Regulator | Before customer 1 | Via Regulator's eServices Portal. Founder is the default IO. |
+| Gmail bulk-sender compliance | Before newsletter to any list > 100 | RFC 8058 List-Unsubscribe + List-Unsubscribe-Post + visible body link; SPF + DKIM + DMARC. **Nov 2025 enforcement is PERMANENT REJECTION** (not delay) for non-compliant senders to Gmail. |
+| Workspace 2,000/day cap | Before subscriber count > 1,500 | Hard cap newsletter sends; alert at 1,500. Plan migration to dedicated ESP (Beehiiv) past 2,000. |
+| LinkedIn Standard tier approval | Before Social Manager for any external customer (not just Patient Zero) | 2–4 week approval cycle with screen-recording demo. Apply day 1; runs in parallel with build. |
+| POPIA breach-reporting readiness | Continuously | Online eServices portal flow rehearsed. 72-hour notification guideline. |
+| Payment processor live (Payfast) | Day 5 | Stripe is NOT available in SA. Payfast subscription billing tested end-to-end before first customer. |
+| Twilio number type correct | Day 2 | SA geographic (+27 11 / +27 21) for VOICE; SA mobile number for WhatsApp (geographic numbers are NOT WhatsApp-eligible). Or skip Twilio-WhatsApp entirely and use Meta Cloud API direct. |
 
 ## Risk mitigation by milestone
 

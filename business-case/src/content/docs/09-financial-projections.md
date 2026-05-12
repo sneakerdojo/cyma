@@ -19,31 +19,45 @@ We track two scenarios: **Base case** (likely path) and **Conservative case** (5
 
 ## Unit economics per product
 
-### Per-customer cost structure (Lead Gen example)
+### Per-customer cost structure (Lead Gen example, verified May 2026)
+
+Assumes ZAR/USD = R16.45 and routed model selection (Gemma classifier, Haiku for templated drafts, Sonnet only for hard reasoning). See [appendix/model-routing](/appendix/model-routing/).
 
 | Cost | Monthly variable cost (avg customer) |
 |---|---|
-| Claude Sonnet (~500 chat sessions × ~30 turns × ~300 tokens) | ~R220 |
-| Kimi K2 Turbo (audit prompts, classifier) | ~R30 |
-| Postgres + Hetzner Cloud server share | ~R50 |
-| Twilio number rental (Voice tier) | ~R200 (only if voice attached) |
-| Twilio per-minute (avg 200 mins/customer) | ~R60 |
-| Deepgram STT + ElevenLabs TTS | ~R85 |
-| Stripe fee (3.5% of R8.5k) | ~R298 |
-| **Total variable cost per customer/month** | **~R940 (Lead Gen)** / ~R1,500 (Voice-attached) |
-| **Gross margin** | **89% (Lead Gen) / 77% (Voice)** |
+| Claude Sonnet 4.6 (chat reasoning, ~500 sessions × 25 turns avg, with prompt caching) | ~R280 |
+| Claude Haiku 4.5 (templated drafts, confirmations) | ~R40 |
+| Gemma 3 (classifier / intent routing) | ~R8 |
+| Postgres + Hetzner Cloud server share | ~R55 |
+| **Subtotal Lead Gen only** | **~R383** |
+| Voice tier additions: | |
+| Twilio number rental (per SA inbound number) | ~R55 |
+| Twilio per-minute SA inbound ($0.010/min × 200 min) | ~R33 |
+| Deepgram Nova-3 STT (200 min × $0.0077) | ~R26 |
+| ElevenLabs Flash TTS (~80k chars × $0.05/1k) | ~R65 |
+| Llama 3.3 70B on Groq (voice reasoning, sub-1s requirement) | ~R45 |
+| **Voice tier subtotal** | **+R224** |
+| Payment processor fee: | |
+| Payfast (3.5% of R8.5k) | ~R298 |
+| **Total variable cost per customer/month** | **~R680 Lead Gen / ~R905 Voice-attached** |
+| **Gross margin** | **92% (Lead Gen R8.5k) / 86% (Voice-attached R6.5k)** |
 
-### Bundle economics (Suite, R18,500/mo)
+The original draft assumed Stripe (not available in SA), Deepgram Nova-2 (deprecated), Kimi K2 Turbo at half its true price, and Twilio at $0.013/min (actual $0.010/min). Net: margins are slightly more conservative than originally claimed but still healthy.
+
+### Bundle economics (Suite, R18,500/mo) — verified May 2026
 
 | Cost | Monthly |
 |---|---|
-| All API + infra (4 products on one tenant) | ~R600 |
-| Twilio (voice + WhatsApp) | ~R350 |
-| Stripe | ~R650 |
-| **Total variable cost** | **~R1,600** |
-| **Gross margin on R18,500** | **91%** |
+| All API (Sonnet + Haiku + Gemma + Llama on Groq, routed) | ~R580 |
+| Hetzner infra share (4 products on one tenant) | ~R85 |
+| Twilio voice ($0.010/min + number) | ~R88 |
+| Deepgram + ElevenLabs (voice STT/TTS) | ~R91 |
+| Meta WhatsApp Cloud API direct (30–60% cheaper than via Twilio) | ~R45 |
+| Payfast (3.5% of R18,500) | ~R648 |
+| **Total variable cost** | **~R1,537** |
+| **Gross margin on R18,500** | **92%** |
 
-Suite is the highest-margin SKU. Pricing logic: bundle discount + economies of customer (same prospect → 4 products).
+Suite is the highest-margin SKU. Pricing logic: bundle discount + economies of customer (same prospect → 4 products + same infra share). WhatsApp goes through Meta Cloud API directly (not Twilio) to cut messaging cost ~40%.
 
 ## Cost structure (operating expenses)
 

@@ -30,12 +30,42 @@ Octio's quadrant is "AI operator". Few direct competitors at the SA SMB price po
 
 ## Direct competitors (same quadrant)
 
-| Competitor | Who they are | How they overlap | How we differ |
-|---|---|---|---|
-| **AI agencies on Upwork / Fiverr** | Solo freelancers selling "AI chatbot setup" services | Same wedge, different delivery quality | We productise + operate; they ship a one-off and disappear |
-| **HighLevel resellers** (Adam Erhart school) | SaaS resellers building websites + reputation management | Compete for the same buyer | They sell websites + tools; we sell agents + operations. Different category in the buyer's mind once positioned |
-| **Local "AI consultancies"** | Often 1-3 person shops claiming "AI strategy" | Compete for the credibility narrative | We have a working live product on our own site. Most consultancies don't. |
-| **Existing chatbot vendors** (ManyChat, Drift, Intercom) | Tools the customer self-installs | Compete on price + feature surface | They're $50–$500/month for a tool; we're R3.5k–R8.5k/month for a tool + operator. Different value prop |
+Verified May 2026 — see [appendix/verification-status.md](/appendix/verification-status/) for sources.
+
+| Competitor | Who they are | Price | How they overlap | How we differ |
+|---|---|---|---|---|
+| **Lindy AI** (US, VC-backed) | No-code AI agent builder including EA, voice, CRM workflows | $0/400cr free → $49.99 Pro → $299.99 Business + $0.19/min voice | **Closest direct competitor.** Build-an-agent UX targeting SMB. | English-only, US-shaped, no local presence; we win on SA-local + operator service |
+| **HighLevel resellers** (Adam Erhart school) | $97/$297/$497/mo CRM + AI; SaaS-resell tier white-labels | $297 USD is the common reseller anchor | Compete for the same buyer | They sell tools; we sell AI agents that operate the tools |
+| **AI agencies on Upwork / Fiverr** | Solo freelancers selling "AI chatbot setup" | One-off $500–$5,000 | Same wedge, different delivery quality | We productise + operate; they ship and disappear |
+| **Local "AI consultancies"** (SA) | 1–3 person shops claiming "AI strategy" | R30k–R150k engagements | Compete for credibility narrative | We have a working product on our own site; consultancies don't |
+| **ManyChat / chatbot vendors** | Self-install chat tools | $14–$69/mo + $29 AI add-on; free tier crushed to 25 contacts | Compete on price | They're tools, we're operators |
+| **Intercom Fin AI Agent** | AI customer support agent | **$0.99 per resolution** (outcome-priced) | Direct overlap on AI chat | Different pricing model; see "price-collapse risk" below |
+| **Synthflow / Bland AI** (voice) | No-code voice agent platforms with reseller tiers | $0.09–$0.14/min + LLM | Direct voice overlap | They're platforms; we're SA-local operators on top |
+| **Drift** | B2B conversational sales chat | $2,500–$15,000/mo | Same category | Enterprise-priced; not an SMB threat |
+
+### Price-collapse risk: outcome-based pricing
+
+Intercom Fin AI at **$0.99 per resolved conversation** (dropping to $0.59 at 10k+ resolutions) is normalising **outcome pricing** for AI customer support. If SA SMBs start benchmarking AI services against per-resolution pricing rather than R/month retainers, our unit economics get pressured. A plumber with 50 inbound queries/month at $0.99 per resolution = ~R900/month. That's a third of our Lead Gen entry price.
+
+Three responses, ranked:
+
+1. **Reframe the offer.** Sell "AI operator running your inbound" — not "AI chat tickets resolved." Operator includes booking, follow-up, escalation, brand voice tuning. Per-resolution doesn't.
+2. **Add an outcome-priced tier.** Phase 2 option: a R10/booking SKU for very small customers. Lower commitment, captures the would-be Fin AI buyer.
+3. **Bundle defensibility.** A customer paying R18,500/mo for the Suite cannot be replaced by per-resolution pricing — they're buying a stack, not a feature.
+
+### Buffer & Beehiiv (price compression on content/newsletter)
+
+The newsletter and social slices of our portfolio face structural price compression:
+
+- **Buffer**: free up to 3 channels, with AI Assistant free on ALL tiers. Beats our Social Manager R4,500/mo entry for very small accounts.
+- **Beehiiv**: free up to 2,500 subs; $43–$109/mo Scale-Max. Best-in-class price/feature for newsletter.
+
+Octio's defensibility here is NOT raw newsletter tooling — it's:
+- The operator service layer (we curate sources, brand-voice the drafts, run the cadence)
+- Bundle economics (Newsletter alone vs. as part of the Suite)
+- Discord-source curation flow that solo creators can't easily reproduce
+
+If a customer asks "why not Beehiiv?", the right answer is "Beehiiv is the tool we'd use under the hood; what you pay for is us running it for you."
 
 ### Why we're not worried about direct competitors yet
 
@@ -144,6 +174,10 @@ Moats this doesn't include: technology (Mastra is open source), pricing (anyone 
 
 | Threat | Response |
 |---|---|
+| **Lindy AI lands in SA** (highest 12-mo entry threat) | English-only, US-shaped onboarding, no local references; we double down on SA-local + operator service. Run the price-point arbitrage: their Business at $299.99/mo ≈ R4,900 — under our entry price even before bundle discount. |
+| Intercom Fin AI displaces our R/month chat with $0.99/resolution | Add a per-booking outcome tier; reframe Lead Gen as "operator running your inbound" not "AI chat tool" |
+| Buffer / Beehiiv compress our content/newsletter pricing | Lean on operator service + Suite bundle; raw tooling isn't our moat |
+| Twilio AI Assistants ($0.07/min) goes GA — every Twilio partner becomes voice competitor | Differentiate on SA-localised prompts + accent training (Speechmatics + Lelapa AI for Nguni) |
 | VC-funded US entrant ships AI agency to SA | Triple down on Patient Zero proof + local references. We're SA's AI brand. |
 | Adam Erhart-style course teaches HighLevel + agents | We become an Octio-certified partner of their course (refer customers who want full-service to us) |
 | Existing SA marketing agency adds AI products | Beat them on AI depth; outpartner them on agency-friendly channel terms |
