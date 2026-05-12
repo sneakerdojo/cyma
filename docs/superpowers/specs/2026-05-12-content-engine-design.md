@@ -11,7 +11,7 @@
 1. **Phase 1 is sliced into 1a + 1b.** Phase 1a ships LinkedIn + Newsletter. Phase 1b adds TikTok briefs after 1a has been used by Octio for ~2 weeks.
 2. **LinkedIn API:** Community Management API, posts on `simekani@octio.co.za`'s personal profile via `/rest/posts` with `LinkedIn-Version: YYYYMM` header. Scopes `openid profile email w_member_social` (note: `r_liteprofile` is deprecated and replaced by the "Sign In with LinkedIn using OpenID Connect" product). Tokens: 60-day access, 365-day refresh. **Rate limit: 100 API calls/day/member** — covers ~5 posts/day with analytics polling budget. Company Page support deferred to Phase 3.
 3. **Newsletter sender:** DIY via Octio's existing Gmail API + `support@octio.co.za` Send-as alias. `NewsletterSender` interface from day 1 so `BeehiivNewsletterSender` / `MailchimpNewsletterSender` are drop-in alternatives in Phase 1b / Phase 4. **No Beehiiv/Mailchimp dependency in Phase 1a.** **Gmail bulk-sender rules** (enforced from Nov 2025, ramping through 2026) require: RFC 8058 one-click unsubscribe (`List-Unsubscribe` + `List-Unsubscribe-Post: List-Unsubscribe=One-Click`), unsubscribes processed within **48 hours**, spam complaint rate <0.3% monitored via [Postmaster Tools](https://postmaster.google.com), SPF + DKIM + DMARC aligned (already true for octio.co.za). Phase 1a builds all of these from day 1, not as Phase 2 polish.
-4. **Source curation:** Discord bot listening on `#newsletter-sources` (configured per tenant). URL in any message → scrape via Firecrawl → insert into `content_sources`. No bookmarklet / Slack / web-form day 1. **Implementation caveat (from 2026-05-12 research):** Discord *may* reject `MessageContent` privileged intent verification if "functionality can be done via slash commands". Octio's internal bot is on 1 server so verification isn't needed until we cross 100 servers (Phase 4 SaaS). For long-term portability we'll **ship both a slash command (`/source <url>`) AND a channel listener** in Phase 1a — slash command is rejection-proof and works at any scale; channel listener is the ergonomic default. ~1 extra hour of dev time vs listener-only.
+4. **Source curation:** Discord bot listening on `#newsletter-sources` (configured per tenant). URL in any message → **Firecrawl scrape at ingestion time, full markdown cached in `content_sources.content_md`** → bot reacts ✅ on success / ❌ + thread reply on failure. Drafter agents read from this cache instead of re-scraping (handles URL drift, paywalls, rate limits, faster drafter runs). No bookmarklet / Slack / web-form day 1. **Implementation caveat (from 2026-05-12 research):** Discord *may* reject `MessageContent` privileged intent verification if "functionality can be done via slash commands". Octio's internal bot is on 1 server so verification isn't needed until we cross 100 servers (Phase 4 SaaS). For long-term portability we'll **ship both a slash command (`/source <url>`) AND a channel listener** in Phase 1a — slash command is rejection-proof and works at any scale; channel listener is the ergonomic default. ~1 extra hour of dev time vs listener-only.
 5. **First newsletter ESP for Octio:** N/A in Phase 1a (we use our own Gmail sender). Beehiiv chosen as the first paid-ESP adapter to build in Phase 1b when we cross 500 subscribers OR start the SaaS productisation.
 
 > **Why one engine for two products:** the Strategist → Drafter → Approval
@@ -239,8 +239,12 @@ brand voice.
 - Last issue (for narrative continuity / avoiding repetition)
 
 **Tools:**
-- `fetch_source(url)` — Firecrawl scrape, returns markdown + title +
-  author + excerpt
+- `load_source(sourceId)` — reads cached `content_md` + metadata from
+  `content_sources` (no network call — content was already scraped at
+  ingestion time by the Discord bot)
+- `refetch_source(sourceId)` — escape hatch: re-runs Firecrawl on a
+  source and updates the cached `content_md`. Used when the operator
+  manually flags "scraped wrong" via the queue UI. Audit-logged.
 - `summarise_source(text)` — 2-sentence summary + 1-line "why this
   matters"
 - `draft_intro(theme, sourceSummaries)` — opens the newsletter with a
@@ -394,6 +398,10 @@ CREATE TABLE newsletter_issues (
 );
 
 -- Curated sources used by the NewsletterDrafter agent
+-- INGESTION-TIME CACHE: When the Discord bot picks up a URL, it scrapes
+-- once via Firecrawl and stores the full markdown in `content_md`. Drafter
+-- agents read from this cache rather than re-scraping — handles URL drift,
+-- paywalls (returns whatever was readable at ingestion), and rate limits.
 CREATE TABLE content_sources (
   id              BIGSERIAL PRIMARY KEY,
   tenant_id       BIGINT NOT NULL DEFAULT 1,
@@ -401,8 +409,12 @@ CREATE TABLE content_sources (
   title           TEXT,
   author          TEXT,
   published_at    TIMESTAMPTZ,
-  excerpt         TEXT,
-  added_by        TEXT NOT NULL,                   -- email
+  excerpt         TEXT,                            -- short summary (~280 chars) for queue UI
+  content_md      TEXT,                            -- FULL markdown from Firecrawl (cached at ingestion)
+  scrape_status   TEXT NOT NULL DEFAULT 'pending', -- pending | ok | failed | paywalled | robots_blocked
+  scrape_error    TEXT,                            -- null on success
+  scraped_at      TIMESTAMPTZ,
+  added_by        TEXT NOT NULL,                   -- email or Discord handle
   added_at        TIMESTAMPTZ DEFAULT NOW(),
   used_in_issue_id BIGINT REFERENCES newsletter_issues(id),
   tags            TEXT[]
@@ -673,7 +685,9 @@ Same as admin dashboard spec §9.5. Notably:
 | Image gen quality | Phase 2 problem — Phase 1 just describes the image, human picks/creates it |
 | ESP API rate limits / send failures | Push as ESP draft + schedule, don't bypass ESP send infrastructure. ESP handles deliverability, bounces, unsubs. We're a content layer, not an email sender. |
 | Newsletter spam-trigger words / deliverability | Drafter prompt includes "avoid spam-trigger words". Phase 2: integrate Mail-tester.com check before approval. |
-| Source URL drift / 404s | When Drafter scrapes, cache the markdown in `content_sources.excerpt`. If URL 404s later, link disclaimer in newsletter ("originally posted at …"). |
+| Source URL drift / 404s | Bot scrapes once at ingestion time and caches **full markdown** in `content_sources.content_md`; Drafter agents read from cache, never re-scrape. If the original URL 404s by send-time, newsletter links carry an "originally posted at …" disclaimer; archive.org Wayback URL substituted automatically when available. |
+| Scraping ethics & robots.txt | Firecrawl respects `robots.txt` by default — if a site disallows crawling, `scrape_status='robots_blocked'` and the bot reacts ❌ + threads "this site disallows automated reading; please paste an excerpt manually". We don't bypass blocks. Also avoids Octio's outbound IP getting on deny-lists. |
+| Re-scraping a stale source | NewsletterDrafter has an explicit `refetch_source` escape-hatch tool; operators can trigger via "Refresh content" button on a source card in the queue UI. Each refetch is audit-logged. |
 | Multi-tenant ESP credentials | Each tenant's ESP API key lives in `channel_accounts.access_token` (AES-encrypted). Never mix tenants' keys. |
 
 ---
