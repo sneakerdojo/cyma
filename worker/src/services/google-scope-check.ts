@@ -61,9 +61,29 @@ export async function checkGoogleScopes(): Promise<void> {
       name: 'Gmail',
       scope: 'https://www.googleapis.com/auth/gmail.send',
       probe: async () => {
-        const gmail = google.gmail({ version: 'v1', auth });
-        // getProfile only needs the gmail send scope to verify the user exists
-        await gmail.users.getProfile({ userId: 'me' });
+        // gmail.send is intentionally a minimal scope — Google does NOT let it
+        // call gmail.users.getProfile (needs readonly/metadata) or messages.list
+        // (needs readonly). To verify the scope is genuinely present we ask
+        // Google's tokeninfo endpoint directly with the current access token
+        // and check the returned scope list.
+        const accessTokenRes = await auth.getAccessToken();
+        const accessToken = accessTokenRes.token;
+        if (!accessToken) {
+          throw new Error('No access token — refresh token may be invalid');
+        }
+        const res = await fetch(
+          `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`,
+        );
+        if (!res.ok) {
+          throw new Error(`tokeninfo returned HTTP ${res.status}`);
+        }
+        const info = (await res.json()) as { scope?: string };
+        const grantedScopes = (info.scope ?? '').split(' ').filter(Boolean);
+        if (!grantedScopes.includes('https://www.googleapis.com/auth/gmail.send')) {
+          throw new Error(
+            `gmail.send not present in granted scopes: ${grantedScopes.join(', ')}`,
+          );
+        }
       },
     },
     {
