@@ -24,6 +24,7 @@ Most AI agencies sell what they don't run. They have a demo. We have a business 
 | **Voice Agent** | `+27 12 …` Twilio number for Octio rings the agent first. Founder is only escalation path. | Pickup rate, booking accuracy, escalation rate, customer comments |
 | **Social Manager** | All Octio LinkedIn posts (founder + page) drafted by Drafter. Founder approves every one. | Approval rate, edit distance, engagement vs prior baseline |
 | **Newsletter Engine** | Octio's own weekly newsletter to the audit-funnel list. Built from Discord-curated sources. | Open rate, click rate, unsub rate, subscribers added/lost |
+| **Agentic CEO PA** (Phase 2) | Founder's own inbox, calendar, daily brief, weekly review. Patient Zero is the hardest gate of any product — if the agent fails on the founder's actual ops, it doesn't ship. | Email triage accuracy, draft-sent-as-is rate, calendar conflicts caught, hours saved per week |
 
 ## Validation phases per product
 

@@ -13,7 +13,7 @@ We are our own Patient Zero: every product Octio sells runs Octio's own operatio
 
 ## What we sell (the portfolio)
 
-Four autonomous AI products + three services + one free lead magnet:
+Five autonomous AI products + three services + one free lead magnet (CEO PA lands Phase 2):
 
 | Tier | Product | Price (ZAR/month entry) | Status (2026-05-12) |
 |---|---|---|---|
@@ -22,11 +22,14 @@ Four autonomous AI products + three services + one free lead magnet:
 | Autonomous | **Voice & Chat Agents** | R6,500 | Chat live for Octio; voice + multi-tenant ship days 2–3 |
 | Autonomous | **AI Social Media Manager** | R4,500 | Specced (Content Engine); ships day 4 |
 | Autonomous | **The Newsletter Engine** | R3,500 | Specced (Content Engine); ships day 4 |
+| Autonomous (Phase 2) | **Agentic CEO PA** | R6,500 | Patient Zero month 2; SMB SKU month 3 |
 | Service | **Agentic Web & App Development** | R85k–R220k project | Always available — human-led |
 | Service | **Custom Agentic Workflows** | R35k–R150k project | Always available |
 | Service | **Corporate AI Advisory & Adoption** | R125k–R450k programme | Always available |
 
-The **bundle** ("Octio Suite") packages all four products at R18,500/month — a 19% saving vs single-buy, and the primary upsell path.
+The **bundle** ("Octio Suite") packages the core four products at R18,500/month — a 19% saving vs single-buy — and the CEO PA joins the bundle at +R5,000 once it ships in month 3.
+
+> **Noted for future direction (not committed):** law tech products — likely a law-firm client-intake variant of Voice & Chat — flagged as a Phase 3+ vertical play after the SMB beachhead is solid.
 
 ## The market
 

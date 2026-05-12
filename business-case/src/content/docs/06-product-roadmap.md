@@ -133,23 +133,25 @@ The compressed schedule. Lift-and-shift from spec docs already written. This is 
 
 ## Months 2–12
 
-### Month 2 — refinement + content cadence
+### Month 2 — refinement + content cadence + CEO PA Patient Zero build
 
 | Workstream | Output |
 |---|---|
 | Product | Phase 1b features land: TikTok briefs, Beehiiv ESP adapter, basic engagement analytics |
+| **New product** | **Agentic CEO PA v0.1 built (1-week focused sprint). Patient Zero: founder uses it for own inbox + calendar starting week 2 of month 2. No customer-facing release.** |
 | Sales | Customer 11–20 onboarded; 30-min discovery → 60-min close → 15-min Tenant Onboarding standardised |
 | Content | LinkedIn daily, newsletter weekly, first YouTube video published |
 | Engineering | Real customer feedback drives backlog; founder ships fixes daily |
 | **MRR target** | R130k |
 
-### Month 3 — first paid ads + case studies
+### Month 3 — first paid ads + case studies + CEO PA SMB SKU launch
 
 | Workstream | Output |
 |---|---|
 | Product | Phase 2 begins: image gen for Social, basic engagement agent, multi-language voice (Afrikaans first) |
-| Sales | Customer 21–30; first Google Ads test campaign |
-| Content | 5 case studies live; quarterly industry-benchmark report published |
+| **New product** | **Agentic CEO PA SMB SKU launches IF Patient Zero metrics held (>90% email triage accuracy, >5h/week saved, >60% drafts sent as-is). Bundle add-on enabled (+R5,000 on Suite).** |
+| Sales | Customer 21–30; first Google Ads test campaign; CEO PA cross-sell offered to existing customers |
+| Content | 5 case studies live; quarterly industry-benchmark report published; one case study specifically on Octio founder's CEO PA Patient Zero experience |
 | Engineering | Performance + observability hardening; SLO targets defined |
 | **MRR target** | R195k |
 
@@ -246,6 +248,8 @@ If we're behind on revenue mid-year, things we cut without breaking the core:
 | Marketplace for third-party agents | Premature platform play; we need our agents to dominate first |
 | Outside capital | Bootstrap to R15M ARR; THEN evaluate from a position of strength |
 | Founder sabbatical | At R650k+ MRR with 2 hires in place, the founder can take 2 weeks off. Not before. |
+| Law tech vertical (client intake for law firms) | Noted as a Phase 3+ candidate — reuses 80%+ of Voice & Chat stack but adds compliance overhead. Re-evaluate at month 9 if SMB beachhead has saturated. |
+| CEO PA — Executive tier (mid-market) | SMB tier ships month 3; Executive tier (R12,500) waits for product depth signals and isn't promised in year 1. |
 
 ## Key assumptions
 

@@ -14,10 +14,13 @@ description: Every product Octio sells — in depth. What it does, who it's for,
 | 2 | Voice & Chat Agents | Autonomous product | R6,500/mo | Chat live for Octio; voice + multi-tenant ship days 2–3 | [voice-agent-design.md](https://github.com/sneakerdojo/cyma/blob/main/docs/superpowers/specs/2026-05-12-voice-agent-design.md) + [embeddable-chat-widget-design.md](https://github.com/sneakerdojo/cyma/blob/main/docs/superpowers/specs/2026-05-12-embeddable-chat-widget-design.md) |
 | 3 | AI Social Media Manager | Autonomous product | R4,500/mo | Specced, ships day 4 | [content-engine-design.md](https://github.com/sneakerdojo/cyma/blob/main/docs/superpowers/specs/2026-05-12-content-engine-design.md) |
 | 4 | The Newsletter Engine | Autonomous product | R3,500/mo | Specced, ships day 4 | content-engine-design.md (same repo) |
-| 5 | Octio Suite (bundle) | Autonomous bundle | R18,500/mo | Auto-available once all 4 ship | tenant-onboarding-and-billing-design.md |
-| 6 | Agentic Web & App Development | Service | R85k–R220k project | Always available — human-led | (delivery framework, not a built product) |
-| 7 | Custom Agentic Workflows | Service | R35k–R150k project | Always available | (delivery framework) |
-| 8 | Corporate AI Advisory & Adoption | Service / programme | R125k–R450k programme | Always available | (delivery framework) |
+| 5 | Agentic CEO PA | Autonomous product (Phase 2) | R6,500/mo (target) | Patient Zero build month 2; SMB SKU month 3 | (spec TBD — see §5 below) |
+| 6 | Octio Suite (bundle) | Autonomous bundle | R18,500/mo (excl. CEO PA) / R23,500/mo (incl.) | Auto-available once core 4 ship; CEO PA bundles month 3 | tenant-onboarding-and-billing-design.md |
+| 7 | Agentic Web & App Development | Service | R85k–R220k project | Always available — human-led | (delivery framework, not a built product) |
+| 8 | Custom Agentic Workflows | Service | R35k–R150k project | Always available | (delivery framework) |
+| 9 | Corporate AI Advisory & Adoption | Service / programme | R125k–R450k programme | Always available | (delivery framework) |
+
+> **Future direction (not Phase 1 or 2):** law tech products — likely client intake + qualification for law firms (reuses 80%+ of the Voice & Chat stack) — noted as a candidate Phase 3+ vertical play once the SMB beachhead is solid. Not committed.
 
 ---
 
@@ -235,7 +238,80 @@ Octio's own weekly newsletter runs through this. Same product, no shortcut.
 
 ---
 
-## 5. Octio Suite — R18,500/mo (BUNDLE)
+## 5. Agentic CEO PA — R6,500/mo (Phase 2)
+
+### What the customer gets
+
+An AI chief-of-staff for owner-operators who don't have (and can't afford) a human EA:
+
+- **Inbox triage** — reads incoming email, labels by priority, drafts replies for approval, archives obvious cruft
+- **Calendar orchestration** — proposes meeting times based on context, declines conflicts, blocks deep-work time
+- **Daily brief** — 7am summary: what's on today, what's overdue, what to prep, what's pending response
+- **Meeting prep** — 30 mins before each call, surfaces prior conversation history, LinkedIn context, relevant docs
+- **Weekly review** — Monday-morning dashboard of last week's metrics (Stripe, Linear, GA, customer activity) pulled from connected tools
+- **Persistent memory** — knows owner's preferences, important contacts, ongoing projects across sessions
+- **Approval-gated action** — drafts outbound (email replies, calendar invites, follow-ups) but never sends without owner approval
+
+### Why this product, and why Phase 2
+
+It's the natural addition to the autonomous-operator portfolio. Lead Gen + Voice handle inbound from customers. Social + Newsletter handle outbound to audience. **The CEO PA handles the owner's own day.** It completes the operator-AI loop.
+
+Phase 2 (month 2–3), not Phase 1, because:
+- Solo-founder capacity is bound in the 7-day sprint
+- The Patient Zero gate matters here more than any other product (the founder's actual inbox is the test environment)
+- 30 days of Patient Zero data dramatically tightens what the v1 SMB SKU should do
+
+### Patient Zero approach
+
+The founder uses it for **30 days minimum** before any SMB SKU exists. Metrics tracked:
+
+- % of emails correctly triaged (target > 90%)
+- % of draft replies sent as-is vs. heavily edited (target > 60% sent as-is)
+- Calendar conflicts caught (target 100%)
+- Founder time saved per week (target > 5 hours)
+
+If those metrics hold, we ship the SMB SKU month 3. If they don't, the product stays internal until they do.
+
+### Tier structure (target)
+
+| Tier | Price (ZAR/mo) | Includes |
+|---|---|---|
+| Personal | R6,500 | 1 owner, 1 email account, 1 calendar, top integrations (Gmail, Google Calendar, Slack) |
+| Executive | R12,500 | + Stripe/Linear/GA/CRM dashboard ingestion, advanced meeting prep, voice briefings |
+| Suite add-on | +R5,000 to R18.5k bundle | Drops into the Suite bundle as the 5th product |
+
+### Status
+
+- Patient Zero build: **month 2** (1 week of focused engineering once core 4 are stable)
+- Patient Zero validation: **month 2–3** (30 days of founder use)
+- SMB SKU launch: **month 3** if PZ metrics hold; otherwise extended PZ until they do
+- Bundle inclusion: **month 3** assuming SMB SKU ships
+
+### Day-1 constraints
+
+- Read-only on most data (Gmail, Calendar, etc.) — drafts only, no auto-send
+- English only
+- Gmail + Google Calendar only (Outlook/Office365 in Phase 3)
+- Slack integration only for the Executive tier
+- No mobile app v1 — web dashboard + daily digest email
+
+### What it deliberately doesn't try to do
+
+- **Replace the owner's judgement on important decisions.** It briefs, it drafts, it never decides.
+- **Auto-send anything.** Every outbound action is approval-gated.
+- **Be a generic AI assistant.** It's specifically tuned to the owner-operator's operating rhythm — not a general-purpose ChatGPT alternative.
+
+### Honest competitive note
+
+This space has serious incumbents (Motion, Reclaim.ai, Superhuman + Copilot, Mem). Octio doesn't try to beat them on calendar-AI depth. The wedge:
+
+- **SA-local time zone + currency + integrations**
+- **Bundles with the rest of the Octio operator stack** (same owner already pays us for Lead Gen + Voice; one login, one bill, one brand voice)
+- **Approval-first, never auto-send** philosophy that's different from US productivity tools racing toward agentic autonomy
+
+---
+
+## 6. Octio Suite — R18,500/mo (BUNDLE)
 
 ### What the customer gets
 
@@ -261,7 +337,7 @@ Bundle pricing surfaces automatically once all 4 single products ship (**day 5 o
 
 ---
 
-## 6. Agentic Web & App Development (SERVICE)
+## 7. Agentic Web & App Development (SERVICE)
 
 ### What it is
 
@@ -299,7 +375,7 @@ Always available. No new build needed. Delivery framework documented in service-
 
 ---
 
-## 7. Custom Agentic Workflows (SERVICE)
+## 8. Custom Agentic Workflows (SERVICE)
 
 ### What it is
 
@@ -325,7 +401,7 @@ Always available.
 
 ---
 
-## 8. Corporate AI Advisory & Adoption (SERVICE)
+## 9. Corporate AI Advisory & Adoption (SERVICE)
 
 ### What it is
 
