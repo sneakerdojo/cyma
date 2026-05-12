@@ -1,10 +1,18 @@
 # Octio Content Engine — Design
 
-**Status:** Draft, awaiting approval
+**Status:** Approved (brainstorm 2026-05-12). Phase 1a plan at `~/.claude/plans/staged-marinating-quill.md`.
 **Author:** Simekani + Claude (Opus 4.7)
 **Last updated:** 2026-05-12
-**Repo:** new — `octio-content` (to be scaffolded after sign-off)
+**Repo:** new — `octio-content` (to be scaffolded as the first implementation step)
 **SKUs powered by this codebase:** **AI Social Media Manager** + **The Newsletter Engine** (the two products on `octio.co.za/products/*` that share content-distribution mechanics)
+
+## Locked decisions (2026-05-12 brainstorm)
+
+1. **Phase 1 is sliced into 1a + 1b.** Phase 1a ships LinkedIn + Newsletter. Phase 1b adds TikTok briefs after 1a has been used by Octio for ~2 weeks.
+2. **LinkedIn API:** Community Management API, posts on `simekani@octio.co.za`'s personal profile. Scopes `r_liteprofile w_member_social`. Company Page support deferred to Phase 3.
+3. **Newsletter sender:** DIY via Octio's existing Gmail API + `support@octio.co.za` Send-as alias. `NewsletterSender` interface from day 1 so `BeehiivNewsletterSender` / `MailchimpNewsletterSender` are drop-in alternatives in Phase 1b / Phase 4. **No Beehiiv/Mailchimp dependency in Phase 1a.**
+4. **Source curation:** Discord bot listening on `#newsletter-sources` (configured per tenant). URL in any message → scrape via Firecrawl → insert into `content_sources`. No bookmarklet / Slack / web-form day 1.
+5. **First newsletter ESP for Octio:** N/A in Phase 1a (we use our own Gmail sender). Beehiiv chosen as the first paid-ESP adapter to build in Phase 1b when we cross 500 subscribers OR start the SaaS productisation.
 
 > **Why one engine for two products:** the Strategist → Drafter → Approval
 > → Publisher pipeline is identical. Only the channel adapter changes
@@ -535,10 +543,25 @@ real founder-led video as the lead.
 
 ## 11. Phase breakdown
 
-### Phase 1 — Internal v1 (~12–14 days)
+### Phase 1a — LinkedIn + Newsletter for Octio (~12 days) ⭐ FIRST SLICE
 
-Octio's own LinkedIn + TikTok + weekly newsletter, hardcoded brand
-voice, full approval queue.
+Octio's own LinkedIn + weekly newsletter, hardcoded brand voice, full
+approval queue. TikTok deferred. Beehiiv/Mailchimp adapters deferred.
+
+Execution plan: `~/.claude/plans/staged-marinating-quill.md`.
+
+### Phase 1b — Add TikTok briefs + first paid-ESP adapter (~5 days)
+
+After 1a soaks for ~2 weeks of real Octio use:
+- TikTokDrafter agent (brief-only — script, shot list, caption, hashtags)
+- `BeehiivNewsletterSender` adapter (first paid-ESP alternative; ready
+  for SaaS productisation, also useful if Octio's subscriber count
+  approaches Gmail's daily cap)
+- Subscriber CSV import (Octio likely needs this around then anyway)
+
+### Phase 1 (combined original estimate, deprecated by the 1a/1b split above)
+
+Original combined estimate: 12–14 days for LinkedIn + TikTok + Newsletter
 
 **Foundation (~3 days)**
 - Repo scaffolding (Vite + Tailwind + Hono + Mastra + Postgres)
@@ -625,17 +648,17 @@ Same as admin dashboard spec §9.5. Notably:
 | TikTok | Content Posting API (Phase 2) — direct upload requires app review |
 | Auth | env-cred allowlist v1, Google SSO later |
 
-## 14. Open questions
+## 14. Open questions (status updated 2026-05-12)
 
-1. **LinkedIn API access:** Marketing Developer Platform requires app review for posting on behalf of users. Apply now, takes ~1 week, blocks Phase 1 publishing if not ready. Alternative: post as **personal** profile of the OAuth user (simekani@octio.co.za) using the Community Management API which is faster to access but doesn't support pages day 1. Pick which?
-2. **TikTok Content Posting API:** requires app review even for personal accounts. Phase 1 stays brief-only; Phase 2 needs the API approval.
-3. **ESP for Octio's own newsletter:** which one? Mailchimp is the safe default; Beehiiv is the modern indie-favourite with cleaner API + analytics. We support both in v1 anyway, but pick the one we actually use for `support@octio.co.za`'s outbound newsletter. Recommendation: **Beehiiv** for our own use (no audience fees up to 2,500 subscribers, cleaner analytics).
-4. **Newsletter cadence:** weekly Tuesday morning (B2B norm), bi-weekly, or monthly? v1 cron defaults to weekly Tue 09:00 SAST — easy to change.
-5. **Brand voice format:** free-text doc, sample-posts library, or structured JSON (tone adjectives + do's + don'ts + sample posts)? Affects prompt quality + UI complexity. v1 recommendation: structured JSON with optional sample-post library, used by all three drafter agents.
-6. **Source curation workflow:** how does the team add sources during the week? Options: (a) paste URLs into `/settings/sources`, (b) browser bookmarklet that POSTs to `/api/content/sources`, (c) Slack `/source <url>` slash command (Phase 2), (d) auto-curate from a list of follow-feeds (Phase 3). Pick which for v1 — recommendation: (a) + (b).
-7. **Repo name:** `octio-content` or `octio-pulse` or something else? (Octio brand-side decision — currently using `octio-content` in this spec.)
-8. **Where deployed:** same `infra-01` host inside Octio's stack? Or a separate $5/mo VPS to keep concerns isolated?
-9. **Single LLM vs multi-LLM:** test Kimi K2 Turbo (cheap, used by octio-worker) vs Claude Sonnet (better at long-form creative). Worth running both for the first month and comparing on quality. Adds modest BYOK cost.
+1. ✅ **LinkedIn API access:** Locked — **Community Management API** on personal profile. Scopes `r_liteprofile w_member_social`. Apply day 1 of Phase 1a foundation work.
+2. ⏸ **TikTok Content Posting API:** deferred to Phase 1b. Apply when Phase 1a starts using TikTok briefs (week 3+).
+3. ✅ **ESP for Octio's own newsletter:** Locked — **DIY Gmail sender** in Phase 1a. Beehiiv adapter built in Phase 1b as first paid-ESP option.
+4. ⏸ **Newsletter cadence:** default weekly Tue 09:00 SAST. Adjust after running 4 issues.
+5. ✅ **Brand voice format:** Locked — **structured JSON** (tone adjectives + do's + don'ts + sample posts), used by all drafter agents.
+6. ✅ **Source curation workflow:** Locked — **Discord bot** listening on `#newsletter-sources`. URLs in any message are scraped + saved. No web-form / bookmarklet / Slack day 1.
+7. ⏸ **Repo name:** still `octio-content` unless brand-side rename arrives. Final call before `pnpm create`.
+8. ⏸ **Where deployed:** same `infra-01` as `octio-website-prd` (Traefik label routes `content.octio.co.za` to the new stack). Confirm before deploy.
+9. ⏸ **LLM choice:** start with Kimi K2 Turbo (free for us, already in worker). Add Claude Sonnet as second-pass editorial polish if quality is short — measure after first 10 LinkedIn posts.
 
 ## 15. Risks
 
