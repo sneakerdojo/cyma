@@ -1,5 +1,7 @@
 # Octio Website Audit Tool — Design
 
+> ⚠️ **SUPERSEDED on 2026-05-12.** This spec has been replaced by [`2026-05-12-audit-tool-claude-code.md`](./2026-05-12-audit-tool-claude-code.md). The new spec replaces the AI Studio prompt-output path with a server-side **headless Claude Code agent** that generates a working Astro site rebuild on Octio infrastructure (preview URL + repo download) — a strictly better wedge. The new spec also flags the critical ToS gate: a dedicated `ANTHROPIC_API_KEY` under Commercial Terms is mandatory; routing visitor traffic through the founder's Max subscription is a ban risk. Read the new spec.
+
 **Status:** Draft, awaiting approval
 **Author:** Simekani + Claude (Opus 4.7)
 **Last updated:** 2026-05-12

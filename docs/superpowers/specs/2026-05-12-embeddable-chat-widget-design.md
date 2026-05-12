@@ -1,5 +1,7 @@
 # Octio Embeddable Chat Widget — Design
 
+> ⚠️ **SUPERSEDED on 2026-05-12.** This spec has been replaced by [`2026-05-12-lead-gen-superseded.md`](./2026-05-12-lead-gen-superseded.md), which incorporates verified conversion benchmarks (3-7% engagement, 0.4-1.4% end-to-end booking — not vendor-claimed numbers), corrects the qualification order to Need-first (not BANT), makes WhatsApp handoff first-class, and verifies the Mastra v1.0 multi-tenant workaround. Read the new spec; this one is kept only for traceability.
+
 **Status:** Draft, awaiting approval. Day 2 of the 7-day build plan.
 **Author:** Simekani + Claude (Opus 4.7)
 **Last updated:** 2026-05-12

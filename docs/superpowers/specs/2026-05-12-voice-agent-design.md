@@ -1,5 +1,7 @@
 # Octio Voice Agent — Design
 
+> ⚠️ **SUPERSEDED on 2026-05-12.** This spec has been replaced by [`2026-05-12-voice-agent-superseded.md`](./2026-05-12-voice-agent-superseded.md), which incorporates verified stack research (Retell AI + Twilio SIP + Deepgram Nova-3 + Haiku 4.5 EU + Cartesia Sonic-3) and realistic SA-latency targets (p50 < 1.4s; sub-1s is physics-impossible for SA → cloud LLM). Read the new spec; this one is kept only for traceability.
+
 **Status:** Draft, awaiting approval. Day 3 of the 7-day build plan.
 **Author:** Simekani + Claude (Opus 4.7)
 **Last updated:** 2026-05-12
