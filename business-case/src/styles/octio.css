@@ -1,0 +1,35 @@
+/* Octio brand override for Starlight default theme */
+:root {
+  --sl-color-accent-low: #2a1607;
+  --sl-color-accent: #e8862a;
+  --sl-color-accent-high: #fbb274;
+
+  --sl-color-bg: #06060c;
+  --sl-color-bg-nav: #0d0d1a;
+  --sl-color-bg-sidebar: #0d0d1a;
+
+  --sl-color-text: #f0ede8;
+  --sl-color-text-accent: #e8862a;
+  --sl-color-text-invert: #06060c;
+
+  --sl-color-hairline: #2a2a3a;
+
+  --sl-font: 'Inter', system-ui, sans-serif;
+  --sl-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+:root[data-theme='light'] {
+  --sl-color-accent-low: #fdebd6;
+  --sl-color-accent: #c66f17;
+  --sl-color-accent-high: #6e3905;
+  --sl-color-text-accent: #c66f17;
+}
+
+/* A subtle orange glow on the title in nav */
+.site-title {
+  background: linear-gradient(120deg, #e8862a, #f5a54b);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 700;
+}
