@@ -9,9 +9,9 @@
 ## Locked decisions (2026-05-12 brainstorm)
 
 1. **Phase 1 is sliced into 1a + 1b.** Phase 1a ships LinkedIn + Newsletter. Phase 1b adds TikTok briefs after 1a has been used by Octio for ~2 weeks.
-2. **LinkedIn API:** Community Management API, posts on `simekani@octio.co.za`'s personal profile. Scopes `r_liteprofile w_member_social`. Company Page support deferred to Phase 3.
-3. **Newsletter sender:** DIY via Octio's existing Gmail API + `support@octio.co.za` Send-as alias. `NewsletterSender` interface from day 1 so `BeehiivNewsletterSender` / `MailchimpNewsletterSender` are drop-in alternatives in Phase 1b / Phase 4. **No Beehiiv/Mailchimp dependency in Phase 1a.**
-4. **Source curation:** Discord bot listening on `#newsletter-sources` (configured per tenant). URL in any message → scrape via Firecrawl → insert into `content_sources`. No bookmarklet / Slack / web-form day 1.
+2. **LinkedIn API:** Community Management API, posts on `simekani@octio.co.za`'s personal profile via `/rest/posts` with `LinkedIn-Version: YYYYMM` header. Scopes `openid profile email w_member_social` (note: `r_liteprofile` is deprecated and replaced by the "Sign In with LinkedIn using OpenID Connect" product). Tokens: 60-day access, 365-day refresh. **Rate limit: 100 API calls/day/member** — covers ~5 posts/day with analytics polling budget. Company Page support deferred to Phase 3.
+3. **Newsletter sender:** DIY via Octio's existing Gmail API + `support@octio.co.za` Send-as alias. `NewsletterSender` interface from day 1 so `BeehiivNewsletterSender` / `MailchimpNewsletterSender` are drop-in alternatives in Phase 1b / Phase 4. **No Beehiiv/Mailchimp dependency in Phase 1a.** **Gmail bulk-sender rules** (enforced from Nov 2025, ramping through 2026) require: RFC 8058 one-click unsubscribe (`List-Unsubscribe` + `List-Unsubscribe-Post: List-Unsubscribe=One-Click`), unsubscribes processed within **48 hours**, spam complaint rate <0.3% monitored via [Postmaster Tools](https://postmaster.google.com), SPF + DKIM + DMARC aligned (already true for octio.co.za). Phase 1a builds all of these from day 1, not as Phase 2 polish.
+4. **Source curation:** Discord bot listening on `#newsletter-sources` (configured per tenant). URL in any message → scrape via Firecrawl → insert into `content_sources`. No bookmarklet / Slack / web-form day 1. **Implementation caveat (from 2026-05-12 research):** Discord *may* reject `MessageContent` privileged intent verification if "functionality can be done via slash commands". Octio's internal bot is on 1 server so verification isn't needed until we cross 100 servers (Phase 4 SaaS). For long-term portability we'll **ship both a slash command (`/source <url>`) AND a channel listener** in Phase 1a — slash command is rejection-proof and works at any scale; channel listener is the ergonomic default. ~1 extra hour of dev time vs listener-only.
 5. **First newsletter ESP for Octio:** N/A in Phase 1a (we use our own Gmail sender). Beehiiv chosen as the first paid-ESP adapter to build in Phase 1b when we cross 500 subscribers OR start the SaaS productisation.
 
 > **Why one engine for two products:** the Strategist → Drafter → Approval
@@ -695,3 +695,81 @@ Same as admin dashboard spec §9.5. Notably:
 - [ ] Risks (§15) acknowledged
 
 Once all checked, scaffolding the new `octio-content` repo is task 1.
+
+---
+
+## 16. Research findings (2026-05-12 review)
+
+Web research pass verifying time-sensitive assumptions before scaffolding. Every claim cited.
+
+### 16.1 LinkedIn API — verified with corrections
+
+| Claim in spec | Verified result | Action |
+|---|---|---|
+| Community Management API is the right product | ✅ Correct ([dev portal](https://developer.linkedin.com/product-catalog/marketing/community-management-api)) | none |
+| Scope `r_liteprofile` for sign-in | ❌ **Deprecated** — replaced by "Sign In with LinkedIn using OpenID Connect" product (`openid profile email`) | Updated locked decision #2 |
+| Scope `w_member_social` for personal posting | ✅ Correct, still current | none |
+| Endpoint `/rest/posts` for publishing | ✅ Correct, but requires `LinkedIn-Version: YYYYMM` header (e.g. `202604`) and `X-Restli-Protocol-Version: 2.0.0` | Document in `services/linkedin.ts` |
+| Phase 1a publish-blocking risk if not approved fast | ✅ Confirmed — but `w_member_social` is usually instant-approve for personal posting (no formal review for individual scope). Apply day 1. | none |
+| Rate limit assumption (none) | 🆕 Discovered: **100 API calls/day/member** — covers ~5 posts/day + analytics polling, no problem at our cadence | Document in cron schedule comment |
+| Token expiry | 🆕 Discovered: 60-day access token, 365-day refresh — must build refresh-token watcher cron (already in spec §15 risks) | Confirmed need; keep risk row |
+
+### 16.2 Gmail bulk sender rules — significant tightening since spec drafted
+
+| Finding | Source | Implication |
+|---|---|---|
+| Gmail's [bulk sender requirements](https://support.google.com/a/answer/14229414) (Feb 2024) hard-apply at 5 000+ msg/day. We won't hit this at Phase 1a scale. | Google Workspace Admin Help | No immediate compliance risk |
+| **Gmail enforcement is RAMPING from Nov 2025 onward** — even smaller senders face throttling for non-compliance | [Red Sift blog](https://redsift.com/resources/blog/gmails-enforcement-ramps-up-what-bulk-senders-need-to-know) | Build to spec from day 1, not retroactively |
+| RFC 8058 one-click unsubscribe is now **mandatory** for marketing mail to Gmail | [Mailgun on RFC 8058](https://www.mailgun.com/blog/deliverability/what-is-rfc-8058/) | Add `List-Unsubscribe` + `List-Unsubscribe-Post: List-Unsubscribe=One-Click` headers; HTTP POST endpoint at `content.octio.co.za/newsletter/unsubscribe/oneclick?token=...` |
+| Unsubscribe requests must be processed within **48 hours** | [Suped knowledge base](https://www.suped.com/knowledge/email-deliverability/compliance/what-are-the-gmail-sender-requirements-for-one-click-unsubscribe-and-where-should-the-links-be-p) | Subscriber row marked unsubscribed immediately on click; publisher cron skips unsubscribed rows |
+| Spam complaint rate <0.3% required, monitored via [Postmaster Tools](https://postmaster.google.com) | Google Workspace Admin Help | Add Postmaster Tools verification for octio.co.za as Phase 1a launch task; alert if complaint rate >0.1% |
+
+### 16.3 Mastra framework — confirms our choice + scaffolding
+
+| Finding | Source |
+|---|---|
+| Mastra hit **1.0 in January 2026**, 22k+ GitHub stars, 300k weekly npm downloads | [GitHub](https://github.com/mastra-ai/mastra) + [generative.inc guide](https://www.generative.inc/mastra-ai-the-complete-guide-to-the-typescript-agent-framework-2026) |
+| Scaffolding: `npm create mastra@latest <project-name>` | [Mastra Quickstart](https://mastra.ai/guides/getting-started/quickstart) |
+| Local dev tool: Mastra Studio at `http://localhost:4111` | Mastra docs |
+| Primitives match our design: Agents (system prompt + tools), Tools (`createTool` with Zod), Workflows (deterministic step graphs) | Mastra docs |
+| **Workflows might suit our Publisher cron better than raw node-cron** — they give us deterministic step graphs with retry / observability | Mastra docs |
+
+Action: when scaffolding, use `npm create mastra@latest octio-content` for the services/worker side rather than hand-rolling Mastra wiring.
+
+### 16.4 Discord MessageContent — slash command is the safer default
+
+| Finding | Source | Action |
+|---|---|---|
+| `MessageContent` is a privileged intent | [Discord support](https://support-dev.discord.com/hc/en-us/articles/4404772028055-Message-Content-Privileged-Intent-FAQ) | Known |
+| Under 100 servers: toggle on freely in Developer Portal | [Discord support](https://support-dev.discord.com/hc/en-us/articles/6205754771351-How-do-I-get-Privileged-Intents-for-my-bot) | Phase 1a is single-server (Octio's own Discord); no verification gate |
+| Over 100 servers (Phase 4 SaaS): verification audit required | Discord docs | Plan ahead |
+| Discord can **reject** `MessageContent` verification if functionality is doable via slash commands | Discord support | Build slash command (`/source <url>`) in Phase 1a as the rejection-proof path; channel listener is bonus ergonomics |
+| `GatewayIntentBits.MessageContent` is correct discord.js v14 syntax | [discordjs.guide](https://discordjs.guide/legacy/popular-topics/intents) | Confirmed |
+
+### 16.5 Firecrawl — free tier covers Phase 1a easily
+
+| Finding | Source |
+|---|---|
+| Free tier: 1 000 pages/month | [Firecrawl pricing](https://www.firecrawl.dev/pricing) |
+| Our usage: ~10–30 sources/week ≈ 100–150 pages/month | (estimated) |
+| Paid tiers if we outgrow free: Developer $69.99/mo (250k pages), Standard $129.99/mo (1M pages) | Firecrawl pricing |
+| Alternatives worth knowing: ScrapeGraphAI ($19/mo, AI-extraction baked in), Crawl4AI (OSS, BYOK LLM) | [Scrapegraphai comparison](https://scrapegraphai.com/blog/firecrawl-pricing) |
+
+Action: stick with Firecrawl free tier for Phase 1a. Re-evaluate if monthly usage projects past 500 pages.
+
+### 16.6 TikTok Content Posting API — Phase 1b prep
+
+| Finding | Source |
+|---|---|
+| Unaudited clients limited to SELF_ONLY visibility + 5 users/day | [TikTok dev docs](https://developers.tiktok.com/doc/content-posting-api-reference-direct-post) |
+| Audit approval timeline: 5–10 business days | Zernio blog |
+| Two flows: **Direct Post** (immediate publish) vs **Upload to Inbox** (sent to TikTok app for manual finish) | TikTok dev docs |
+| Phase 1a brief-only doesn't touch this API at all | (spec design) |
+| Phase 1b plan: apply for audit **on day 1 of Phase 1b** so review runs in parallel with TikTokDrafter agent dev | Action item |
+
+### 16.7 Net spec health after review
+
+- **No design changes required** — architecture, agents, data model, phases all hold up against current API realities.
+- **5 small corrections** applied inline above (scope rename, Gmail unsubscribe SLA, Postmaster Tools monitoring, Discord slash-command fallback, Mastra scaffolding command).
+- **1 new risk surfaced** (Gmail Nov 2025+ enforcement ramp) — mitigations built into the Newsletter slice from day 1, not added later.
+- **Phase 1a estimate unchanged at ~12 days** — the additional `/source` slash command costs ~1 hr.
