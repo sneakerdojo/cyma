@@ -712,11 +712,346 @@ Once all checked, scaffolding the new `octio-content` repo is task 1.
 
 ---
 
-## 16. Research findings (2026-05-12 review)
+## 16. Deferred capability specs (parity items)
+
+These four capabilities reach parity with the `lucaswalter/n8n-ai-automations`
+workflows that inspired our scope review. They're explicitly deferred to
+Phase 2 / Phase 3 / "as needed", but specced now so when the trigger to
+build arrives we don't re-derive the design.
+
+### 16.1 TwitterDrafter agent (Phase 3, pullable to 1b)
+
+**Role:** turn a calendar slot OR an existing content source into a multi-tweet X/Twitter thread.
+
+**Inputs:**
+- A `content_calendar` row OR a `content_sources` row to repurpose
+- Brand voice
+- Optional `tone_target` from caller: `engagement` / `authority` / `contrarian`
+
+**Tools:**
+- `load_source(sourceId)` — reuse from §5.3 (no network call, reads cached markdown)
+- `fetch_brand_voice(tenantId)` — reuse
+- `extract_thread_hooks(sourceMd)` — emits 3–8 tweet-worthy beats with predicted engagement (LLM-scored)
+- `draft_thread(hooks, brandVoice, toneTarget)` — emits ordered array `[{position, body, charCount}, …]`
+- `save_draft(slotId, threadPosts)` — `drafts.content JSONB` stores the ordered array
+
+**Output:** one row in `drafts` with `channel='twitter'`, content shape:
+
+```typescript
+{
+  posts: Array<{ position: number, body: string, charCount: number }>,
+  expectedEngagement: 'low' | 'medium' | 'high',
+  sourceUrls: string[]
+}
+```
+
+**Publishing:** X API v2 — Basic tier is $100/month (500 posts/month). Free tier was killed in 2023; if free posts return, swap in. Posts go via `POST /2/tweets` with `reply.in_reply_to_tweet_id` for chained tweets in the thread.
+
+**Phase:** 3 by default. Pull to 1b for ~1 day if Twitter becomes a priority before then.
+
+**Effort:** ~1 day (agent + tools + LinkedInDrafter-shaped UI for the queue).
+
+---
+
+### 16.2 ImageGenerator tool (Phase 2)
+
+**Pattern:** a shared *tool*, not its own agent. Used by `LinkedInDrafter`, `NewsletterDrafter`, `TwitterDrafter`. Replaces the current `propose_image_concept` (which just describes the image) with one that actually generates it.
+
+**Tool signature:**
+
+```typescript
+generate_image(input: {
+  prompt: string,
+  brandStyle: BrandVisualConfig,
+  contextText: string,        // the draft post body for stylistic reference
+  aspectRatio?: '1:1' | '4:5' | '16:9' | '9:16'
+}) → {
+  url: string,                // R2/S3 hosted
+  alt: string,                // AI-generated accessibility text
+  generatedAt: string,
+  promptUsed: string,         // the actual prompt sent to the model (after brand-rule injection)
+  model: string,              // 'dall-e-3' | 'gpt-image-1' | 'gemini-imagen-3'
+  costCents: number
+}
+```
+
+**Implementation:**
+- Prepend brand visual rules (style, palette, things-to-avoid) to user prompt
+- Call OpenAI Images API (`gpt-image-1` recommended in 2026; DALL-E 3 fallback) or Gemini Imagen
+- Upload result to Cloudflare R2 with deterministic key `tenants/<id>/images/<draft_id>-<hash>.png`
+- Return signed URL + metadata
+- Record in `generated_images` table
+
+**Brand visual config** extends `brand_voice.visual` JSON:
+
+```typescript
+{
+  visual: {
+    aspectRatio: '1:1' | '4:5' | '16:9',
+    styleGuidelines: string,    // free text prepended to every prompt
+    avoid: string,              // e.g. "no stock photo aesthetics, no generic gradients"
+    colorPalette: string[],     // hex codes — '#06060C', '#E8862A', etc. for Octio
+    fontHint?: string,          // for typography in images
+    referenceImages?: string[]  // URLs to brand assets the model can draw on
+  }
+}
+```
+
+**New table:**
+
+```sql
+CREATE TABLE generated_images (
+  id              BIGSERIAL PRIMARY KEY,
+  tenant_id       BIGINT NOT NULL DEFAULT 1,
+  draft_id        BIGINT REFERENCES drafts(id),
+  issue_id        BIGINT REFERENCES newsletter_issues(id),
+  prompt          TEXT NOT NULL,
+  url             TEXT NOT NULL,
+  alt             TEXT,
+  model           TEXT NOT NULL,
+  cost_cents      INTEGER NOT NULL DEFAULT 0,
+  generated_at    TIMESTAMPTZ DEFAULT NOW(),
+  approved        BOOLEAN DEFAULT FALSE,
+  rejection_reason TEXT
+);
+CREATE INDEX gi_tenant_draft_idx ON generated_images (tenant_id, draft_id);
+```
+
+**Approval flow:**
+- LinkedInDrafter calls `generate_image` as part of its run when `brand_voice.visual.autoGenerate=true`
+- Generated image lands in `/queue` alongside the post body
+- Human can: approve (publishes with image), regenerate with new prompt, skip image entirely
+
+**API endpoint:**
+
+```
+POST /api/content/images/regenerate
+  Body: { draftId, newPrompt? }
+  Response: { url, alt, costCents }
+```
+
+**Cost budget:**
+- gpt-image-1 standard quality ≈ $0.04/image; HD ≈ $0.17
+- Octio cadence (~5 LinkedIn images + 1 newsletter hero/week) ≈ ~$10/month
+- Phase 4 tenants: per-tenant monthly image budget cap configurable
+
+**Phase:** 2 → ~1 day.
+
+---
+
+### 16.3 AvatarVideoGenerator tool — TikTok Option B (Phase 2)
+
+**Pattern:** optional tool path within `TikTokDrafter`. v1 default stays brief-only (§10 Option A — founder-led real video). Operator can flip a per-slot `auto_avatar` flag to switch to Option B.
+
+**Tool signature:**
+
+```typescript
+generate_avatar_video(input: {
+  script: string,           // from TikTokDrafter's draft_tiktok_script
+  avatarId: string,         // from brand_voice.video.avatars
+  voiceId: string,          // HeyGen voice OR ElevenLabs voice id
+  aspectRatio: '9:16' | '16:9',
+  duration?: number         // seconds, max 60 for TikTok
+}) → {
+  url: string,              // R2/S3 hosted MP4
+  durationSecs: number,
+  thumbnailUrl: string,
+  generatedAt: string,
+  costCents: number,
+  externalId: string        // HeyGen video id for tracing
+}
+```
+
+**Implementation:**
+- Call HeyGen v2 API: `POST /v2/video/generate` with `avatar_id`, `voice_id`, `input_text`, `dimension`
+- Poll `GET /v1/video_status?video_id=...` every 10s until `status='completed'` (typically 30–180s)
+- Download MP4 from HeyGen's S3 URL, re-upload to our R2 (decoupling from HeyGen's retention)
+- Generate thumbnail (first frame) via `ffmpeg -i mp4 -frames:v 1`
+- Insert into `generated_videos` table
+
+**New table:**
+
+```sql
+CREATE TABLE generated_videos (
+  id              BIGSERIAL PRIMARY KEY,
+  tenant_id       BIGINT NOT NULL DEFAULT 1,
+  draft_id        BIGINT REFERENCES drafts(id),
+  provider        TEXT NOT NULL,           -- 'heygen' | 'synthesia' | 'd-id'
+  external_id     TEXT NOT NULL,
+  script          TEXT NOT NULL,
+  avatar_id       TEXT,
+  voice_id        TEXT,
+  url             TEXT NOT NULL,
+  thumbnail_url   TEXT,
+  duration_secs   INTEGER,
+  aspect_ratio    TEXT,
+  cost_cents      INTEGER DEFAULT 0,
+  generated_at    TIMESTAMPTZ DEFAULT NOW(),
+  status          TEXT NOT NULL DEFAULT 'processing',  -- processing | ready | failed
+  error           TEXT
+);
+```
+
+**API endpoint:**
+
+```
+POST /api/content/videos/generate
+  Body: { draftId, autoAvatar: true, avatarId, voiceId }
+  Response: { videoId, status: 'processing' }   // poll via /api/content/videos/:id
+GET  /api/content/videos/:id
+```
+
+**Brand video config** extends `brand_voice.video`:
+
+```typescript
+{
+  video: {
+    avatars: Array<{ id: string, displayName: string, providerId: string }>,
+    voices: Array<{ id: string, displayName: string, provider: 'heygen' | 'elevenlabs', externalId: string }>,
+    defaultAspectRatio: '9:16',
+    autoAvatar: false   // Octio default false; SaaS tenants can opt-in
+  }
+}
+```
+
+**Cost budget:**
+- HeyGen Pro: $48/month for 30 minutes of video credits
+- Octio v1 default: brief-only → $0/month from HeyGen
+- Per-tenant subscription model in Phase 4 (BYO HeyGen API key)
+
+**Phase:** 2 → ~1 day.
+
+**Devil's advocate:** Even with this in place, recommend Octio defaults to brief-only. AI avatars get throttled by TikTok's algorithm and feel uncanny in B2B context. Auto-avatar is for *customers* who don't want to be on camera, not Octio's own marketing.
+
+---
+
+### 16.4 EmailResearchReport tool (effort: ~half day)
+
+**Pattern:** ad-hoc markdown → HTML → Gmail send to arbitrary recipients. Reuses `GmailNewsletterSender` (§5.3, Phase 1a) and Octio's existing Gmail OAuth — no new auth setup.
+
+**Use cases:**
+- Send a customer-call brief to the Octio team before the discovery call
+- Send a lead-enrichment dossier to the sales team
+- Send a research summary to a prospect ("here's the analysis we did before our call")
+- Send weekly performance digest to the operator
+
+**API endpoint:**
+
+```
+POST /api/content/reports/email
+Body: {
+  subject: string,
+  recipients: string[],        // emails; validated against allowlist
+  markdownBody: string,
+  fromAlias?: 'support'|'newsletter',  // defaults to 'support'
+  replyTo?: string,
+  ccRecipients?: string[],
+  attachments?: Array<{        // Phase 3 — defer in v1
+    filename: string,
+    url: string                 // R2 signed URL
+  }>
+}
+Response: { sentIds: number[], messageIds: string[] }
+```
+
+**Implementation:**
+- Render markdown to inline-styled HTML via `marked` + `juice` (Tailwind→inline) + DOMPurify
+- Build MIME with both `text/html` and `text/plain` (Gmail penalises HTML-only mail)
+- Use existing `GmailNewsletterSender` send function — handles `Reply-To`, `From: alias`, audit log, etc.
+- Log every send in `email_sends` table with `kind='research_report'`
+
+**Recipient validation:**
+- Each recipient must match one of:
+  - `@octio.co.za` domain (always allowed)
+  - An entry in `email_recipient_allowlist` table (manually curated; phase 2 admin UI to manage)
+- Reject any recipient outside both with HTTP 403 + error message
+- Rate limit: 50 emails/day/operator (well under Gmail's 2 000/day Workspace cap)
+
+**New table:**
+
+```sql
+CREATE TABLE email_recipient_allowlist (
+  id              BIGSERIAL PRIMARY KEY,
+  tenant_id       BIGINT NOT NULL DEFAULT 1,
+  email           TEXT NOT NULL,
+  display_name    TEXT,
+  category        TEXT,         -- 'customer' | 'prospect' | 'partner' | 'press'
+  added_by        TEXT NOT NULL,
+  added_at        TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX recipient_tenant_email_idx ON email_recipient_allowlist (tenant_id, email);
+```
+
+**Sitemap addition:**
+
+```
+/reports                       Compose + send ad-hoc reports
+/reports/history               List of past reports
+/reports/recipients            Manage email allowlist
+```
+
+**Phase:** Add to Phase 1a "could ship if needed" backlog (~half day). Defaults to Phase 2 otherwise.
+
+---
+
+### 16.5 ElevenLabs voice tool (Phase 2 optional)
+
+**Pattern:** TTS adapter for use cases where audio matters:
+- TikTok voiceovers (alternative to HeyGen's avatar voice)
+- Audio versions of newsletter (podcast feed, Phase 3)
+- "Marketing standup" audio summaries
+
+**Tool signature:**
+
+```typescript
+synthesise_voice(input: {
+  text: string,
+  voiceId: string,                // ElevenLabs voice ID from brand_voice.voice
+  modelId?: 'eleven_v3' | 'eleven_multilingual_v2',
+  outputFormat?: 'mp3_44100_128' | 'wav'
+}) → {
+  url: string,                    // R2-hosted audio file
+  durationSecs: number,
+  costCents: number
+}
+```
+
+**Implementation:**
+- POST to ElevenLabs `/v1/text-to-speech/{voice_id}`
+- Stream audio response into R2 upload
+- Record in new `generated_audio` table (same shape as `generated_videos` but for audio)
+
+**Cost:**
+- ElevenLabs Starter: $5/month for 30 000 characters (~30 min audio)
+- Octio cadence: ~5 short voiceovers/week ≈ well within Starter tier
+
+**Phase:** 2 → ~half day, contingent on use case actually materialising.
+
+---
+
+### 16.6 Marketing Team Voice Agent (Phase 4+)
+
+**Pattern:** the umbrella "supervisor agent" from `marketing_team_agent.json`. Conversational interface (voice or text) where the operator says "make me a newsletter from this week's sources and a LinkedIn post teasing it" and the agent orchestrates all the underlying drafters.
+
+**Architectural shape:**
+- A new top-level Mastra agent `MarketingSupervisor` with tools that *invoke other agents*: `run_strategist`, `run_linkedin_drafter`, `run_newsletter_drafter`, `run_twitter_drafter`, `generate_image`, `generate_video`, `email_report`
+- The supervisor agent has a longer system prompt that knows the Octio context + escalation rules ("if user asks for a video, default to brief-only unless they explicitly say 'with avatar'")
+- Voice interface: reuse the existing voice transcription endpoint from `octio-website/worker` (we built it for the chat); add TTS reply via ElevenLabs
+
+**Why this is Phase 4+:**
+- All the underlying agents need to exist first (Phase 1a–3)
+- Voice UX needs real usage to validate ("does anyone actually talk to their marketing tool?")
+- Heavy LLM token spend per conversation
+
+**Phase:** 4 (productisation play) → 1–2 weeks.
+
+---
+
+## 17. Research findings (2026-05-12 review)
 
 Web research pass verifying time-sensitive assumptions before scaffolding. Every claim cited.
 
-### 16.1 LinkedIn API — verified with corrections
+### 17.1 LinkedIn API — verified with corrections
 
 | Claim in spec | Verified result | Action |
 |---|---|---|
@@ -728,7 +1063,7 @@ Web research pass verifying time-sensitive assumptions before scaffolding. Every
 | Rate limit assumption (none) | 🆕 Discovered: **100 API calls/day/member** — covers ~5 posts/day + analytics polling, no problem at our cadence | Document in cron schedule comment |
 | Token expiry | 🆕 Discovered: 60-day access token, 365-day refresh — must build refresh-token watcher cron (already in spec §15 risks) | Confirmed need; keep risk row |
 
-### 16.2 Gmail bulk sender rules — significant tightening since spec drafted
+### 17.2 Gmail bulk sender rules — significant tightening since spec drafted
 
 | Finding | Source | Implication |
 |---|---|---|
@@ -738,7 +1073,7 @@ Web research pass verifying time-sensitive assumptions before scaffolding. Every
 | Unsubscribe requests must be processed within **48 hours** | [Suped knowledge base](https://www.suped.com/knowledge/email-deliverability/compliance/what-are-the-gmail-sender-requirements-for-one-click-unsubscribe-and-where-should-the-links-be-p) | Subscriber row marked unsubscribed immediately on click; publisher cron skips unsubscribed rows |
 | Spam complaint rate <0.3% required, monitored via [Postmaster Tools](https://postmaster.google.com) | Google Workspace Admin Help | Add Postmaster Tools verification for octio.co.za as Phase 1a launch task; alert if complaint rate >0.1% |
 
-### 16.3 Mastra framework — confirms our choice + scaffolding
+### 17.3 Mastra framework — confirms our choice + scaffolding
 
 | Finding | Source |
 |---|---|
@@ -750,7 +1085,7 @@ Web research pass verifying time-sensitive assumptions before scaffolding. Every
 
 Action: when scaffolding, use `npm create mastra@latest octio-content` for the services/worker side rather than hand-rolling Mastra wiring.
 
-### 16.4 Discord MessageContent — slash command is the safer default
+### 17.4 Discord MessageContent — slash command is the safer default
 
 | Finding | Source | Action |
 |---|---|---|
@@ -760,7 +1095,7 @@ Action: when scaffolding, use `npm create mastra@latest octio-content` for the s
 | Discord can **reject** `MessageContent` verification if functionality is doable via slash commands | Discord support | Build slash command (`/source <url>`) in Phase 1a as the rejection-proof path; channel listener is bonus ergonomics |
 | `GatewayIntentBits.MessageContent` is correct discord.js v14 syntax | [discordjs.guide](https://discordjs.guide/legacy/popular-topics/intents) | Confirmed |
 
-### 16.5 Firecrawl — free tier covers Phase 1a easily
+### 17.5 Firecrawl — free tier covers Phase 1a easily
 
 | Finding | Source |
 |---|---|
@@ -771,7 +1106,7 @@ Action: when scaffolding, use `npm create mastra@latest octio-content` for the s
 
 Action: stick with Firecrawl free tier for Phase 1a. Re-evaluate if monthly usage projects past 500 pages.
 
-### 16.6 TikTok Content Posting API — Phase 1b prep
+### 17.6 TikTok Content Posting API — Phase 1b prep
 
 | Finding | Source |
 |---|---|
@@ -781,7 +1116,7 @@ Action: stick with Firecrawl free tier for Phase 1a. Re-evaluate if monthly usag
 | Phase 1a brief-only doesn't touch this API at all | (spec design) |
 | Phase 1b plan: apply for audit **on day 1 of Phase 1b** so review runs in parallel with TikTokDrafter agent dev | Action item |
 
-### 16.7 Net spec health after review
+### 17.7 Net spec health after review
 
 - **No design changes required** — architecture, agents, data model, phases all hold up against current API realities.
 - **5 small corrections** applied inline above (scope rename, Gmail unsubscribe SLA, Postmaster Tools monitoring, Discord slash-command fallback, Mastra scaffolding command).
