@@ -20,7 +20,7 @@ services:
   mastra-chat-worker:
     build:
       context: .
-      dockerfile: worker/Dockerfile
+      dockerfile: packages/worker/Dockerfile
     container_name: octio-mastra-chat-worker
     restart: unless-stopped
     depends_on:
@@ -31,7 +31,7 @@ services:
       PORT: 3000
       DATABASE_URL: postgres://octio:${POSTGRES_PASSWORD:-octio_local_dev}@postgres:5432/octio
     env_file:
-      - ./worker/.env
+      - ./packages/worker/.env
     ports:
       - "127.0.0.1:3000:3000"
     healthcheck:

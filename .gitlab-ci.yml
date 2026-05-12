@@ -9,78 +9,58 @@ stages:
   - deploy
 
 # =============================================================================
-# Build stage — compile the Vite SPA
+# Build stage — compile the Vite SPA and typecheck the worker
 # =============================================================================
 
-build:
-  image: node:22-alpine
+build:web:
+  image: oven/bun:1.3.3-alpine
   stage: build
   only:
     - main
-  before_script:
-    - corepack enable
-    - corepack prepare pnpm@10.33.0 --activate
   script:
-    - pnpm install --frozen-lockfile
-    - pnpm run build
+    - bun install --frozen-lockfile
+    - bun run --filter @octio/web build
   artifacts:
     paths:
-      - dist/
+      - packages/web/dist/
     expire_in: 1 week
 
-# =============================================================================
-# Build stage — compile the Hono+Mastra worker
-# =============================================================================
-
-build:worker:
-  image: node:22-alpine
+# The worker runtime image is self-contained (its Dockerfile installs deps and
+# runs TS directly with Bun), so we don't need to produce a worker artifact.
+# We still want to gate `main` on typecheck across @octio/shared + @octio/worker.
+typecheck:worker:
+  image: oven/bun:1.3.3-alpine
   stage: build
   only:
     - main
-  before_script:
-    - corepack enable
-    - corepack prepare pnpm@10.33.0 --activate
   script:
-    - pnpm install --frozen-lockfile
-    # @octio/shared exports compiled JS (./dist/schemas.js); the worker's tsc
-    # pass needs the .d.ts to resolve `import ... from '@octio/shared'`.
-    - pnpm --filter @octio/shared run build
-    - pnpm --filter @octio/worker run build
-  artifacts:
-    paths:
-      - shared/dist/
-      - worker/dist/
-      - worker/src/knowledge/
-      - worker/src/prompts/
-    expire_in: 1 week
+    - bun install --frozen-lockfile
+    - bun run --filter @octio/shared typecheck
+    - bun run --filter @octio/worker typecheck
 
 # =============================================================================
-# Package stage — build the nginx image and push to registry
+# Package stage — build images and push to the GitLab Container Registry
 # =============================================================================
 
-package:
+package:web:
   stage: package
   only:
     - main
   script:
     - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.com
-    - docker build -f Prod.Dockerfile
+    - docker build -f packages/web/Dockerfile
         -t "registry.gitlab.com/octio-dev/octio-website:latest"
         -t "registry.gitlab.com/octio-dev/octio-website:$CI_COMMIT_SHORT_SHA" .
     - docker push "registry.gitlab.com/octio-dev/octio-website:latest"
     - docker push "registry.gitlab.com/octio-dev/octio-website:$CI_COMMIT_SHORT_SHA"
 
-# Worker image — self-contained multi-stage build (no build stage artifact
-# needed; worker/Dockerfile runs pnpm install + tsc inside the builder).
-# Listens on :3000 and is reverse-proxied at /api/ and /chat/ by Traefik on
-# infra-01 (and the QA equivalent on demo-01).
 package:worker:
   stage: package
   only:
     - main
   script:
     - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.com
-    - docker build -f worker/Dockerfile
+    - docker build -f packages/worker/Dockerfile
         -t "registry.gitlab.com/octio-dev/octio-website/worker:latest"
         -t "registry.gitlab.com/octio-dev/octio-website/worker:$CI_COMMIT_SHORT_SHA" .
     - docker push "registry.gitlab.com/octio-dev/octio-website/worker:latest"
