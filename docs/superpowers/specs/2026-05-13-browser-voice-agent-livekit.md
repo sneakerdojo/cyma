@@ -23,15 +23,18 @@ Full evidence trail in commit `9f883ae` research transcripts and the comparison 
 
 ## Goal
 
-Ship a working in-browser voice agent on `octio.co.za` in approximately **6 days** (managed LiveKit Cloud path) or **8 days** (self-host SFU). The agent:
+Ship a working in-browser voice agent on `octio.co.za` in approximately **7 days** running on Octio's existing self-hosted infrastructure (no managed cloud dependency). The agent:
 
 - Captures the visitor's microphone audio in the browser via WebRTC
-- Streams it to a LiveKit Agents Node.js worker that runs STT → Mastra brain → TTS
+- Streams it to a self-hosted LiveKit SFU + a Node.js Agents worker that runs STT → **real Mastra Octo brain** → TTS
 - Plays the agent's spoken reply back through the browser speakers
 - Hits **mouth-to-ear p50 < 1.3s, p95 < 2.0s** (foreground tab, working network)
-- Reuses the existing voice-agent orchestrator + mock tools (and the production tools when wired)
+- Wraps the existing Mastra Octo agent (`packages/worker/src/mastra/agents/octo.ts`) — `mockBrain` stays in the codebase as a dev-mode toggle, not the production default
+- Reuses the existing voice-agent orchestrator + production tools (as they're wired)
 - Works on iOS Safari foreground tab (out of scope: lock-screen, PWA standalone background)
 - Phase 2 (telephony) lands via LiveKit SIP plugin — same agent code, additional ingress.
+
+**Infrastructure decision:** Octio owns the servers. Self-hosting livekit-server from day 1 avoids the $0.005/participant-min Cloud fee, strengthens the POPIA story (audio never leaves Octio infrastructure), and removes vendor-outage exposure. The "managed Cloud first" path in earlier drafts is dropped — going straight to the production shape.
 
 ## Architecture
 
@@ -43,42 +46,46 @@ Ship a working in-browser voice agent on `octio.co.za` in approximately **6 days
 │  - One persistent <audio> element unlocked on Start tap     │
 │  - Silero VAD already shipped in LiveKit client for barge-in│
 └─────────────────────┬──────────────────────────────────────┘
-                      │ WebRTC (Opus over RTP) → LiveKit SFU
+                      │ WebRTC (Opus over RTP) — TLS via Caddy/
+                      │ Traefik on Octio infra
                       ▼
 ┌────────────────────────────────────────────────────────────┐
-│  LiveKit SFU                                                │
-│  Phase 1: LiveKit Cloud (managed, $0.005/participant-min)  │
-│  Phase 2 / Phase 3 self-host: livekit-server in Docker     │
+│  Self-hosted livekit-server (Octio infra-01 / new VPS)      │
+│  - Docker: livekit/livekit-server:v1.8+                     │
+│  - WebSocket on 443 (TLS) → wss://livekit.octio.co.za       │
+│  - UDP 50000-50100 for RTP                                  │
+│  - coturn sidecar on 5349 (TURN-over-TLS) for NAT traversal │
 └─────────────────────┬──────────────────────────────────────┘
                       │ Agent joins room as a participant
                       ▼
 ┌────────────────────────────────────────────────────────────┐
-│  LiveKit Agents Node.js worker (TypeScript)                 │
+│  LiveKit Agents Node.js worker (TypeScript) — Octio infra   │
 │  - @livekit/agents + @livekit/agents-plugin-deepgram        │
 │  - @livekit/agents-plugin-cartesia                          │
 │  - @livekit/agents-plugin-silero                            │
-│  - Custom LLM that POSTs to our Bun /api/voice-agent/turn   │
+│  - OctoBrainAdapter — wraps real Mastra agent as LLM        │
 └─────────────────────┬──────────────────────────────────────┘
-                      │ HTTPS POST /api/voice-agent/turn
+                      │ In-process or HTTPS to Bun brain
                       │ body: { sessionId, transcript, tenantBrand }
                       │ response: { reply, toolCalls[] }
                       ▼
 ┌────────────────────────────────────────────────────────────┐
 │  Bun/Hono worker (existing packages/worker/)                │
+│  - Real Mastra Octo agent (mastra/agents/octo.ts)           │
 │  - Reuses src/services/voice-agent/orchestrator.ts          │
-│  - Reuses src/services/voice-agent/mock-brain.ts            │
-│    (swap for production Mastra agent on octo.ts when ready) │
 │  - Reuses src/services/profile/* for caller recognition     │
-│  - Reuses tools (mock now; Google Calendar/WhatsApp later)  │
+│  - Reuses production tools (Google Calendar, WhatsApp, etc) │
+│  - mockBrain stays in code, gated by NODE_ENV=development   │
+│    + VOICE_USE_MOCK_BRAIN=1 (dev-only toggle)               │
 └────────────────────────────────────────────────────────────┘
 ```
 
 ### Why this shape
 
 - **LiveKit Agents Node.js SDK** (GA late 2025) lets us stay in TypeScript. Less language sprawl; one less runtime to operate.
-- **LiveKit Cloud for Phase 1** removes self-host ops entirely. Migration to self-host is a config change, not a rewrite, when scale or cost demands it.
-- **Mastra stays intact.** A custom `LLM` subclass posts to our existing Bun endpoint. Octo agent code unchanged.
-- **The orchestrator we shipped is reused.** Phase 1 calls `runTurn(...)` per turn via HTTP. Phase 2 (Twilio inbound) hits the same orchestrator from a LiveKit SIP ingress — agent code is identical.
+- **Self-host livekit-server on Octio infra.** Octio already runs Docker-compose-based production deployments (infra-01). Adding livekit-server is one container + coturn sidecar. No managed-cloud fee, no vendor-outage exposure, audio never leaves Octio infrastructure — strongest POPIA story.
+- **Real Mastra brain from day 1.** The OctoBrainAdapter wraps the existing Mastra agent in the LiveKit `LLM` interface. Mock brain stays in the codebase but is gated behind a dev-only env toggle, never the production default.
+- **The orchestrator we shipped is reused.** Phase 1 wires the real Mastra Octo agent through the existing `runTurn(...)` orchestration. Phase 2 (Twilio inbound) hits the same code path from a LiveKit SIP ingress — agent code is identical.
 
 ## Stack BOM (verified May 2026)
 
@@ -88,13 +95,14 @@ Ship a working in-browser voice agent on `octio.co.za` in approximately **6 days
 | Browser playback | LiveKit-managed audio element (handled by SDK) | Sample-accurate WebRTC playback. Survives turn boundaries. | $0 |
 | iOS unlock | **One persistent `<audio>` element + `AudioContext.resume()` on Start tap** | LiveKit's SDK does the unlock dance under the hood. | $0 |
 | Barge-in | **Silero VAD via `@livekit/agents-plugin-silero`** | 86% precision / 100% recall (LiveKit data) | $0 (plugin) |
-| SFU | **LiveKit Cloud (Phase 1)**; livekit-server self-host (Phase 3) | Phase 1 avoids SFU operation entirely. Documented self-host path for cost optimisation later. | LiveKit Cloud: $0.005/participant-min (~$0.010/call-min) |
-| Agent worker runtime | **Node.js 20 + `@livekit/agents`** | TypeScript end-to-end. ~256MB RAM idle. | ~$5–10/mo on Fly.io |
+| SFU | **Self-hosted livekit-server v1.8+** on Octio infra (Docker) | Docker container on existing infra-01 (or new dedicated VPS if voice load justifies). Includes coturn sidecar for NAT traversal. | ~$15–25/mo VPS amortised (or $0 if reused on infra-01) |
+| Agent worker runtime | **Node.js 20 + `@livekit/agents`** on Octio infra | TypeScript end-to-end. ~256MB RAM idle. Co-located with livekit-server for sub-30ms hop. | $0 (shared infra) |
+| Brain integration | **OctoBrainAdapter** — small adapter wrapping the existing Mastra Octo agent as `@livekit/agents` `LLM` | Mock brain stays gated behind `NODE_ENV=development && VOICE_USE_MOCK_BRAIN=1` | $0 (code only) |
 | STT | **Deepgram Nova-3 streaming** via `@livekit/agents-plugin-deepgram` | 150–300ms first-final. ⚠️ SA accent unverified — see Pre-flight gate. | $0.0077/min PAYG |
 | STT audio format | **PCM linear16 @ 16kHz mono** | LiveKit handles Opus → PCM conversion before forwarding to Deepgram | — |
-| Brain | **Existing Mastra Octo agent** on Bun/Hono, called via custom `LLM` subclass over HTTP | No code rewrite; HTTP wrapper around `runTurn(...)` | ~$0.012/min Haiku 4.5 EU |
+| Brain | **Real Mastra Octo agent** on Bun/Hono via OctoBrainAdapter | No HTTP hop if co-located; falls back to HTTP if separated. Existing agent unchanged. | ~$0.012/min Haiku 4.5 EU (token spend) |
 | TTS | **Cartesia Sonic-3** via `@livekit/agents-plugin-cartesia`, ElevenLabs Flash fallback | 90ms TTFA; LiveKit aggregates sentence chunks automatically | $0.0105/min |
-| Total provider cost | | | **~$0.03/min provider + $0.010/min SFU = ~$0.040/min** |
+| Total provider cost | | | **~$0.030/min providers + ~$0/min SFU = ~$0.030/min** (Cloud option saved) |
 
 ## User flow (caller-facing)
 
@@ -152,24 +160,31 @@ Comparable to Pipecat's budget; LiveKit Cloud's regional edge actually slightly 
    - **Acceptance:** bot greets, hears the caller, replies within ~1.5s end-to-end.
    - **Reject criterion:** any of mic / WebRTC / playback fails on iOS Safari 18+.
 
-3. **LiveKit Agents hello-world.** Stand up a minimal LiveKit Agents Node.js worker locally, point at a free LiveKit Cloud sandbox, run a single "echo" agent that just plays back the caller's transcript via TTS.
-   - **Acceptance:** end-to-end "hello world" works in < 4 hours of setup.
-   - **Reject criterion:** blocker found in LiveKit Cloud signup, agent dispatch, or plugin install.
+3. **Self-hosted livekit-server hello-world on Octio infra.** Deploy livekit-server (Docker) + coturn to infra-01 (or new VPS). Verify:
+   - TLS WebSocket reachable at `wss://livekit.octio.co.za` from outside the network
+   - UDP 50000-50100 reachable (or fall back to TURN over 5349)
+   - Agents Node.js worker registers + receives a job dispatched into a test room
+   - "Echo" agent plays back the caller's transcript via TTS
+   - **Acceptance:** end-to-end "hello world" works in < 1 day of setup.
+   - **Reject criterion:** firewall / NAT / DNS issue can't be resolved on the existing infra → either provision a dedicated voice VPS or escalate.
 
-If any pre-flight gate fails, stop and revisit. Specifically: a Nova-3 failure on SA accents reopens the STT decision; an iOS Safari failure reopens the platform-target decision.
+If any pre-flight gate fails, stop and revisit. Specifically: a Nova-3 failure on SA accents reopens the STT decision; an iOS Safari failure reopens the platform-target decision; a livekit-server self-host failure forces either dedicated-VPS provisioning or a (regretted) revisit of LiveKit Cloud.
 
 ## Build sequence (post pre-flight gates)
 
 | Day | Slice | Output |
 |---|---|---|
-| 0 (Pre-flight) | SA-accent benchmark + iOS Safari real-device test + LiveKit hello-world | Go / no-go on stack |
-| 1 | LiveKit Agents Node.js worker scaffolding — VoicePipelineAgent + Deepgram + Cartesia plugins | Worker connects, joins a room, runs a STT → echo → TTS pipeline |
-| 2 | Custom `OctioBrain extends LLM` — POST to `/api/voice-agent/turn` | Agent's reply is genuinely the Mastra brain's reply |
-| 3 | Token-signing endpoint on Bun worker (`POST /api/voice-agent/token`) + browser client (`livekit-client` + `RoomProvider`) | Browser connects to a real LiveKit room |
-| 4 | iOS Safari unlock UX + persistent `<audio>` + start CTA | Works on iPhone Safari foreground |
-| 5 | Silero VAD barge-in tuning + orb UI states | Bot stops mid-sentence; visual feedback |
+| 0 (Pre-flight) | SA-accent benchmark + iOS Safari real-device test + self-hosted livekit-server hello-world on Octio infra | Go / no-go on stack |
+| 0.5 | Production deploy: livekit-server + coturn Docker containers via existing GitLab CI / Docker compose; `wss://livekit.octio.co.za` TLS via existing reverse proxy | Self-hosted SFU live on Octio infra |
+| 1 | LiveKit Agents Node.js worker scaffolding — VoicePipelineAgent + Deepgram + Cartesia plugins; deploy to Octio infra | Worker connects to local SFU, joins a room, runs a STT → echo → TTS pipeline |
+| 2 | `OctoBrainAdapter` — wraps real Mastra Octo agent (`mastra/agents/octo.ts`) as `@livekit/agents` `LLM`. `VOICE_USE_MOCK_BRAIN` env gate for dev. | Agent's reply is genuinely from the production Mastra brain |
+| 3 | Token-signing endpoint on Bun worker (`POST /api/voice-agent/token`, 1h TTL) + browser client (`livekit-client`) | Browser connects to the self-hosted LiveKit room |
+| 4 | iOS Safari unlock UX + persistent `<audio>` + start CTA + POPIA consent surface | Works on iPhone Safari foreground |
+| 5 | Silero VAD barge-in tuning + orb UI states (idle / listening / thinking / speaking) | Bot stops mid-sentence; visual feedback |
 | 6 | Wire to `/voice-sim` page (replace mock-text input with live mic) + Patient Zero soak | Live voice agent on `octio.co.za` |
 | (Phase 2, deferred) | LiveKit SIP plugin + Twilio SA SIP trunk | Same agent code answers phone calls |
+
+**Total: ~7 days** (Day 0 pre-flight + Day 0.5 deploy + 6 dev days).
 
 ## Tests
 
@@ -187,29 +202,35 @@ Pre-existing 29 voice-agent unit tests stay green.
 
 ## Privacy + POPIA notes
 
-- **Consent disclosure on Start tap:** "By talking to us, you agree to our [Privacy Notice]. We record this conversation for service quality." Reuses `recordConsent` from profile service.
-- **No call recording in v1.** Audio is processed in-flight (STT → discarded). Transcripts stored 90 days per existing retention policy.
+Self-hosting strengthens this section significantly. Audio never leaves Octio's infrastructure except for STT/TTS API calls (which go to providers with verified EU/SA residency).
+
+- **Audio data sovereignty:** WebRTC audio terminates on Octio's self-hosted SFU. Never traverses a third-party SFU vendor. POPIA s.72 cross-border transfer obligations only apply to the STT/TTS provider calls.
+- **Consent disclosure on Start tap:** "By talking to us, you agree to our [Privacy Notice]. Audio is processed by Octio in real-time, not recorded." Reuses `recordConsent` from profile service.
+- **No call recording in v1.** Audio is processed in-flight (STT → discarded immediately). Transcripts stored 90 days per existing retention policy.
 - **POPIA Information Officer:** unchanged — founder is the IO; audit log captures every turn via `profileAuditLog`.
-- **WebRTC encryption:** SRTP end-to-end between browser and LiveKit SFU, between SFU and agent.
-- **LiveKit Cloud region:** request EU residency for POPIA. LiveKit supports per-room region pinning.
-- **EU residency for Deepgram + Anthropic + Cartesia:** verified during pre-flight.
+- **WebRTC encryption:** SRTP end-to-end between browser and SFU. TLS on the WebSocket signalling channel. SFU-to-agent is in-cluster (loopback) when co-located, TLS otherwise.
+- **EU residency for Deepgram + Anthropic + Cartesia:** verified during pre-flight. Cartesia EU endpoints used.
+- **Operator-only access:** livekit-server admin API token kept in env; only founder/operator can dispatch agents or inspect rooms.
 
 ## Cost model — what you actually pay
 
-At ~600 demo conversation-mins/day (200 conversations × 3 min avg):
+At ~600 demo conversation-mins/day (200 conversations × 3 min avg) on Octio's self-hosted infra:
 
 | Item | Per minute | Per day |
 |---|---|---|
-| LiveKit Cloud (2 participants/call) | $0.010 | $6.00 |
+| Self-hosted livekit-server (shared on infra-01 or dedicated VPS) | — | $0.50–0.80 (amortised) |
 | Deepgram Nova-3 STT | $0.0077 | $4.62 |
 | Cartesia Sonic-3 (~7k chars/min) | $0.0105 | $6.30 |
 | Mastra brain (Haiku 4.5, ~3k tokens/min) | $0.012 | $7.20 |
-| Agent worker (Fly.io 256MB) | — | $0.33 |
-| **Total** | **~$0.040/min** | **~$24/day** |
+| Agent worker (shared infra) | — | $0 (co-located) |
+| Bandwidth (estimated) | — | ~$0.50 |
+| **Total** | **~$0.031/min** | **~$19/day** |
 
-vs Pipecat-self-host (would have been ~$18/day) — **$6/day premium for managed SFU + zero SFU ops.**
+vs LiveKit Cloud variant: ~$24/day. **Self-hosting saves ~$150/month at demo volume, scales linearly.**
 
-Migration to self-host LiveKit SFU later: ~$15–25/mo per livekit-server machine; would cut the LiveKit-Cloud line item to $0. Worth doing once demo proves out; not worth doing on day 1.
+At 10× demo volume (6,000 min/day): self-host stays ~$0.031/min (~$190/day), LiveKit Cloud variant becomes ~$0.040/min (~$240/day). **Saves $1,500/month.**
+
+The only cost-relevant question: does infra-01 have enough capacity for the SFU + agent workers, or do we provision a dedicated VPS? Answer in pre-flight gate 3.
 
 ## Out of scope (v1)
 
@@ -226,21 +247,23 @@ Migration to self-host LiveKit SFU later: ~$15–25/mo per livekit-server machin
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
 | SA-accent STT WER too high | Medium | High | Pre-flight benchmark mandatory. Speechmatics fallback. |
-| LiveKit Cloud outage (May 5 2026 incident remembered) | Low | Medium | Self-host fallback documented; can switch in <1 day if needed. Architectural cost is bounded. |
+| Self-host livekit-server config wrong (NAT, ports, TLS) | Medium | High | Pre-flight gate 3 forces a real hello-world before any code. Provides clear escape: dedicated VPS or rollback to managed Cloud. |
+| Self-host upgrade burden (livekit-server new releases) | Low (1.x is stable) | Low | Version-pin Docker image; review release notes per minor; quarterly upgrade cadence. |
 | iOS Safari quirk breaks demo | Medium | High | Pre-flight real-device test. Foreground-only constraint accepted. |
 | Cartesia outage | Low | Medium | ElevenLabs Flash v2.5 fallback configured in LiveKit pipeline |
 | Deepgram outage | Low | High | Speechmatics fallback configured in LiveKit pipeline |
-| Anthropic API rate limit | Medium | Medium | Existing fallback cascade (Haiku → Gemini → Groq) |
-| Cost overrun on demo traffic | Low | Low | Daily cap at $40 spend; auto-disable demo if exceeded |
+| Anthropic API rate limit / Mastra brain failure | Medium | High | Existing fallback cascade (Haiku → Gemini → Groq) inside the Mastra agent. **Note:** failure surface is larger than mock-brain — real LLM hallucinations + provider rate limits both possible. |
+| Cost overrun on demo traffic | Low | Low | Daily cap at $30 spend; auto-disable demo if exceeded |
 | LiveKit Agents 1.x → 2.x breaking change | Low (1.0 already shipped May 2025) | Medium | Version-pin SDK; review release notes per minor |
+| infra-01 voice load competes with website / chat / worker | Medium | Medium | Monitor CPU + memory during pre-flight. If >50% utilisation under simulated load, provision a dedicated voice VPS (~$15–25/mo Hetzner) — keeps SFU isolated. |
 
 ## Open questions
 
-1. **LiveKit Cloud region for Octio.** LiveKit Cloud SFU regions: `us-east`, `eu-west`, `ap-south`. EU west is closest to SA. Expected RTT SA → eu-west: ~150ms (acceptable). If demo latency p50 > 1.5s, evaluate ap-south as a closer hop. **Decision: start eu-west, measure, move if needed.**
+1. **Where does livekit-server live in Octio infra — infra-01 or dedicated VPS?** Pre-flight gate 3 answers this. If infra-01 has capacity headroom (CPU < 50% under simulated load) it's the cheapest option. Otherwise provision a Hetzner CX22 (~€5/mo) dedicated to voice.
 
-2. **Demo brain — mock vs production.** v1 defaults to existing `mockBrain` for safety + determinism. Switch to production Mastra agent on `octo.ts` after 1 week of Patient Zero soak.
+2. **Audio quality vs latency trade.** Cartesia `pcm_s16le @ 24kHz` is lower-quality than 44.1kHz but cuts ~20ms decode time. If demo feedback says voice sounds tinny, upgrade to 44.1kHz at the latency cost.
 
-3. **Audio quality vs latency trade.** Cartesia `pcm_s16le @ 24kHz` is lower-quality than 44.1kHz but cuts ~20ms decode time. If demo feedback says voice sounds tinny, upgrade to 44.1kHz at the latency cost.
+3. **OctoBrainAdapter — in-process or HTTP?** If LiveKit Agents worker is in the same Bun runtime as the Mastra agent, the adapter can be in-process (zero hop, lowest latency). If the worker is a separate Node.js container (likely, since `@livekit/agents` is Node-not-Bun), the adapter POSTs to the Bun brain. Either path is supported — pick based on whether the LiveKit Agents Node SDK is Bun-compatible (verify in pre-flight Day 0.5).
 
 ## Citations
 
