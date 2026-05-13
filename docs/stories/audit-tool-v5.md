@@ -3,11 +3,17 @@
 **Source spec:** `docs/superpowers/specs/2026-05-12-audit-tool-claude-code.md`
 **Iteration:** 5 of 5 — final. Vitest + Playwright signatures for all 40 stories.
 
-Conventions match `lead-gen-v5.md`:
-- Vitest in `worker/src/__tests__/audit-tool/{story-id}.spec.ts`
-- Playwright in `apps/web/tests/e2e/audit-tool/{story-id}.spec.ts`
-- Cloudflare Sandboxes mocked locally; nightly integration tests against a real sandbox
-- All `expect.fail` markers — RED at write-time
+Conventions match `lead-gen-v5.md` post bun-refactor — tests live next to source as `packages/worker/src/services/audit-tool/<thing>.test.ts`. Path-mapping table:
+
+| Old path in this doc | New actual path |
+|---|---|
+| `worker/src/__tests__/audit-tool/us-XXX-thing.spec.ts` | `packages/worker/src/services/audit-tool/thing.test.ts` |
+| `apps/web/tests/e2e/audit-tool/us-XXX-thing.spec.ts` | `packages/web/tests/e2e/audit-tool/thing.test.ts` |
+| `worker/src/__tests__/audit-tool/_fixtures/...` | `packages/worker/src/services/audit-tool/_fixtures/...` |
+
+- Vitest kept post-refactor. Cloudflare Sandboxes mocked locally; nightly runs against a real sandbox.
+- All `expect.fail` markers — RED at write-time.
+- The audit-tool's Claude Code sandbox runs inside Bun's container (worker runtime is `oven/bun:1.3.3-alpine`); the rebuild subprocess still uses `@anthropic-ai/claude-agent-sdk` with `--bare` + `ANTHROPIC_API_KEY` (Commercial Terms) regardless of host runtime.
 
 ---
 

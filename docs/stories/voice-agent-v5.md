@@ -3,11 +3,17 @@
 **Source spec:** `docs/superpowers/specs/2026-05-12-voice-agent-superseded.md`
 **Iteration:** 5 of 5 — final. Vitest + Playwright signatures for all 34 stories.
 
-Conventions match `lead-gen-v5.md`:
-- Vitest in `worker/src/__tests__/voice-agent/{story-id}.spec.ts`
-- Playwright E2E in `apps/web/tests/e2e/voice-agent/{story-id}.spec.ts` (where applicable; many voice tests are pure backend)
-- Twilio + Retell are mocked via local harness; actual integration tests run nightly against a dedicated test number
-- All `expect.fail` markers — RED at write-time
+Conventions match `lead-gen-v5.md` post bun-refactor — tests live next to source as `packages/worker/src/services/voice-agent/<thing>.test.ts`. Path-mapping table:
+
+| Old path in this doc | New actual path |
+|---|---|
+| `worker/src/__tests__/voice-agent/us-XXX-thing.spec.ts` | `packages/worker/src/services/voice-agent/thing.test.ts` |
+| `worker/src/__tests__/voice-agent/integration/us-XXX-thing.integration.spec.ts` | `packages/worker/src/services/voice-agent/integration/thing.integration.test.ts` |
+| `worker/src/__tests__/voice-agent/_fixtures/...` | `packages/worker/src/services/voice-agent/_fixtures/...` |
+
+- Vitest kept post-refactor. Twilio + Retell mocked locally; nightly integration runs against a dedicated test number.
+- All `expect.fail` markers — RED at write-time.
+- Worker runtime is **Bun 1.3.3** in production. Use `Bun.serve`, `import.meta.dir`, `Bun.file`/`Bun.write`, and `crypto.randomUUID` (global) over Node equivalents where idiomatic. Keep `node:crypto` for HMAC + `timingSafeEqual`, `node:path` (no Bun equivalent), and any Node-only deps until they hit issues.
 
 ---
 

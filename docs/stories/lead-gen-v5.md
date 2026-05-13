@@ -13,14 +13,20 @@ All test signatures are **RED** at write-time. TDD red-green-refactor.
 
 ---
 
-## Conventions
+## Conventions (post bun-refactor, 2026-05-13)
 
-- Vitest tests live in `worker/src/__tests__/lead-gen/{story-id}.spec.ts`
-- Playwright tests live in `apps/web/tests/e2e/lead-gen/{story-id}.spec.ts`
-- Each `it(...)` / `test(...)` body is `expect.fail('not implemented')` until the engineer makes it green
-- Common fixtures in `worker/src/__tests__/lead-gen/_fixtures.ts` and `apps/web/tests/e2e/lead-gen/_fixtures.ts`
-- Mock helpers: `_mocks.ts` per scope
-- CI coverage gate: 80% line coverage on `worker/src/services/lead-gen/**` and `worker/src/routes/chat/**`
+The project moved to `packages/{web,worker,shared}/` and uses bun. Tests live **next to source** as `*.test.ts`, matching the existing pattern (`packages/worker/src/services/gmail.test.ts` next to `gmail.ts`). Earlier `__tests__/` + `.spec.ts` paths in this file are illustrative — translate per the table below.
+
+| Old path in this doc | New actual path |
+|---|---|
+| `worker/src/__tests__/lead-gen/us-XXX-thing.spec.ts` | `packages/worker/src/services/lead-gen/thing.test.ts` |
+| `apps/web/tests/e2e/lead-gen/us-XXX-thing.spec.ts` | `packages/web/tests/e2e/thing.test.ts` |
+| `worker/src/__tests__/lead-gen/_fixtures.ts` | `packages/worker/src/services/lead-gen/_fixtures.ts` |
+| Coverage path `worker/src/services/lead-gen/**` | `packages/worker/src/services/lead-gen/**` |
+
+- Vitest is still the test runner (kept post-refactor; `packages/worker/vitest.config.ts`)
+- Each `it(...)` body starts as `expect.fail('not implemented')`; engineer turns red → green → refactor
+- CI coverage gate: 80% line coverage on `packages/worker/src/services/lead-gen/**` and `packages/worker/src/routes/chat*`
 
 ---
 
