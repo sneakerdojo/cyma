@@ -100,6 +100,44 @@ These are all real outcomes — not stubs — they're the agent's behavior under
 - **Add `send_resources` rate-limit** at the gmail layer or tool boundary.
 - **Strengthen Octo cold-start prompt** with few-shot examples for `show_choices` use cases.
 
+## 2026-05-13 update — cheap fixes applied + re-verified
+
+After committing the harness, applied the three schema/rate-limit fixes and
+re-ran the master with Postgres up. Result: 46/55 (84%) vs the pre-fix 39/47
+(83%). The 3 previously-failing scenarios that the fixes targeted now all pass:
+
+| Bug | Pre-fix | Post-fix | Fix |
+|---|---|---|---|
+| send_resources mail-bomb | 5 sends/turn | 1 send/turn | Per-recipient cooldown (60s default, env-tunable) in tool execute |
+| show_scheduler daysAhead=0 | accepted | rejected by Zod | `z.number().int().min(1).max(30).default(5)` |
+| show_form empty fields | reached frontend | rejected by Zod | `z.array(fieldSchema).min(1).max(8)` (similar min added to show_choices/show_multi_select) |
+
+### Remaining structural finding: enrich_lead "acknowledge without firing"
+
+The intensity harness exposed the SAME hallucination pattern in chat that
+the voice-agent had: when a user reveals qualifying info, Kimi often
+acknowledges it in text ("Got it — repeated customer support latency
+issues are a major pain") **without firing `enrich_lead`**. This means the
+lead score is silently dropped in production. enrich_lead pass rate is
+4/8 — but the failures are all "tool not fired" cases, not arg-shape bugs.
+
+This is not fixable with a schema constraint. The right fix is to port
+the voice-agent's hallucination-guard pattern to the chat `/turn` route:
+detect "I'll note that / got it / noting" phrases when no `enrich_lead`
+call fired and re-prompt with `toolChoice: {type:'tool', toolName:'enrich_lead'}`.
+
+Same pattern, different surface. Estimate: 2-3 hours including unit tests.
+
+### Remaining stochastic findings (not addressed)
+
+- `show_choices` cold-start under-use — still 4/6
+- `handoff_to_human` occasional false-positive on pricing — still 6/7
+- `generate_project_blueprint` email capture flaky — still 3/4
+
+These are all "Kimi doesn't fire when it should" — same root cause as the
+enrich_lead finding. The voice-agent-style guard would address all of
+them once ported.
+
 ## Harness invocation cheat-sheet
 
 ```bash

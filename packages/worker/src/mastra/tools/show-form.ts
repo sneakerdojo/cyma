@@ -26,7 +26,11 @@ export const showFormTool = createTool({
   inputSchema: z.object({
     question: z.string().describe('Main question text'),
     detail: z.string().optional().describe('Additional context, muted text below question'),
-    fields: z.array(fieldSchema).describe('Ordered list of form field definitions'),
+    fields: z
+      .array(fieldSchema)
+      .min(1, 'fields must contain at least one field')
+      .max(8, 'fields cannot exceed 8 fields')
+      .describe('Ordered list of form field definitions (1-8 fields)'),
   }),
   execute: async (input) => ({ rendered: true, ...input }),
 });

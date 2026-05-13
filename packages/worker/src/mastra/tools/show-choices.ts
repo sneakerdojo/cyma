@@ -17,7 +17,11 @@ export const showChoicesTool = createTool({
   inputSchema: z.object({
     question: z.string().describe('Main question text, bold'),
     detail: z.string().optional().describe('Additional context, muted text below question'),
-    options: z.array(z.string()).describe('Button labels'),
+    options: z
+      .array(z.string().min(1).max(120))
+      .min(2, 'options must contain at least 2 buttons')
+      .max(8, 'options cannot exceed 8 buttons')
+      .describe('Button labels (2-8 options, each non-empty, max 120 chars)'),
     allowCustom: z
       .boolean()
       .default(true)
