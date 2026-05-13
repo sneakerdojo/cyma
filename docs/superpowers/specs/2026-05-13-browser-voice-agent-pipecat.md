@@ -1,5 +1,7 @@
 # Browser Voice Agent (Pipecat + Cartesia + Deepgram + Mastra) — spec
 
+> ⚠️ **SUPERSEDED on 2026-05-13.** Replaced by [`2026-05-13-browser-voice-agent-livekit.md`](./2026-05-13-browser-voice-agent-livekit.md) on the same day after a second research pass surfaced production-failure evidence that reversed the framework choice. The Pipecat-vs-LiveKit comparison and the reasons for the reversal are documented at the top of the new spec. This file is retained only for traceability and to preserve the research artefacts cited within. **Do not implement against this spec.**
+
 **Status:** Draft — awaiting approval before code.
 **Date:** 2026-05-13.
 **Supersedes:** none (extends `2026-05-12-voice-agent-superseded.md` with a browser-first Phase 1 path).
