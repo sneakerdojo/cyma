@@ -170,6 +170,87 @@ streams the response (unlike voice-agent's `generate()`). Two options:
 Both are doable but want explicit user approval before changing the
 chat surface.
 
+---
+
+## 2026-05-13 update — industry research + revised architecture recommendation
+
+After landing the regex guard at 91-93%, we questioned whether regex was the
+right tool and ran a focused research pass on production voice/conversational
+AI systems (Vapi, Retell, LiveKit, Pipecat, OpenAI Agents SDK).
+
+**Industry consensus, derived from 13+ official docs + practitioner posts:**
+
+The dominant production pattern is **explicit conversation state machine +
+scoped tools per state**. Examples:
+- Retell "Conversation Flow" with function nodes (deterministic fire on
+  entry) and conversation nodes (LLM picks from a *restricted* tool set)
+- Pipecat Flows: nodes with single purpose, tools attached per node
+- Vapi Squads: specialists with "only the tools needed for that specific task"
+- OpenAI Agents SDK: handoffs modeled as tools, agent-as-tool composition
+
+Daily.co's June 2025 guidance is blunt: *"Define as few tools as possible."*
+Shekhar Gulati's production retro (Jan 2026): *"The most important
+architectural decision we made was using state machines for conversation
+management."*
+
+**`toolChoice: 'required'` usage in production:** per-state, not per-turn.
+Production teams force it at the entry turn of side-effect states only —
+that's exactly the Retell "function node" pattern. The OpenAI Agents SDK
+auto-resets tool_choice after a tool call to prevent infinite loops; this
+confirms the per-transition pattern.
+
+**Pre-classifier (small router model):** absent from voice-agent docs;
+latency cost (~200-500ms per extra LLM hop) outweighs the benefit. Edge
+conditions in the state machine *are* the deterministic router. Anthropic
+documents this as the "Routing" pattern but for text agents, not voice.
+
+**What this means for the regex guard we built:** wrong layer. Regex
+detection is reactive — it catches failures after the fact. The industry
+pattern is *preventive*: never let the model see a tool it shouldn't fire
+in this state, and force the tool when the state requires it.
+
+### Revised architecture recommendation for Octio chat
+
+1. **Convert the Octo agent's 4 documented phases** (cold-start → discovery
+   → qualifying → close + book) into **code, not just prompt text**:
+   ```ts
+   type Phase = 'cold' | 'discovery' | 'qualify' | 'close' | 'book';
+   ```
+2. **Track current phase in session state** (we already have a session store
+   from voice-agent).
+3. **Per-phase tool whitelists** wired via `prepareStep`'s `activeTools`:
+   - `cold`: answer_service_question, show_choices
+   - `discovery`: answer_service_question, show_choices, show_multi_select
+   - `qualify`: enrich_lead, show_form, show_choices
+   - `close`: prepare_call_brief, generate_project_blueprint, send_resources
+   - `book`: show_scheduler
+4. **Phase transitions** via deterministic rules (e.g. once enrich_lead has
+   captured >= 3 dimensions, advance to close).
+5. **At known side-effect transitions**, force the tool with
+   `toolChoice: { type: 'tool', toolName: X }` on the entry turn only.
+6. **Delete the regex guard** in `tests/tool-harness/guard.ts` — the state
+   machine subsumes it.
+
+This is what Retell ships and what Pipecat Flows codifies for the
+open-source stack. Effort estimate: 4-6 hours.
+
+### Current state after description-sharpening (Part 1 only)
+
+Master run: **52/55 (95%)**. Description sharpening alone moved +1pp. The
+3 remaining failures are the targets the state machine refactor would
+deterministically fix:
+- `generate_project_blueprint` smoke_explicit (Kimi's inner LLM call fails
+  intermittently)
+- `show_choices` smoke_team_size_bucket (agent enumerates buckets in prose)
+- `show_form` smoke_contact_capture (agent commits to grabbing details
+  without firing)
+
+### Recommended next session
+
+State-machine refactor per the production pattern above. The harness
+infrastructure already in place (real DB writes, Gmail intercept, scenario
+files, master runner) will validate the refactor without further test work.
+
 ## Harness invocation cheat-sheet
 
 ```bash
