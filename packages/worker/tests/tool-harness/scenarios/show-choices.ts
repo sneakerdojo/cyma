@@ -30,20 +30,35 @@ const INSTRUCTIONS = `You are Octio's conversational assistant qualifying potent
 
 You have one tool: show_choices. Use it to render a single-select button grid in the chat UI when you want the user to pick from a small set of options.
 
-When to call show_choices:
-- The question has a clear closed set of plausible answers (e.g. budget tiers, team size buckets, yes/no/maybe)
-- 2 to 6 options fit naturally
+# Hard rule — closed-set qualifying questions ALWAYS use show_choices
 
-When NOT to call show_choices:
-- The question is open-ended (use prose, or a text input would be more appropriate — but you don't have that tool here, so just ask in prose)
-- The set of plausible answers is unbounded (e.g. "what's your domain name?")
-- A boolean yes/no — you can ask directly in prose
+If the user asks about — or you are about to discuss — any of these dimensions, you MUST call show_choices with the buckets as options. Do NOT enumerate the tiers in prose.
 
-Argument rules:
+- **Budget tiers**: question "Which budget range fits you?", options like ["Under R100k", "R100k–R250k", "R250k–R500k", "R500k+", "Still figuring it out"]
+- **Team size buckets**: ["1–5", "6–20", "21–50", "51–200", "200+"]
+- **Project stage**: ["Just exploring", "Scoping", "Ready to commission", "Already mid-build"]
+- **Yes/no/maybe with explanation**: ["Yes", "No", "Maybe — tell me more"]
+
+When the user ASKS YOU about typical budgets/team sizes/stages ("what budget ranges do you work with?"), the right response is: a brief one-line framing in prose ("We work across a few tiers — pick what fits"), then call show_choices with the tiers as options. The user picks one; you reply contextually.
+
+# When NOT to call show_choices
+
+- The question is open-ended (e.g. "what's your domain name?")
+- The set of plausible answers is unbounded
+- A simple "yes" or "no" without explanation — ask directly in prose
+
+# Argument rules
+
 - question: short, clear, one sentence
-- options: 2-6 short labels, no duplicates
+- options: 2-6 short labels, no duplicates, no empty strings
 - allowCustom: keep default true unless the set is genuinely closed
-- Keep replies brief; the question text goes in the tool, prose around it stays minimal.`;
+- Keep prose around the call to a single short sentence — the question text goes IN the tool, not before it.
+
+# Worked example
+
+User: "What budget ranges do you typically work with?"
+CORRECT: prose "We work across a few tiers — what fits your project?" AND fire show_choices with options=["Under R100k","R100k–R250k","R250k–R500k","R500k+","Still figuring it out"], allowCustom=true.
+INCORRECT: enumerating tiers in prose without calling show_choices.`;
 
 function callAssertion(call: CapturedCall): string | null {
   if (call.tool !== 'show_choices') return null;
@@ -176,5 +191,42 @@ export function buildShowChoicesHarnessConfig(): HarnessConfig {
           'You are Octio, a conversational qualifying assistant. Follow the per-scenario system instructions exactly.',
         recordCall,
       }),
+    // Guard: detect when the agent enumerates budget tiers / team-size
+    // buckets / project stages in prose without calling show_choices.
+    guard: {
+      rules: [
+        {
+          // Currency tier enumeration ("R100k", "$50k", "R5 000–R10 000")
+          pattern:
+            /\b(?:(?:R|USD?|\$|€|£)\s*\d{1,3}[,. ]?\d{0,3}[k]?\s*(?:[\-–—]|to|–)\s*(?:R|USD?|\$|€|£)?\s*\d{1,3}[,. ]?\d{0,3}[k]?\b|\bunder (?:R|USD?|\$|€|£)\s*\d|\b(?:R|USD?|\$|€|£)\s*\d{1,3}[,. ]?\d{0,3}[k]?\+)/i,
+          tool: 'show_choices',
+          kind: 'budget_tier_enumeration',
+        },
+        {
+          // Team-size bucket enumeration ("1-5", "6-20", "51-200")
+          pattern:
+            /\b\d{1,3}\s*[\-–—]\s*\d{1,3}(?:\s+(?:engineers|developers|designers|people|staff))?\b.*\b\d{1,3}\s*[\-–—]\s*\d{1,3}\b/i,
+          tool: 'show_choices',
+          kind: 'team_size_bucket_enumeration',
+        },
+        {
+          // Commitment-to-buckets phrasing without actually firing the tool.
+          // Broad: any sentence that mentions a discrete set of buckets/tiers/
+          // bands the user should pick from. Catches "we group teams into a few
+          // size bands — pick the one", "we work across a few tiers — what fits",
+          // "which bracket is yours", "size band you fall into", etc.
+          pattern:
+            /\b(?:(?:we |our company )?(?:work|group|split|divide|categori[sz]e|sort)\s+(?:teams|projects|clients|customers|things|engagements|deals|leads|work)?\s*(?:into|across|by|under|within)\s+(?:a few |several |our |these |the )?(?:tiers|brackets|bands|buckets|categories|sizes|ranges|tiers|groups)|which (?:tier|bracket|band|bucket|category|range|size)\s+(?:fits|is yours|do you fall|are you in|matches|do you (?:pick|land))|(?:size|budget) (?:band|bucket|bracket|tier|range) (?:you|that fits|you fall|matches)|pick (?:the |a |one of (?:the |our ))?(?:tier|bracket|band|bucket|category|range|size band|size bracket)|matches yours)\b/i,
+          tool: 'show_choices',
+          kind: 'bucket_commitment',
+        },
+      ],
+      buildNudge: (rule) => {
+        if (rule.kind === 'budget_tier_enumeration' || rule.kind === 'bucket_commitment') {
+          return `[system reminder] You signalled the user should pick from buckets but did not call show_choices. Call show_choices NOW with question="Which fits?" and an options array of 4-5 short labels. For budget: ["Under R100k","R100k–R250k","R250k–R500k","R500k+","Still figuring it out"]. For team size: ["1–5","6–20","21–50","51–200","200+"]. allowCustom=true. Do not enumerate in prose — the tool renders the buttons.`;
+        }
+        return `[system reminder] You enumerated buckets in prose instead of using show_choices. Call show_choices NOW with the buckets as options.`;
+      },
+    },
   };
 }

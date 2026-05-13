@@ -157,5 +157,20 @@ export function buildGenerateProjectBlueprintHarnessConfig(): HarnessConfig {
         recordCall,
       }),
     beforeEach: () => clearInterceptedEmails(),
+    // Guard against the "promising the blueprint without firing" pattern.
+    // Same shape as the enrich_lead guard — detect commitment phrases,
+    // re-prompt with toolChoice if no call landed.
+    guard: {
+      rules: [
+        {
+          pattern:
+            /\b(?:i'?ll (?:send|email|put together|prepare|draft|build)|sending (?:you )?(?:a |the )?blueprint|drafting (?:your |the )?blueprint|preparing (?:your |the )?blueprint|here'?s the blueprint|blueprint (?:is )?(?:on its way|coming|incoming)|generating (?:your |the )?(?:plan|blueprint|proposal))\b/i,
+          tool: 'generate_project_blueprint',
+          kind: 'blueprint_commitment',
+        },
+      ],
+      buildNudge: () =>
+        `[system reminder] You told the caller you would send a blueprint but did not call generate_project_blueprint. Call it now with the contactEmail, contactName, company, serviceInterest, projectSummary, painPoints (2-4 items), budgetRange, and recommendedCallAgenda (2-4 items) — all from the conversation context.`,
+    },
   };
 }

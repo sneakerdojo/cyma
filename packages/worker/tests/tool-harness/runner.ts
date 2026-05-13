@@ -15,6 +15,11 @@
 
 import type { Agent } from '@mastra/core/agent';
 import { runGuard, type GuardSpec } from './guard.js';
+import {
+  derivePhase,
+  activeToolsForPhase,
+  type Phase,
+} from '../../src/mastra/agents/phase.js';
 
 export type ScenarioCategory = 'smoke' | 'stress' | 'adversarial';
 
@@ -78,8 +83,26 @@ export interface HarnessConfig {
    * reply for "acknowledge-without-firing" patterns and re-prompts with
    * toolChoice forcing the matching tool. Same pattern as the production
    * voice-agent (src/services/voice-agent/mastra-brain.ts).
+   *
+   * @deprecated The phase-based state machine (`phaseRouting`) is the
+   *   preferred mechanism — it prevents the failure preemptively instead
+   *   of reacting to it. Kept for backward compatibility with existing
+   *   scenarios. New tools should use phaseRouting.
    */
   guard?: GuardSpec;
+  /**
+   * Phase-based tool routing. When set, the runner derives the current
+   * conversation phase from message history + tool-call history each step,
+   * and passes `activeTools` for that phase to `agent.generate()` via
+   * `prepareStep`. This matches Retell Conversation Flow / Pipecat Flows
+   * / Vapi Squads architecture: scope the tools by state, never let the
+   * model see a tool that shouldn't fire in this phase.
+   */
+  phaseRouting?: {
+    enabled: true;
+    /** Records phase observed at each step — useful for debugging report. */
+    onPhaseObserved?: (phase: Phase, stepNumber: number) => void;
+  };
 }
 
 export interface HarnessReport {
@@ -101,7 +124,12 @@ export async function runHarness(cfg: HarnessConfig): Promise<HarnessReport> {
   for (const scenario of cfg.scenarios) {
     if (cfg.beforeEach) await cfg.beforeEach(scenario);
 
-    const record = await runOne(scenario, cfg.buildAgent, cfg.guard);
+    const record = await runOne(
+      scenario,
+      cfg.buildAgent,
+      cfg.guard,
+      cfg.phaseRouting,
+    );
     records.push(record);
 
     if (cfg.afterEach) await cfg.afterEach(scenario, record);
@@ -128,9 +156,34 @@ async function runOne(
   scenario: Scenario,
   buildAgent: HarnessConfig['buildAgent'],
   guard?: GuardSpec,
+  phaseRouting?: HarnessConfig['phaseRouting'],
 ): Promise<ScenarioRunRecord> {
   const calls: CapturedCall[] = [];
   const agent = buildAgent((c) => calls.push(c));
+
+  // prepareStep callback for phase-based routing. Captures the running
+  // `calls` array via closure so phase advances as tools fire.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const buildPrepareStep = (): any => {
+    if (!phaseRouting?.enabled) return undefined;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return ({ messages, stepNumber }: { messages: any[]; stepNumber: number }) => {
+      const userTurns = messages.filter(
+        (m: { role?: string }) => m.role === 'user',
+      ).length;
+      const lastUser = [...messages]
+        .reverse()
+        .find((m: { role?: string }) => m.role === 'user');
+      const lastUserText = extractMsgText(lastUser);
+      const phase = derivePhase({
+        userTurnsSoFar: userTurns,
+        toolCallHistory: calls.map((c) => ({ name: c.tool })),
+        lastUserMessage: lastUserText,
+      });
+      phaseRouting.onPhaseObserved?.(phase, stepNumber);
+      return { activeTools: [...activeToolsForPhase(phase)] };
+    };
+  };
 
   const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
   if (scenario.systemHint) {
@@ -150,7 +203,11 @@ async function runOne(
     let tokensIn = 0;
     let tokensOut = 0;
     try {
-      const output = await agent.generate(messages, { maxSteps: 3 });
+      const prepareStep = buildPrepareStep();
+      const generateOpts = prepareStep
+        ? { maxSteps: 3, prepareStep }
+        : { maxSteps: 3 };
+      const output = await agent.generate(messages, generateOpts);
       assistantReply = output.text ?? '';
       const usage = (output.totalUsage ?? output.usage ?? {}) as {
         inputTokens?: number;
@@ -303,4 +360,18 @@ export function formatReport(report: HarnessReport): string {
     lines.push('');
   }
   return lines.join('\n');
+}
+
+function extractMsgText(msg: unknown): string {
+  if (!msg || typeof msg !== 'object') return '';
+  const m = msg as { content?: unknown };
+  if (typeof m.content === 'string') return m.content;
+  if (Array.isArray(m.content)) {
+    return m.content
+      .map((p: { type?: string; text?: string }) =>
+        p.type === 'text' ? (p.text ?? '') : '',
+      )
+      .join(' ');
+  }
+  return '';
 }

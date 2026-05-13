@@ -176,7 +176,24 @@ function formAssertion(call: CapturedCall): string | null {
   return null;
 }
 
-const FORM_INSTRUCTIONS = `You are Octio. You have show_form. Use it to collect structured data. Pick relevant field names, types (text/email/tel/textarea), and required flags. Mark contact fields (name, email) as required:true. Keep to 2-5 fields.`;
+const FORM_INSTRUCTIONS = `You are Octio. You have show_form. Use it to collect structured data — contact info, project details, etc.
+
+# Hard rule — your words must match your actions
+
+If your reply says "let me grab a few details", "I'll need your contact info", "fill in this form", "give me your name and email", or anything similar, you MUST call show_form in THIS SAME REPLY with at least 1 valid field. Empty fields:[] is rejected by the schema — never attempt that.
+
+# Argument rules
+
+- question: short, clear, one sentence describing what you're collecting
+- fields: 1-8 entries. Each must have name (unique, not "__proto__"), label, type (text|email|tel|textarea)
+- Mark name and email as required:true when collecting contact info
+- For a "discovery call list" or "be added" request: fields=[{name:"fullName",label:"Full name",type:"text",required:true},{name:"email",label:"Email",type:"email",required:true}]
+
+# Worked example
+
+User: "Add me to your discovery call list."
+CORRECT: prose "I'll grab a couple of details to add you." AND fire show_form with question="Your details", fields=[{name:"fullName",label:"Full name",type:"text",required:true},{name:"email",label:"Email",type:"email",required:true}].
+INCORRECT: prose-only reply, or show_form with fields:[].`;
 
 export function buildShowFormScenarios(): Scenario[] {
   return [
@@ -303,6 +320,20 @@ export function buildAllShowUiToolHarnessConfigs(): HarnessConfig[] {
           instructions: 'You are Octio.',
           recordCall,
         }),
+      // Guard: detect "I'll grab details / let me add you / your contact info"
+      // phrases without show_form firing — force the call.
+      guard: {
+        rules: [
+          {
+            pattern:
+              /\b(?:let me grab (?:a |a few |a couple of )?(?:details|things)|i'?ll grab (?:a |a few |a couple of )?(?:details|things)|i'?ll (?:need|collect|take down) (?:your |a few |a couple of )?(?:details|contact (?:info|details)|things)|fill (?:in |out )?(?:this |the )?form|give me your (?:name|email|contact)|add(?:ing)? you to (?:the |our )?(?:list|call list)|i'?ll add you|need your (?:name and email|contact info)|just need (?:a |a few |a couple of )?(?:details|things))\b/i,
+            tool: 'show_form',
+            kind: 'form_commitment',
+          },
+        ],
+        buildNudge: () =>
+          `[system reminder] You told the user you would collect their details but did not call show_form. Call show_form now with question="Your details" and at least these fields: [{"name":"fullName","label":"Full name","type":"text","required":true},{"name":"email","label":"Email","type":"email","required":true}]. Empty fields:[] will fail schema validation.`,
+      },
     },
     {
       toolGroup: 'show_diagram',

@@ -313,30 +313,18 @@ export function buildEnrichLeadHarnessConfig(): HarnessConfig {
     buildAgent: (recordCall) =>
       buildHarnessAgent({
         realTools: { enrich_lead: enrichLeadTool },
-        // Per-scenario system prompt is set in the scenario; the agent's
-        // own instructions can be minimal because each scenario overrides.
         instructions:
           'You are Octio, qualifying potential customers. Follow the per-scenario system instructions exactly.',
         recordCall,
       }),
-    // Guard for the "acknowledge without firing" Kimi pattern. Same shape
-    // as the voice-agent's mastra-brain guard. Catches the case where
-    // the agent says "useful context" / "got it" / "noted" plus a qualifying
-    // fact but didn't actually call enrich_lead in the same turn.
-    guard: {
-      rules: [
-        {
-          // Detects the agent acknowledging a qualifying fact without firing
-          // enrich_lead. Broad on purpose — false-positive guard retries cost
-          // ~$0.001, false-negatives drop CRM data forever.
-          pattern:
-            /\b(?:useful context|noted\b|noting\b|got it[\s,—-]|that's exactly (?:where|the kind|what)|that's a (?:common|real|critical) pain|classic pain|pain points? where|kind of pain|pay off (?:fast|quickly)|AI agents (?:can|will) (?:eliminate|help|cut|handle)|tight timeline|tight deadline|tight but|aggressive but|earn their keep|\d+-person\b|team of \d+|\d+-?week (?:timeline|deadline|timeframe)|\d+ weeks? (?:is|are)\s*(?:tight|doable|aggressive|reasonable|workable)|\d+ weeks? to (?:ship|launch|deliver)|long (?:onboarding|customer onboarding)|support (?:overload|drowning)|legacy[- ]system|drowning in)\b/i,
-          tool: 'enrich_lead',
-          kind: 'qualifying_acknowledgement',
-        },
-      ],
-      buildNudge: () =>
-        `[system reminder] You just acknowledged qualifying information about the lead without calling enrich_lead. Call enrich_lead now with the correct field (team_size / timeline_urgency / pain_points / etc), the user's contactEmail, and a value starting with "${TEST_PREFIX}: " followed by your summary. Do this immediately.`,
-    },
+    // Phase-based routing replaces the previous regex guard. The runner
+    // derives the current phase from message + tool-call history each step
+    // and passes `activeTools` for that phase via Mastra's `prepareStep`.
+    // For enrich_lead scenarios the harness uses 'discovery' until the
+    // first enrich_lead call lands, then 'qualify'. enrich_lead is in the
+    // active-tools list for both, so the model can always fire it — and
+    // forbidden tools (show_scheduler, prepare_call_brief) are simply
+    // hidden from the model in those phases.
+    phaseRouting: { enabled: true },
   };
 }

@@ -3,6 +3,22 @@ import { handleChatStream } from '@mastra/ai-sdk';
 import { createUIMessageStreamResponse, type UIMessageChunk, type UIMessage } from 'ai';
 import { mastra } from '../mastra/index.js';
 import { logger } from '../logger.js';
+import {
+  derivePhase,
+  activeToolsForPhase,
+} from '../mastra/agents/phase.js';
+
+function extractStepText(msg: unknown): string {
+  if (!msg || typeof msg !== 'object') return '';
+  const m = msg as { content?: unknown; parts?: unknown };
+  if (typeof m.content === 'string') return m.content;
+  if (Array.isArray(m.parts)) {
+    return (m.parts as Array<{ type?: string; text?: string }>)
+      .map((p) => (p.type === 'text' ? (p.text ?? '') : ''))
+      .join(' ');
+  }
+  return '';
+}
 
 const chatRoutes = new Hono();
 
@@ -111,12 +127,51 @@ chatRoutes.post('/stream', async (c) => {
 
     const allMessages = [...contextMessages, ...(messages as UIMessage[])];
 
+    // Phase-based tool routing — production application of the Retell /
+    // Pipecat Flows / Vapi Squads pattern. Each step in the agent loop
+    // re-derives the conversation phase from message + tool-call history
+    // and restricts `activeTools` to that phase. Prevents Kimi from picking
+    // wrong-phase tools (e.g. firing prepare_call_brief in discovery) and
+    // reduces tool-choice load from 13 down to 4-6 per phase.
+    // Phase derivation lives in src/mastra/agents/phase.ts.
+    const prepareStep = ({ messages: stepMessages }: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      messages: any[];
+    }) => {
+      const userTurns = stepMessages.filter(
+        (m: { role?: string }) => m.role === 'user',
+      ).length;
+      const lastUser = [...stepMessages]
+        .reverse()
+        .find((m: { role?: string }) => m.role === 'user');
+      const lastText = extractStepText(lastUser);
+
+      // Tool-call history is reconstructed from prior tool messages in the
+      // conversation. Mastra/AI SDK v6 emits tool calls as role=tool parts.
+      const toolCallHistory = stepMessages.flatMap(
+        (m: { parts?: Array<{ type?: string; toolName?: string }> }) =>
+          (m.parts ?? [])
+            .filter((p) => p.type?.startsWith('tool-'))
+            .map((p) => ({ name: p.toolName ?? '' }))
+            .filter((c) => c.name),
+      );
+
+      const phase = derivePhase({
+        userTurnsSoFar: userTurns,
+        toolCallHistory,
+        lastUserMessage: lastText,
+      });
+
+      return { activeTools: [...activeToolsForPhase(phase)] };
+    };
+
     const mastraStream = await handleChatStream({
       mastra,
       agentId: 'octo',
       version: 'v6',
       params: {
         messages: allMessages,
+        prepareStep,
         ...(typeof contactId === 'string' && contactId
           ? {
               memory: {
