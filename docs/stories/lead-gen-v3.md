@@ -223,6 +223,77 @@ US-LG-001 through US-LG-015 remain in scope. v3 adds the compliance + security l
 
 ---
 
+---
+
+## Profile-system POPIA + security stories (see `docs/superpowers/specs/2026-05-13-profile-system.md`)
+
+## US-LG-042 — Per-tenant profile isolation (cross-tenant leakage prevention)
+
+**As a** POPIA Information Officer
+**I want** profiles strictly isolated by tenant
+**So that** no customer can ever see profile data from another customer's interactions
+
+### Acceptance criteria
+
+**Scenario: Same identity contacts two tenants**
+- **Given** the same phone number has consented profiles at both Tenant A and Tenant B
+- **When** Tenant A's chat agent calls `profile.lookup`
+- **Then** the result contains ONLY Tenant A's profile data
+- **And** Tenant A's session has zero exposure to Tenant B's profile (no cross-reference, no leakage)
+- **And** a unit test verifies a deliberate cross-tenant query attempt returns 403
+
+**Scenario: Forged tenant ID in profile call**
+- **Given** an attacker tries to call `profile.lookup` with `tenantId = 999` (not their own)
+- **When** the request is processed
+- **Then** the worker rejects with 403
+- **And** the attempt is audit-logged
+
+---
+
+## US-LG-043 — Profile retention + auto-purge (24 months)
+
+**As a** POPIA Information Officer
+**I want** automatic deletion of profiles inactive 24+ months
+**So that** retention is bounded under POPIA
+
+### Acceptance criteria
+
+**Scenario: Profile inactive 24 months**
+- **Given** a profile whose `last_seen_at` is 24+ months ago
+- **When** the daily retention cron runs
+- **Then** the profile + all its identifiers, facts, embeddings are hard-deleted
+- **And** a `profile_audit_log` row is preserved (without the PII): `action = auto_purge, target_hash = sha256(profile_id)`
+
+**Scenario: Per-category TTL**
+- **Given** a profile with sensitive facts (>90 days) and off_topic facts (>12 months)
+- **When** the daily retention cron runs
+- **Then** sensitive facts older than 90 days are deleted; off_topic facts older than 12 months are deleted; profile root is retained
+- **And** the audit log records the per-category deletions
+
+---
+
+## US-LG-044 — Profile SAR (subject access request) export
+
+**As a** visitor whose data was captured
+**I want** to request a full export of my profile
+**So that** I can review what's stored about me
+
+### Acceptance criteria
+
+**Scenario: Visitor emails privacy@octio.co.za requesting their profile**
+- **Given** the operator triggers the SAR workflow with the visitor's identifier
+- **When** the export runs
+- **Then** all rows from `profiles`, `profile_identifiers`, `profile_facts`, `profile_consent`, `profile_audit_log` matching the identifier are exported to a signed-URL ZIP
+- **And** the export is delivered within 5 business days (POPIA SLA = 30 days)
+- **And** the visitor receives a confirmation email with the signed URL (TTL 7 days)
+
+**Scenario: SAR for a deleted profile**
+- **Given** the profile was previously deleted (auto-purge or user request)
+- **When** the operator runs SAR
+- **Then** the export contains only the `profile_audit_log` entries (no PII), with a note: "All data on this identifier has been deleted; no profile exists."
+
+---
+
 ## What we deliberately still leave for v4+
 
 - Performance SLAs (p50/p95 latency)
@@ -233,4 +304,4 @@ US-LG-001 through US-LG-015 remain in scope. v3 adds the compliance + security l
 
 ## Definition of "done" for v3
 
-All 24 stories pass. Founder runs a manual POPIA audit checklist before any customer onboards. Information Officer registration confirmed. DPA template ready.
+All 27 stories (24 original + 3 profile) pass. Founder runs a manual POPIA audit checklist before any customer onboards. Information Officer registration confirmed. DPA template ready. Profile system per-tenant isolation verified by red-team test.

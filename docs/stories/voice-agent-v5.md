@@ -1005,6 +1005,334 @@ async function executeHardWrap(_args: any): Promise<void> {}
 
 ---
 
+## Profile-system test signatures (see `docs/superpowers/specs/2026-05-13-profile-system.md`)
+
+## US-VA-042 — Spoken consent (v1 profile)
+
+```ts
+// worker/src/__tests__/voice-agent/us-042-spoken-consent.spec.ts
+import { describe, it, expect, vi } from 'vitest';
+import { askConsentVoice, persistVoiceConsent, APPROVED_CONSENT_TEXTS } from '../../services/profile/consent-voice';
+
+describe('US-VA-042: spoken consent', () => {
+  it('agent asks consent after first qualification turn', async () => {
+    const result = askConsentVoice({ callContext: { qualificationTurnsDone: 1 } });
+    expect(result.shouldAsk).toBe(true);
+    expect(APPROVED_CONSENT_TEXTS.map(t => t.toLowerCase())).toContain(result.askText.toLowerCase());
+  });
+
+  it('classifies yes/no/ask-later responses correctly', async () => {
+    const cases: Array<[string, string]> = [
+      ['yeah ok', 'yes'],
+      ['no thanks', 'no'],
+      ['maybe later', 'ask_later'],
+      ["I'd rather not", 'no'],
+    ];
+    for (const [input, expected] of cases) {
+      const { decision } = await classifyConsentResponse(input);
+      expect(decision).toBe(expected);
+    }
+  });
+
+  it('persists voice consent with text hash + transcript snippet', async () => {
+    const repo = vi.fn();
+    await persistVoiceConsent({ tenantId: 1, profileId: 'p1', decision: 'granted', askText: 'Quick thing...', responseTranscript: 'yeah ok', repo });
+    expect(repo).toHaveBeenCalledWith(expect.objectContaining({
+      consent_text_hash: expect.stringMatching(/^[a-f0-9]{64}$/),
+      channel: 'voice',
+    }));
+  });
+});
+
+async function classifyConsentResponse(_text: string): Promise<{ decision: string }> { return { decision: 'yes' }; }
+```
+
+---
+
+## US-VA-043 — Long-horizon recognition (v1 profile)
+
+```ts
+// worker/src/__tests__/voice-agent/us-043-long-horizon.spec.ts
+import { describe, it, expect, vi } from 'vitest';
+import { buildGreetingForCallerWithProfile } from '../../services/voice-agent/greeting';
+
+describe('US-VA-043: long-horizon caller recognition', () => {
+  it('personalises greeting for 6-month-old profile', async () => {
+    const profile = vi.fn().mockResolvedValue({ profile_id: 'p1', consent_granted: true, summary: 'Sipho, prefers WhatsApp, last about geyser', last_seen_months_ago: 6 });
+    const result = await buildGreetingForCallerWithProfile({ tenant: { brand: 'Joburg Plumbing' }, callerNumber: '+27821234567', profileLookup: profile });
+    expect(result.text).toMatch(/welcome back|been a while/i);
+    expect(result.text).toMatch(/sipho/i);
+  });
+
+  it('treats >24-month profile as new caller (post-purge)', async () => {
+    const profile = vi.fn().mockResolvedValue({ profile_id: null });
+    const result = await buildGreetingForCallerWithProfile({ tenant: { brand: 'Joburg Plumbing' }, callerNumber: '+27821234567', profileLookup: profile });
+    expect(result.text).not.toMatch(/sipho/i);
+  });
+});
+```
+
+---
+
+## US-VA-044 — Profile-driven shortcut (v1 profile)
+
+```ts
+// worker/src/__tests__/voice-agent/us-044-shortcut.spec.ts
+import { describe, it, expect } from 'vitest';
+import { planVoiceQualification } from '../../services/voice-agent/qualify';
+
+describe('US-VA-044: voice qualification shortcuts from profile', () => {
+  it('skips location ask, confirms instead', () => {
+    const plan = planVoiceQualification({ profile: { service_area: 'Centurion' }, currentTurn: 3 });
+    expect(plan.action).toBe('confirm_location');
+    expect(plan.confirmText).toMatch(/Centurion/);
+  });
+
+  it('on correction, extends profile with user-stated value', async () => {
+    const extend = vi.fn();
+    await import('../../services/voice-agent/qualify').then(m => m.handleConfirmCorrection({
+      tenantId: 1,
+      profileId: 'p1',
+      field: 'service_area',
+      correctedValue: 'Pretoria East',
+      extend,
+    }));
+    expect(extend).toHaveBeenCalledWith(expect.objectContaining({
+      facts: expect.arrayContaining([expect.objectContaining({ key: 'service_area', value: 'Pretoria East', source: 'user_stated' })]),
+    }));
+  });
+});
+```
+
+---
+
+## US-VA-045 — Decline profile (v2 profile)
+
+```ts
+// worker/src/__tests__/voice-agent/us-045-decline.spec.ts
+import { describe, it, expect, vi } from 'vitest';
+import { handleVoiceConsentDecision, shouldReaskVoiceConsent } from '../../services/profile/consent-voice';
+
+describe('US-VA-045: decline profile (voice)', () => {
+  it('records granted=false; agent acknowledges briefly', async () => {
+    const repo = vi.fn();
+    const result = await handleVoiceConsentDecision({ decision: 'no', tenantId: 1, profileId: 'p1', repo });
+    expect(result.acknowledgmentText).toMatch(/got it|won.*store/i);
+    expect(repo).toHaveBeenCalledWith(expect.objectContaining({ granted: false }));
+  });
+
+  it('does not re-ask within 90 days', () => {
+    expect(shouldReaskVoiceConsent({ lastDeclinedAt: new Date('2026-04-01'), now: new Date('2026-05-01') })).toBe(false);
+  });
+});
+```
+
+---
+
+## US-VA-046 — Verbal correction (v2 profile)
+
+```ts
+// worker/src/__tests__/voice-agent/us-046-correction.spec.ts
+import { describe, it, expect, vi } from 'vitest';
+import { handleVerbalCorrection } from '../../services/profile/correction';
+
+describe('US-VA-046: verbal correction', () => {
+  it('updates whatsapp identifier on "my number changed" intent', async () => {
+    const extend = vi.fn();
+    await handleVerbalCorrection({
+      tenantId: 1,
+      profileId: 'p1',
+      transcript: 'my new whatsapp is plus two seven eight three five five five one two three four',
+      stt_confidence: 0.9,
+      extend,
+    });
+    expect(extend).toHaveBeenCalledWith(expect.objectContaining({
+      facts: expect.arrayContaining([expect.objectContaining({ key: 'whatsapp', source: 'user_stated' })]),
+    }));
+  });
+
+  it('confirms digit-by-digit when STT confidence < 0.7', async () => {
+    const result = await handleVerbalCorrection({
+      tenantId: 1,
+      profileId: 'p1',
+      transcript: 'my number is something',
+      stt_confidence: 0.5,
+    });
+    expect(result.kind).toBe('confirm_digits');
+  });
+});
+```
+
+---
+
+## US-VA-047 — Forget-me via voice (v2 profile)
+
+```ts
+// worker/src/__tests__/voice-agent/us-047-forget.spec.ts
+import { describe, it, expect, vi } from 'vitest';
+import { handleForgetIntentVoice } from '../../services/profile/forget';
+
+describe('US-VA-047: forget me (voice)', () => {
+  it('asks for explicit confirmation before deletion', async () => {
+    const result = await handleForgetIntentVoice({ tenantId: 1, identity: { phone: '+27821234567' }, confirmed: false });
+    expect(result.kind).toBe('confirm');
+    expect(result.confirmAskText).toMatch(/sure|permanent|confirm/i);
+  });
+
+  it('on confirm, calls profile.forget + acknowledges + continues unprofiled', async () => {
+    const forget = vi.fn().mockResolvedValue({ deleted: 1 });
+    const result = await handleForgetIntentVoice({ tenantId: 1, identity: { phone: '+27821234567' }, confirmed: true, forget });
+    expect(forget).toHaveBeenCalled();
+    expect(result.acknowledgmentText).toMatch(/done|fresh|gone/i);
+  });
+
+  it('on hangup mid-confirmation, deletion does NOT execute + Slack alert fires', async () => {
+    const forget = vi.fn();
+    const slack = vi.fn();
+    const result = await handleForgetIntentVoice({ tenantId: 1, identity: { phone: '+27821234567' }, hangupDuringConfirm: true, forget, slack });
+    expect(forget).not.toHaveBeenCalled();
+    expect(slack).toHaveBeenCalledWith(expect.objectContaining({ text: expect.stringMatching(/ambiguous deletion intent/i) }));
+  });
+});
+```
+
+---
+
+## US-VA-048 — Off-topic capture (v2 profile)
+
+```ts
+// worker/src/__tests__/voice-agent/us-048-off-topic.spec.ts
+import { describe, it, expect, vi } from 'vitest';
+import { classifyVoiceMessageAndExtend } from '../../services/profile/extend';
+
+describe('US-VA-048: off-topic capture (voice)', () => {
+  it('captures substantive off-topic mentions when consented', async () => {
+    const extend = vi.fn();
+    await classifyVoiceMessageAndExtend({ tenantId: 1, profileId: 'p1', consent: true, transcript: 'btw planning a road trip to Cape Town next month', extend });
+    expect(extend).toHaveBeenCalledWith(expect.objectContaining({
+      facts: expect.arrayContaining([expect.objectContaining({ category: 'off_topic' })]),
+    }));
+  });
+
+  it('does NOT capture sensitive (health/finance/legal)', async () => {
+    const extend = vi.fn();
+    await classifyVoiceMessageAndExtend({ tenantId: 1, profileId: 'p1', consent: true, transcript: 'dealing with chemo right now', extend });
+    expect(extend).not.toHaveBeenCalled();
+  });
+
+  it('stays empathetic but in qualification when sensitive content surfaces', async () => {
+    const result = await classifyVoiceMessageAndExtend({ tenantId: 1, profileId: 'p1', consent: true, transcript: 'going through a divorce', returnAgentResponse: true });
+    expect(result.agentResponse).toMatch(/sorry|hope|hear/i);
+    expect(result.agentResponse).toMatch(/help.*today/i); // still moves toward qualification
+  });
+});
+```
+
+---
+
+## US-VA-049 — Per-tenant profile isolation (voice) (v3 profile)
+
+```ts
+// worker/src/__tests__/voice-agent/us-049-tenant-isolation-profile.spec.ts
+import { describe, it, expect } from 'vitest';
+import { profileLookup } from '../../services/profile/lookup';
+
+describe('US-VA-049: per-tenant profile isolation', () => {
+  it('returns only the calling tenant profile data', async () => {
+    const result = await profileLookup({ tenantId: 1, identity: { phone: '+27821234567' } });
+    expect(result.tenantId).toBe(1);
+  });
+
+  it('rejects cross-tenant attempt with 403', async () => {
+    const forged = makeJwt({ tenant_id: 999 });
+    await expect(profileLookup({ jwt: forged, identity: { phone: '+27821234567' } })).rejects.toThrow(/forbidden/i);
+  });
+});
+
+function makeJwt(_claims: object): string { return ''; }
+```
+
+---
+
+## US-VA-050 — Profile retention (voice context) (v3 profile)
+
+```ts
+// worker/src/__tests__/voice-agent/us-050-profile-retention.spec.ts
+import { describe, it, expect } from 'vitest';
+import { runProfileRetentionSweep } from '../../services/profile/retention';
+
+describe('US-VA-050: profile retention', () => {
+  it('hard-deletes profiles inactive 24+ months', async () => {
+    const stats = await runProfileRetentionSweep({ now: new Date('2028-05-13') });
+    expect(stats.profilesDeleted).toBeGreaterThan(0);
+  });
+
+  it('purges sensitive facts > 90 days', async () => {
+    const stats = await runProfileRetentionSweep({ now: new Date('2026-08-12') });
+    expect(stats.sensitiveFactsPurged).toBeGreaterThanOrEqual(0);
+  });
+});
+```
+
+---
+
+## US-VA-051 — Profile lookup latency (v4 profile)
+
+```ts
+// worker/src/__tests__/voice-agent/us-051-profile-latency.spec.ts
+import { describe, it, expect } from 'vitest';
+import { simulateConcurrentLookups } from './_fixtures/profile-load';
+
+describe('US-VA-051: profile lookup latency (voice critical path)', () => {
+  it('p95 ≤ 100ms under 20 concurrent calls', async () => {
+    const result = await simulateConcurrentLookups({ concurrent: 20 });
+    expect(result.p95).toBeLessThanOrEqual(100);
+  });
+
+  it('greeting plays even if lookup hasn\'t returned in 150ms', async () => {
+    const result = await import('../../services/voice-agent/greeting').then(m => m.buildGreetingWithDeadline({
+      callerNumber: '+27821234567',
+      profileLookup: () => new Promise(r => setTimeout(() => r({}), 1000)),
+      lookupDeadlineMs: 150,
+    }));
+    expect(result.startedAtMs).toBeLessThanOrEqual(160);
+    expect(result.usedProfile).toBe(false);
+  });
+});
+```
+
+---
+
+## US-VA-052 — Profile summary token cap (v4 profile)
+
+```ts
+// worker/src/__tests__/voice-agent/us-052-summary-cap.spec.ts
+import { describe, it, expect } from 'vitest';
+import { summariseProfile } from '../../services/profile/summarise';
+
+describe('US-VA-052: voice profile summary cap', () => {
+  it('summary ≤ 300 tokens', async () => {
+    const summary = await summariseProfile({ profileId: 'p1', facts: makeFixtureFacts(50) });
+    expect(estimateTokens(summary)).toBeLessThanOrEqual(300);
+  });
+
+  it('summary injected once at call start, not per turn', async () => {
+    const promptBuilder = await import('../../services/voice-agent/prompt').then(m => m.buildSystemPrompt({ tenant: { brand: 'X' }, profileSummary: 'Sipho, WhatsApp, last about geyser' }));
+    expect(promptBuilder.injectedAtTurn).toBe(0);
+  });
+
+  it('per-call profile cost < R0.05', async () => {
+    const cost = await import('../../services/voice-agent/cost').then(m => m.profileOverheadPerCall({ callDurationMin: 5 }));
+    expect(cost.zar).toBeLessThan(0.05);
+  });
+});
+
+function makeFixtureFacts(_n: number): any[] { return []; }
+function estimateTokens(s: string): number { return Math.ceil(s.length / 4); }
+```
+
+---
+
 ## Fixtures + harness
 
 ### `worker/src/__tests__/voice-agent/_fixtures/call-load.ts`
@@ -1022,6 +1350,15 @@ export async function simulateCalls({ tenant, concurrent, duration }: { tenant: 
 export function makeTranscript(scenarioName: string): string {
   // load from `worker/src/__tests__/voice-agent/_fixtures/transcripts/${scenarioName}.txt`
   return '';
+}
+```
+
+### `worker/src/__tests__/voice-agent/_fixtures/profile-load.ts`
+
+```ts
+export async function simulateConcurrentLookups({ concurrent }: { concurrent: number }) {
+  // Fire N concurrent profile.lookup against staging worker; return latency percentiles.
+  return { p50: 0, p95: 0, p99: 0 };
 }
 ```
 
@@ -1060,6 +1397,8 @@ export async function runLiveCallScenario({ scenario }: { scenario: string }) {
 - Nightly integration (live-call harness) measures real latency + barge-in + speculative-tool perceived latency on real telephony.
 - Coverage ≥ 80% on voice-agent service code.
 - 7-day Patient Zero on Octio's own inbound — zero critical bugs, p95 ≤ 2000ms — before first customer.
+- Profile system per-tenant isolation verified by red-team test.
+- Profile lookup p95 ≤ 100ms verified under load.
 
 ## Post-review changelog (2026-05-13)
 

@@ -248,6 +248,55 @@ US-VA-001 through US-VA-024 remain in scope.
 
 ---
 
+---
+
+## Profile-system performance stories (see `docs/superpowers/specs/2026-05-13-profile-system.md`)
+
+## US-VA-051 — Profile lookup latency cap (voice critical path)
+
+**As a** caller expecting fast pickup
+**I want** profile lookup NOT to add to greeting latency
+**So that** profile recognition doesn't slow the call
+
+### Acceptance criteria
+
+**Scenario: Profile lookup runs in parallel with greeting render**
+- **Given** an inbound call arrives
+- **When** the agent prepares the greeting
+- **Then** `profile.lookup` is fired in parallel (not awaited synchronously)
+- **And** the greeting plays even if the lookup hasn't returned within 150ms
+- **And** if the lookup returns after the greeting starts, personalisation kicks in from turn 2 instead
+
+**Scenario: Lookup p95 ≤ 100ms under load**
+- **Given** 20 concurrent inbound calls hitting profile.lookup
+- **When** the load test runs
+- **Then** p95 ≤ 100ms
+- **And** pgvector index continues to serve hits without falling over
+
+---
+
+## US-VA-052 — Profile summary token cost cap (per-turn budget)
+
+**As a** founder managing per-call cost
+**I want** profile context not to bloat token cost per turn
+**So that** profile recognition stays within the call's margin
+
+### Acceptance criteria
+
+**Scenario: Profile summary ≤ 300 tokens injected at call start**
+- **Given** a call with a profile loaded
+- **When** the system prompt is constructed
+- **Then** the profile summary section is ≤ 300 tokens
+- **And** the summary is injected ONCE at call start (not re-injected per turn)
+
+**Scenario: Per-call profile overhead < R0.05**
+- **Given** a call session with profile context vs without
+- **When** measuring marginal cost
+- **Then** the incremental cost from profile context is < R0.05 per call
+- **And** the cost-per-call report (US-VA-032) shows profile overhead as a separate line item
+
+---
+
 ## Definition of done for v4
 
-All 35 stories (34 original + 1 newly added: US-VA-041) pass. Latency SLOs measured over a 7-day Patient Zero. Cost-per-call tracked and within budget. Fallback paths tested by chaos-engineering a manual provider blackout. Multi-provider fallback chain verified at orchestrator level (not relying on Retell's single-fallback config).
+All 37 stories (34 original + 1 voice-agent addition US-VA-041 + 2 profile performance) pass. Latency SLOs measured over a 7-day Patient Zero. Cost-per-call tracked and within budget. Fallback paths tested by chaos-engineering a manual provider blackout. Multi-provider fallback chain verified at orchestrator level. Profile lookup latency verified under load.

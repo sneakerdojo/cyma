@@ -222,6 +222,56 @@ US-LG-001 through US-LG-024 remain in scope. v4 adds performance + cost criteria
 
 ---
 
+---
+
+## Profile-system performance stories (see `docs/superpowers/specs/2026-05-13-profile-system.md`)
+
+## US-LG-045 — Profile lookup latency cap
+
+**As a** visitor expecting fast first-message response
+**I want** profile lookup to NOT add perceptible latency
+**So that** profile recognition doesn't slow down the chat
+
+### Acceptance criteria
+
+**Scenario: profile.lookup p95 ≤ 100ms**
+- **Given** a chat session is starting
+- **When** `profile.lookup(tenantId, identity)` is called
+- **Then** p50 ≤ 50ms; p95 ≤ 100ms; p99 ≤ 250ms
+- **And** the lookup runs in parallel with the greeting render (not in series)
+- **And** if lookup hasn't returned by greeting-render time, the bot falls back to generic greeting + personalises on next turn (graceful degrade)
+
+**Scenario: Postgres + pgvector under load**
+- **Given** 100 concurrent profile lookups
+- **When** the load test runs
+- **Then** p95 stays ≤ 100ms
+- **And** pgvector index hit rate remains > 95%
+
+---
+
+## US-LG-046 — Profile summary token-cost cap
+
+**As a** founder managing LLM cost
+**I want** profile context bounded in size
+**So that** profile recognition doesn't bloat per-message token cost
+
+### Acceptance criteria
+
+**Scenario: Profile summary ≤ 300 tokens**
+- **Given** any profile in the system
+- **When** the nightly summary job runs
+- **Then** the generated `profile.summary` is ≤ 300 tokens
+- **And** the truncation point (if reached) is logged for tuning
+- **And** the summary preserves the highest-confidence facts first (preferences > identity > history > off_topic)
+
+**Scenario: Per-session profile overhead < R0.02**
+- **Given** a chat session is started with profile context loaded
+- **When** measuring the marginal token cost vs no-profile baseline
+- **Then** the incremental cost is < $0.001 per session (≤ ~R0.02)
+- **And** the cost-report dashboard shows profile overhead as a separate line item
+
+---
+
 ## What we deliberately still leave for v5
 
 - Concrete Vitest unit test signatures (.spec.ts file stubs)
@@ -232,4 +282,4 @@ US-LG-001 through US-LG-024 remain in scope. v4 adds performance + cost criteria
 
 ## Definition of "done" for v4
 
-All 34 stories pass with performance SLAs measured. Cost-per-conversation tracked. Founder has reviewed weekly hallucination samples for 4 consecutive weeks with zero critical findings. Load test at 100 concurrent sessions passes. Ready for v5: turn these into runnable failing tests.
+All 36 stories (34 original + 2 profile-performance) pass with performance SLAs measured. Cost-per-conversation tracked. Founder has reviewed weekly hallucination samples for 4 consecutive weeks with zero critical findings. Load test at 100 concurrent sessions passes. Profile-system per-tenant isolation verified by red-team test. Ready for v5: turn these into runnable failing tests.

@@ -205,6 +205,99 @@ US-VA-001 through US-VA-006 remain in scope.
 
 ---
 
+---
+
+## Profile-system edge cases (see `docs/superpowers/specs/2026-05-13-profile-system.md`)
+
+## US-VA-045 — Caller declines profile (voice)
+
+**As a** caller uncomfortable with persistent profiles
+**I want** to decline once verbally
+**So that** I'm not asked again this session
+
+### Acceptance criteria
+
+**Scenario: Caller says "no" to consent**
+- **Given** the agent asked for consent
+- **When** the caller says "no", "no thanks", "I'd rather not", or similar
+- **Then** the agent acknowledges briefly ("Got it — won't store anything")
+- **And** the rest of the call proceeds without `profile.extend` calls
+- **And** the decision is recorded in `profile_consent` with `granted = false`
+- **And** the next call within 90 days does NOT re-ask consent
+
+---
+
+## US-VA-046 — Caller corrects profile fact verbally
+
+**As a** caller whose profile has stale info
+**I want** to verbally correct it
+**So that** the agent stops referencing wrong details
+
+### Acceptance criteria
+
+**Scenario: "My number changed"**
+- **Given** the profile has `whatsapp: +27821234567`
+- **When** the caller says "my new WhatsApp is +27 83 555 1234"
+- **Then** the agent confirms back: "Updated — +27 83 *** 1234 going forward."
+- **And** calls `profile.extend` with the new identifier
+- **And** marks the old identifier as superseded (does NOT delete it)
+- **And** US-VA-035 (returning-caller within 90 days) updates accordingly
+
+**Scenario: Low STT confidence on correction**
+- **Given** Deepgram returns the corrected number with confidence < 0.7
+- **When** the agent processes the correction
+- **Then** the agent confirms digit-by-digit before persisting
+- **And** if confirmation fails, does NOT update the profile
+
+---
+
+## US-VA-047 — Forget-me request via voice
+
+**As a** caller who wants their data deleted
+**I want** to trigger deletion verbally
+**So that** I don't have to email or visit a website
+
+### Acceptance criteria
+
+**Scenario: Caller says "forget me" or "delete my data"**
+- **Given** an active call with a known profile
+- **When** the caller's transcript matches the deletion intent (classifier)
+- **Then** the agent confirms verbally: "Just to be sure — you want me to delete everything I know about you. This is permanent. Confirm?"
+- **And** on `yes`, calls `profile.forget(tenant, identity)`
+- **And** confirms: "Done. Starting fresh from this call."
+- **And** the audit log records the deletion (without PII)
+
+**Scenario: Caller hangs up mid-confirmation**
+- **Given** the agent asked for confirmation
+- **When** the caller hangs up before confirming
+- **Then** the deletion does NOT execute (caller-safety: ambiguous intent)
+- **And** a Slack alert posts to ops to follow up + clarify
+
+---
+
+## US-VA-048 — Off-topic mention capture (voice)
+
+**As a** caller who mentioned something off-topic ("I'm planning a road trip next month")
+**I want** the agent to remember that for next time (if I've consented)
+**So that** future calls have context
+
+### Acceptance criteria
+
+**Scenario: Caller volunteers personal context**
+- **Given** profile consent is granted
+- **When** the caller says something substantive off-topic
+- **Then** the classifier tags it `off_topic`
+- **And** the agent calls `profile.extend` with the captured fact
+- **And** stays on the qualification flow (no off-topic rabbit-hole)
+
+**Scenario: Sensitive content (health, finance)**
+- **Given** the caller mentions health/finance/relationship/legal trouble
+- **When** the classifier tags `sensitive`
+- **Then** the fact is NOT captured to profile (per spec; sensitive needs per-mention consent in v3)
+- **And** the agent continues empathetically but stays in qualification
+
+---
+
 ## Definition of done for v2
 
-All 17 stories (15 original + 2 newly added: US-VA-040) pass. Founder-supervised 7-day Patient Zero soak on Octio's own line with zero critical incidents.
+All 21 stories (15 original + 2 voice-agent additions + 4 profile edge cases) pass. Founder-supervised 7-day Patient Zero soak on Octio's own line with zero critical incidents.

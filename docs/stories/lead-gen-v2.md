@@ -199,6 +199,92 @@ US-LG-001 through US-LG-006 remain in scope. Read `lead-gen-v1.md` for the happy
 
 ---
 
+---
+
+## Profile-system edge cases (see `docs/superpowers/specs/2026-05-13-profile-system.md`)
+
+## US-LG-038 — Visitor declines profile
+
+**As a** visitor uncomfortable with persistent profiles
+**I want** to decline once and not be asked again this session
+**So that** I'm not pestered
+
+### Acceptance criteria
+
+**Scenario: Visitor clicks "No, this time only"**
+- **Given** the consent card has been shown
+- **When** the visitor declines
+- **Then** the bot records `consent_granted = false` in `profile_consent`
+- **And** for the rest of this session, behaviour is identical to no-profile (no `profile.extend` calls fire)
+- **And** the visitor's decision is honoured on future sessions for 90 days before re-asking (re-prompt at next interaction after 90 days)
+
+---
+
+## US-LG-039 — Visitor corrects a stored fact
+
+**As a** visitor whose profile has stale info
+**I want** to correct it during conversation
+**So that** the bot stops using wrong data
+
+### Acceptance criteria
+
+**Scenario: Visitor says "my number's changed"**
+- **Given** the profile has `whatsapp: +27821234567`
+- **When** the visitor says "actually my number is +27 83 555 1234 now"
+- **Then** the bot acknowledges the correction
+- **And** calls `profile.extend` with the new identifier + `source = 'user_stated'`
+- **And** marks the old identifier as `last_seen_at` (does NOT delete it, in case the family/work phone is also relevant)
+- **And** confirms back: "Got it — using +27 83 *** 1234 going forward."
+
+**Scenario: Visitor corrects a service-area fact**
+- **Given** the profile summary says "based in Centurion"
+- **When** the visitor says "I moved to Pretoria East"
+- **Then** the bot acknowledges + calls `profile.extend` to update the service_area fact
+
+---
+
+## US-LG-040 — Forget me request (right to be forgotten)
+
+**As a** visitor who wants their data deleted
+**I want** to trigger deletion via the chat
+**So that** I don't have to email privacy@ and wait
+
+### Acceptance criteria
+
+**Scenario: Visitor types "forget me" or "delete my data"**
+- **Given** an active chat session with a known profile
+- **When** the visitor sends a message classified as a deletion request
+- **Then** the bot confirms intent: "Just to be sure — you want me to delete everything I have on you. This is permanent. Confirm?"
+- **And** on `yes`, the bot calls `profile.forget(tenant, identity)`
+- **And** the bot confirms: "Done — all your data is gone. Starting fresh from this message."
+- **And** the audit log records the deletion (without retaining the deleted PII)
+- **And** the rest of the session proceeds without profile context
+
+---
+
+## US-LG-041 — Off-topic mention capture
+
+**As a** visitor who mentioned something off-topic ("I'm thinking about starting a SaaS")
+**I want** the bot to remember that for next time (if I've consented)
+**So that** future conversations can reference it
+
+### Acceptance criteria
+
+**Scenario: Visitor mentions a personal project mid-qualification**
+- **Given** consent is granted
+- **When** the visitor says something off-topic that's substantive (≥ 8 words, isn't filler)
+- **And** the bot's intent classifier tags it as `off_topic` (vs `service_relevant`, `small_talk`)
+- **Then** the bot calls `profile.extend` with `category = 'off_topic'`
+- **And** the bot may acknowledge briefly ("interesting — I'll remember that for next time") but stays on the qualification flow
+- **And** the off-topic fact is subject to the 20-fact cap per profile (oldest evicted)
+
+**Scenario: Off-topic content is sensitive (health, finance, relationship)**
+- **Given** the message contains sensitive markers
+- **When** the classifier tags it `sensitive`
+- **Then** the bot does NOT capture it to profile (sensitive bucket requires explicit per-mention consent in v2; defer to v3)
+
+---
+
 ## What we deliberately still leave for v3+
 
 - POPIA / data-retention specifics
@@ -209,4 +295,4 @@ US-LG-001 through US-LG-006 remain in scope. Read `lead-gen-v1.md` for the happy
 
 ## Definition of "done" for v2
 
-All 15 stories run on Octio's site. Failure modes have explicit handlers (no silent failures). Founder runs a 1-week Patient Zero shadow before any customer onboards.
+All 19 stories (15 original + 4 profile) run on Octio's site. Failure modes have explicit handlers (no silent failures). Founder runs a 1-week Patient Zero shadow before any customer onboards.

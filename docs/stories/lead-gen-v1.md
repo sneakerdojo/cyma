@@ -123,6 +123,74 @@
 
 ---
 
+---
+
+## Profile-system stories (cross-cutting; see `docs/superpowers/specs/2026-05-13-profile-system.md`)
+
+## US-LG-035 — First-time visitor: inline profile consent
+
+**As a** first-time visitor to a customer's site
+**I want** to be asked once, gently, if I want the chat to remember me
+**So that** I make an informed choice without friction
+
+### Acceptance criteria
+
+**Scenario: Consent ask after first useful exchange**
+- **Given** a first-time visitor has answered the first qualification question (turn 1 done)
+- **When** the bot prepares turn 2
+- **Then** the bot first surfaces an inline consent card: "Quick note — I can remember our chat so you don't repeat yourself next time. Want me to? You can change your mind any time."
+- **And** the card offers two buttons: `Yes, remember me` / `No, this time only`
+- **And** the visitor's choice is captured by `profile.consent(tenantId, profileId, decision, 'chat', consentTextHash)`
+- **And** qualification continues regardless of the choice
+
+**Scenario: Consent stored with exact-text audit trail**
+- **Given** the visitor clicked `Yes, remember me`
+- **When** consent is persisted
+- **Then** the `profile_consent` row includes `consent_text_hash = sha256(consent_text)`, `channel = 'chat'`, `granted_at = now()`
+- **And** the audit log records the decision
+
+---
+
+## US-LG-036 — Returning visitor: personalised greeting from profile
+
+**As a** returning visitor with a profile (>90 days OR within 90 days)
+**I want** the chat to recognise me + reference past context
+**So that** I feel known, not re-onboarded
+
+### Acceptance criteria
+
+**Scenario: Returning visitor identified by phone/email**
+- **Given** a visitor whose phone or email matches an existing profile in this tenant with `consent_granted = true`
+- **When** they open the chat
+- **Then** the bot calls `profile.lookup(tenant, identity)` and receives a non-null `profile_id` and `summary`
+- **And** the greeting personalises: "Hi [name] — calling about [last topic]?" OR a brand-voice equivalent
+- **And** if `preferred_channel` is in the summary, the bot defaults to that contact method when relevant
+
+**Scenario: Consent absent or revoked**
+- **Given** a returning visitor whose `consent_granted = false` (declined or revoked)
+- **When** they open the chat
+- **Then** the bot uses the generic greeting (no personalisation)
+- **And** the bot does NOT reference any prior session
+
+---
+
+## US-LG-037 — Profile-driven shortcut: skip already-known turns
+
+**As a** returning visitor whose previous chat captured their service area + WhatsApp number
+**I want** the bot to skip those questions
+**So that** I'm not asked the same thing twice
+
+### Acceptance criteria
+
+**Scenario: Profile summary contains service_area + WhatsApp**
+- **Given** the profile summary has `service_area: Centurion` and `whatsapp: +27821234567`
+- **When** the bot plans the qualification flow
+- **Then** the bot skips turn 4 (location) — confirms instead: "Still in Centurion?"
+- **And** skips turn 6 (WhatsApp ask) — confirms instead: "Reaching you on +27 82 *** 4567 ok?"
+- **And** if the visitor corrects either, the bot updates the profile via `profile.extend`
+
+---
+
 ## What we deliberately leave for v2+
 
 - Abandonment recovery (visitor leaves mid-flow)
@@ -133,4 +201,4 @@
 
 ## Definition of "done" for v1
 
-All 6 happy-path stories run end-to-end on Octio's own site (`octio.co.za`) with founder-supervised acceptance. Zero critical bugs. No customer onboarded yet — Patient Zero pass.
+All 9 happy-path stories (6 original + 3 profile) run end-to-end on Octio's own site (`octio.co.za`) with founder-supervised acceptance. Zero critical bugs. No customer onboarded yet — Patient Zero pass.

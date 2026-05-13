@@ -206,6 +206,75 @@
 
 ---
 
+---
+
+## Profile-system stories (cross-cutting; see `docs/superpowers/specs/2026-05-13-profile-system.md`)
+
+> **Note vs US-VA-035:** US-VA-035 already covers returning callers within 90 days using transient call history. The profile-system stories below provide LONG-HORIZON persistence (24-month TTL), explicit consent, identity-matching across phone + email + WhatsApp + name, and personalised tool/turn shortcuts. US-VA-035 becomes a special-case of US-VA-043 once profile system ships.
+
+## US-VA-042 — First-time caller: spoken consent
+
+**As a** first-time caller
+**I want** to be asked verbally if I want the agent to remember me
+**So that** I make an informed choice without keyboard input
+
+### Acceptance criteria
+
+**Scenario: Consent ask after first qualification turn**
+- **Given** a first-time caller has answered the first qualification question (need + service match captured)
+- **When** the agent processes the next turn
+- **Then** the agent asks once verbally: "Quick thing — I can remember this for next time so you don't have to repeat yourself. Want me to?"
+- **And** classifies the response (`yes` / `no` / `ask later`)
+- **And** persists `profile.consent(tenantId, profileId, decision, 'voice', textHash)` with the transcript snippet for audit
+- **And** continues qualification regardless of the choice
+
+**Scenario: Consent text matches a known whitelist**
+- **Given** the consent ask text is one of the approved variants (avoid "any" prompt drift)
+- **When** the agent asks for consent
+- **Then** the text matches the whitelist exactly (logged hash matches one of the approved hashes)
+- **And** if the text drifts, the consent is marked invalid + ops alerted
+
+---
+
+## US-VA-043 — Long-horizon caller recognition (>90 days)
+
+**As a** caller whose last interaction was over 90 days ago (US-VA-035 doesn't fire)
+**I want** the agent to still recognise me from the persistent profile
+**So that** my history isn't artificially forgotten
+
+### Acceptance criteria
+
+**Scenario: Caller with consented profile, last contact 6 months ago**
+- **Given** a caller whose phone matches a profile with `consent_granted = true` and `last_seen_at` 6 months ago
+- **When** the call connects
+- **Then** the agent calls `profile.lookup(tenant, identity)` and gets a non-null profile + summary
+- **And** the greeting personalises: "Hi [name], welcome back — been a while. What can I help with today?"
+- **And** the agent has the summary in its system prompt
+
+**Scenario: Profile retention boundary (>24 months)**
+- **Given** a caller whose profile was auto-purged at the 24-month boundary
+- **When** the call connects
+- **Then** the agent treats them as a new caller (US-VA-042 consent flow)
+
+---
+
+## US-VA-044 — Profile-driven shortcut: skip already-known turns mid-call
+
+**As a** returning caller whose profile says I'm based in Centurion + my WhatsApp is on file
+**I want** the agent to confirm rather than re-ask
+**So that** the call is shorter and feels familiar
+
+### Acceptance criteria
+
+**Scenario: Agent uses profile to compress qualification**
+- **Given** the profile summary contains `service_area: Centurion` and `whatsapp: +27821234567`
+- **When** the qualification flow plans turn 3 (location)
+- **Then** the agent confirms verbally: "Still in Centurion?"
+- **And** if confirmed, skips ahead to next unknown field
+- **And** if corrected, calls `profile.extend` with the new value + `source = 'user_stated'`
+
+---
+
 ## Definition of done for v1
 
-All 11 happy-path stories (6 original + 5 newly added: US-VA-035 to US-VA-039) run against Octio's own inbound number. Patient Zero: founder is the only fallback for one week. Zero critical bugs.
+All 14 happy-path stories (6 original + 5 newly added US-VA-035..039 + 3 profile US-VA-042..044) run against Octio's own inbound number. Patient Zero: founder is the only fallback for one week. Zero critical bugs.

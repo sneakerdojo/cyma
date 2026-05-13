@@ -182,6 +182,54 @@ US-VA-001 through US-VA-015 remain in scope.
 
 ---
 
+---
+
+## Profile-system POPIA stories (see `docs/superpowers/specs/2026-05-13-profile-system.md`)
+
+## US-VA-049 — Per-tenant profile isolation (voice)
+
+**As a** POPIA Information Officer
+**I want** voice-driven profile data strictly isolated per tenant
+**So that** Customer B can never see what a caller said while calling Customer A
+
+### Acceptance criteria
+
+**Scenario: Same caller phone reaches two tenants**
+- **Given** caller `+27821234567` has a consented profile at Tenant A AND at Tenant B (each separate)
+- **When** the caller dials Tenant A's number
+- **Then** the voice agent's `profile.lookup` returns only Tenant A's profile
+- **And** zero data from Tenant B's profile is visible in this call
+- **And** the audit log records the lookup tied to Tenant A only
+
+**Scenario: Forged tenant in profile API**
+- **Given** an attacker attempts a `profile.lookup` with `tenantId = 999`
+- **When** the call is processed
+- **Then** the worker rejects with 403
+- **And** the attempt is audit-logged
+
+---
+
+## US-VA-050 — Profile retention + auto-purge (voice context)
+
+**As a** POPIA Information Officer
+**I want** voice profile data subject to the same 24-month retention boundary
+**So that** old caller data doesn't accumulate forever
+
+### Acceptance criteria
+
+**Scenario: Profile inactive 24 months auto-purges**
+- **Given** a voice-built profile whose `last_seen_at` is 24+ months ago
+- **When** the daily retention cron runs
+- **Then** the profile + all facts + identifiers + embeddings are hard-deleted
+- **And** the audit-log record is preserved without PII
+
+**Scenario: Per-category TTL (sensitive 90 days, off_topic 12 months)**
+- **Given** voice-captured `sensitive` facts older than 90 days and `off_topic` facts older than 12 months
+- **When** the retention sweep runs
+- **Then** those facts are deleted while the profile root remains
+
+---
+
 ## Definition of done for v3
 
-All 24 stories pass. POPIA Information Officer registered. Retell DPA recorded. Recording disclosure tested on every call route. Audit log completeness verified.
+All 26 stories (24 original + 2 profile POPIA) pass. POPIA Information Officer registered. Retell DPA recorded. Recording disclosure tested on every call route. Audit log completeness verified. Profile per-tenant isolation verified by red-team test.

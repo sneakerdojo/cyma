@@ -911,6 +911,334 @@ describe('US-LG-034: provider outage fallback', () => {
 
 ---
 
+## Profile-system test signatures (see `docs/superpowers/specs/2026-05-13-profile-system.md`)
+
+## US-LG-035 — Inline profile consent (v1 profile addendum)
+
+```ts
+// worker/src/__tests__/lead-gen/us-035-consent.spec.ts
+import { describe, it, expect, vi } from 'vitest';
+import { presentConsentCard, persistConsent } from '../../services/profile/consent';
+
+describe('US-LG-035: inline consent', () => {
+  it('shows consent card after turn 1', () => {
+    const card = presentConsentCard({ session: { turnsCompleted: 1 } });
+    expect(card.kind).toBe('consent_card');
+    expect(card.text).toMatch(/remember/i);
+    expect(card.buttons.map(b => b.id)).toEqual(['yes', 'no']);
+  });
+
+  it('persists consent with text hash', async () => {
+    const repo = vi.fn();
+    await persistConsent({ tenantId: 1, profileId: 'p1', decision: 'granted', channel: 'chat', text: 'Quick note...', repo });
+    expect(repo).toHaveBeenCalledWith(expect.objectContaining({ consent_text_hash: expect.stringMatching(/^[a-f0-9]{64}$/), channel: 'chat' }));
+  });
+});
+```
+
+---
+
+## US-LG-036 — Returning visitor personalisation (v1 profile addendum)
+
+```ts
+// worker/src/__tests__/lead-gen/us-036-returning.spec.ts
+import { describe, it, expect, vi } from 'vitest';
+import { buildGreetingWithProfile } from '../../services/lead-gen/greeting';
+
+describe('US-LG-036: returning visitor', () => {
+  it('uses personalised greeting when consent_granted', async () => {
+    const profile = vi.fn().mockResolvedValue({ profile_id: 'p1', consent_granted: true, summary: 'Sipho, prefers WhatsApp, last about geyser leak' });
+    const result = await buildGreetingWithProfile({ tenant: { brand: 'Joburg Plumbing' }, identity: { phone: '+27821234567' }, profileLookup: profile });
+    expect(result.text).toMatch(/sipho/i);
+  });
+
+  it('uses generic greeting when consent revoked', async () => {
+    const profile = vi.fn().mockResolvedValue({ profile_id: 'p1', consent_granted: false, summary: null });
+    const result = await buildGreetingWithProfile({ tenant: { brand: 'Joburg Plumbing' }, identity: { phone: '+27821234567' }, profileLookup: profile });
+    expect(result.text).not.toMatch(/sipho/i);
+  });
+});
+```
+
+---
+
+## US-LG-037 — Skip already-known turns (v1 profile addendum)
+
+```ts
+// worker/src/__tests__/lead-gen/us-037-shortcut.spec.ts
+import { describe, it, expect } from 'vitest';
+import { planQualificationWithProfile } from '../../services/lead-gen/qualify';
+
+describe('US-LG-037: profile-driven shortcut', () => {
+  it('skips location turn when service_area known', () => {
+    const plan = planQualificationWithProfile({ profile: { service_area: 'Centurion' }, currentTurn: 4 });
+    expect(plan.skip).toContain('ask_location');
+    expect(plan.action).toBe('confirm_location');
+  });
+
+  it('skips WhatsApp ask when number known + confirms instead', () => {
+    const plan = planQualificationWithProfile({ profile: { whatsapp: '+27821234567' }, currentTurn: 6 });
+    expect(plan.skip).toContain('ask_whatsapp');
+    expect(plan.action).toBe('confirm_whatsapp');
+  });
+});
+```
+
+---
+
+## US-LG-038 — Decline profile (v2 profile addendum)
+
+```ts
+// worker/src/__tests__/lead-gen/us-038-decline.spec.ts
+import { describe, it, expect, vi } from 'vitest';
+import { handleConsentDecision, shouldReaskConsent } from '../../services/profile/consent';
+
+describe('US-LG-038: decline profile', () => {
+  it('records granted = false; no profile.extend fires that session', async () => {
+    const extend = vi.fn();
+    const session = await handleConsentDecision({ decision: 'no', tenantId: 1, profileId: 'p1', extend });
+    expect(session.consentGranted).toBe(false);
+    expect(extend).not.toHaveBeenCalled();
+  });
+
+  it('does not re-ask consent for 90 days after decline', () => {
+    expect(shouldReaskConsent({ lastDeclinedAt: new Date('2026-04-01'), now: new Date('2026-05-01') })).toBe(false);
+    expect(shouldReaskConsent({ lastDeclinedAt: new Date('2026-02-01'), now: new Date('2026-05-13') })).toBe(true);
+  });
+});
+```
+
+---
+
+## US-LG-039 — Correct stored fact (v2 profile addendum)
+
+```ts
+// worker/src/__tests__/lead-gen/us-039-correct.spec.ts
+import { describe, it, expect, vi } from 'vitest';
+import { handleCorrection } from '../../services/profile/correction';
+
+describe('US-LG-039: fact correction', () => {
+  it('updates whatsapp identifier when visitor states a new one', async () => {
+    const extend = vi.fn();
+    await handleCorrection({ tenantId: 1, profileId: 'p1', userMessage: 'actually my number is +27 83 555 1234', extend });
+    expect(extend).toHaveBeenCalledWith(expect.objectContaining({
+      facts: expect.arrayContaining([expect.objectContaining({ key: 'whatsapp', value: '+27835551234', source: 'user_stated' })]),
+    }));
+  });
+
+  it('does NOT delete the old identifier (family-phone case)', async () => {
+    const repo = { markLastSeen: vi.fn(), delete: vi.fn() };
+    await handleCorrection({ tenantId: 1, profileId: 'p1', userMessage: 'my new number is +27 83 555 1234', repo });
+    expect(repo.markLastSeen).toHaveBeenCalledWith({ identifier: '+27821234567' });
+    expect(repo.delete).not.toHaveBeenCalled();
+  });
+});
+```
+
+---
+
+## US-LG-040 — Forget me (v2 profile addendum)
+
+```ts
+// worker/src/__tests__/lead-gen/us-040-forget.spec.ts
+import { describe, it, expect, vi } from 'vitest';
+import { handleForgetIntent } from '../../services/profile/forget';
+
+describe('US-LG-040: forget me', () => {
+  it('confirms intent before deleting', async () => {
+    const result = await handleForgetIntent({ tenantId: 1, identity: { phone: '+27821234567' }, confirmed: false });
+    expect(result.kind).toBe('confirm');
+  });
+
+  it('on confirm, calls profile.forget and continues session unprofiled', async () => {
+    const forget = vi.fn().mockResolvedValue({ deleted: 1 });
+    const result = await handleForgetIntent({ tenantId: 1, identity: { phone: '+27821234567' }, confirmed: true, forget });
+    expect(forget).toHaveBeenCalled();
+    expect(result.kind).toBe('deleted');
+  });
+
+  it('audit log records deletion (without PII)', async () => {
+    const audit = vi.fn();
+    const forget = vi.fn().mockResolvedValue({ deleted: 1 });
+    await handleForgetIntent({ tenantId: 1, identity: { phone: '+27821234567' }, confirmed: true, forget, audit });
+    expect(audit).toHaveBeenCalledWith(expect.objectContaining({ action: 'profile_deleted', target_hash: expect.stringMatching(/^[a-f0-9]{64}$/) }));
+  });
+});
+```
+
+---
+
+## US-LG-041 — Off-topic capture (v2 profile addendum)
+
+```ts
+// worker/src/__tests__/lead-gen/us-041-off-topic.spec.ts
+import { describe, it, expect, vi } from 'vitest';
+import { classifyAndExtend } from '../../services/profile/extend';
+
+describe('US-LG-041: off-topic capture', () => {
+  it('captures substantive off-topic mentions when consented', async () => {
+    const extend = vi.fn();
+    await classifyAndExtend({ tenantId: 1, profileId: 'p1', consent: true, message: 'btw I am thinking about starting a SaaS business', extend });
+    expect(extend).toHaveBeenCalledWith(expect.objectContaining({
+      facts: expect.arrayContaining([expect.objectContaining({ category: 'off_topic' })]),
+    }));
+  });
+
+  it('does NOT capture small-talk or filler', async () => {
+    const extend = vi.fn();
+    await classifyAndExtend({ tenantId: 1, profileId: 'p1', consent: true, message: 'thanks', extend });
+    expect(extend).not.toHaveBeenCalled();
+  });
+
+  it('does NOT capture sensitive content (health, finance, relationship)', async () => {
+    const extend = vi.fn();
+    await classifyAndExtend({ tenantId: 1, profileId: 'p1', consent: true, message: 'I am dealing with cancer treatment', extend });
+    expect(extend).not.toHaveBeenCalled();
+  });
+
+  it('enforces 20-fact off_topic cap (oldest evicted)', async () => {
+    const evict = vi.fn();
+    await classifyAndExtend({ tenantId: 1, profileId: 'p1', consent: true, message: 'I love hiking on weekends', currentOffTopicCount: 20, evict });
+    expect(evict).toHaveBeenCalledWith(expect.objectContaining({ category: 'off_topic', order: 'asc' }));
+  });
+});
+```
+
+---
+
+## US-LG-042 — Per-tenant profile isolation (v3 profile addendum)
+
+```ts
+// worker/src/__tests__/lead-gen/us-042-tenant-isolation.spec.ts
+import { describe, it, expect } from 'vitest';
+import { profileLookup } from '../../services/profile/lookup';
+
+describe('US-LG-042: tenant isolation', () => {
+  it('returns only tenant A profile data when called by tenant A', async () => {
+    const result = await profileLookup({ tenantId: 1, identity: { phone: '+27821234567' } });
+    expect(result.tenantId).toBe(1);
+  });
+
+  it('forged tenant ID is rejected with 403', async () => {
+    const forged = makeJwt({ tenant_id: 999 });
+    await expect(profileLookup({ jwt: forged, identity: { phone: '+27821234567' } })).rejects.toThrow(/forbidden|invalid/i);
+  });
+});
+
+function makeJwt(_claims: object): string { return ''; }
+```
+
+---
+
+## US-LG-043 — Retention auto-purge (v3 profile addendum)
+
+```ts
+// worker/src/__tests__/lead-gen/us-043-profile-retention.spec.ts
+import { describe, it, expect } from 'vitest';
+import { runProfileRetentionSweep } from '../../services/profile/retention';
+
+describe('US-LG-043: profile retention sweep', () => {
+  it('hard-deletes profiles inactive 24+ months', async () => {
+    const stats = await runProfileRetentionSweep({ now: new Date('2028-05-13') });
+    expect(stats.profilesDeleted).toBeGreaterThan(0);
+  });
+
+  it('purges sensitive facts older than 90 days', async () => {
+    const stats = await runProfileRetentionSweep({ now: new Date('2026-08-12') });
+    expect(stats.sensitiveFactsPurged).toBeGreaterThanOrEqual(0);
+  });
+
+  it('purges off_topic facts older than 12 months', async () => {
+    const stats = await runProfileRetentionSweep({ now: new Date('2027-05-13') });
+    expect(stats.offTopicFactsPurged).toBeGreaterThanOrEqual(0);
+  });
+
+  it('audit log retained without PII', async () => {
+    const stats = await runProfileRetentionSweep({ now: new Date('2028-05-13') });
+    expect(stats.auditLogPreserved).toBe(true);
+  });
+});
+```
+
+---
+
+## US-LG-044 — Profile SAR export (v3 profile addendum)
+
+```ts
+// worker/src/__tests__/lead-gen/us-044-profile-sar.spec.ts
+import { describe, it, expect } from 'vitest';
+import { exportProfile } from '../../services/profile/sar';
+
+describe('US-LG-044: profile SAR', () => {
+  it('exports all profile rows to a signed ZIP', async () => {
+    const result = await exportProfile({ tenantId: 1, identity: { phone: '+27821234567' } });
+    expect(result.signedZipUrl).toMatch(/^https:\/\//);
+  });
+
+  it('returns audit-only export for a previously-deleted profile', async () => {
+    const result = await exportProfile({ tenantId: 1, identity: { phone: '+27821234567' }, simulatePriorDelete: true });
+    expect(result.note).toMatch(/deleted/i);
+    expect(result.rows.facts).toEqual([]);
+  });
+});
+```
+
+---
+
+## US-LG-045 — Profile lookup latency (v4 profile addendum)
+
+```ts
+// worker/src/__tests__/lead-gen/us-045-profile-latency.spec.ts
+import { describe, it, expect } from 'vitest';
+import { simulateProfileLookupLoad } from './_fixtures/profile-load';
+
+describe('US-LG-045: profile lookup latency', () => {
+  it('p95 ≤ 100ms under 100 concurrent lookups', async () => {
+    const result = await simulateProfileLookupLoad({ concurrent: 100 });
+    expect(result.p95).toBeLessThanOrEqual(100);
+  });
+
+  it('greeting falls back to generic when lookup misses deadline', async () => {
+    const greet = await import('../../services/lead-gen/greeting').then(m => m.buildGreetingWithProfile({
+      identity: { phone: '+27821234567' },
+      profileLookup: () => new Promise(r => setTimeout(() => r({}), 2000)),
+      timeoutMs: 100,
+    }));
+    expect(greet.text).not.toMatch(/[A-Z]\w+,/); // no first-name personalisation
+  });
+});
+```
+
+---
+
+## US-LG-046 — Profile summary token cap (v4 profile addendum)
+
+```ts
+// worker/src/__tests__/lead-gen/us-046-summary-cap.spec.ts
+import { describe, it, expect } from 'vitest';
+import { summariseProfile } from '../../services/profile/summarise';
+
+describe('US-LG-046: summary token cap', () => {
+  it('output summary ≤ 300 tokens', async () => {
+    const summary = await summariseProfile({ profileId: 'p1', facts: makeFixtureFacts(50) });
+    expect(estimateTokens(summary)).toBeLessThanOrEqual(300);
+  });
+
+  it('preserves highest-confidence facts first', async () => {
+    const summary = await summariseProfile({ profileId: 'p1', facts: [
+      { category: 'preference', key: 'channel', value: 'whatsapp', confidence: 0.95 },
+      { category: 'off_topic', key: 'hobby', value: 'hiking', confidence: 0.6 },
+    ] });
+    expect(summary.indexOf('whatsapp')).toBeLessThan(summary.indexOf('hiking'));
+  });
+});
+
+function makeFixtureFacts(_n: number): any[] { return []; }
+function estimateTokens(s: string): number { return Math.ceil(s.length / 4); }
+```
+
+---
+
 ## Fixtures + helpers
 
 ### `worker/src/__tests__/lead-gen/_fixtures.ts`
@@ -927,6 +1255,15 @@ export const TEST_TENANT_PLUMBING = { id: 1, brand: 'Joburg Plumbing', service: 
 export async function simulateChat({ concurrent, messages }: { concurrent: number; messages: number }) {
   // Spin up N sessions in parallel against staging worker, send M messages each, return latency percentiles + error counts.
   return { p50: 0, p95: 0, p99: 0, errors503: 0 };
+}
+```
+
+### `worker/src/__tests__/lead-gen/_fixtures/profile-load.ts`
+
+```ts
+export async function simulateProfileLookupLoad({ concurrent }: { concurrent: number }) {
+  // Fire N concurrent profile.lookup against staging worker; return latency percentiles.
+  return { p50: 0, p95: 0, p99: 0 };
 }
 ```
 
