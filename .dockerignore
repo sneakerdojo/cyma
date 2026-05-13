@@ -1,10 +1,14 @@
-# Dependencies
+# Shared by all Docker builds (-f packages/{web,worker}/Dockerfile .)
+
+# Dependencies — installed inside the builder stage
 node_modules
 **/node_modules
 
-# Build output
-dist
-**/dist
+# Build output (web's dist is COPY'd in by packages/web/Dockerfile, so we don't
+# blanket-exclude packages/web/dist — see the Dockerfile for which paths are
+# pulled into the image. For the worker, no dist is ever produced.)
+dist-ssr
+**/.vite
 
 # Git
 .git
@@ -15,18 +19,31 @@ dist
 .env.*
 !.env.example
 
-# Docs and task management
-docs
-.taskmaster
-
-# Frontend-specific (not needed in worker image)
-src
-public
-index.html
-vite.config.*
-tailwind.config.*
-postcss.config.*
-
-# Misc
-*.log
+# Editor / OS
+.vscode
+.idea
 .DS_Store
+*.suo
+*.swp
+
+# Logs
+*.log
+logs
+
+# Local-only state
+.taskmaster
+.playwright-cli
+.claude
+.screenshots
+Screenshot*.png
+tmp
+pgdata
+uploads
+/var/octio
+
+# Markdown docs (not needed in any runtime image)
+docs
+
+# Tooling
+README.md
+CLAUDE.md

@@ -7,12 +7,19 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
-dist
-dist-ssr
-*.local
+**/node_modules
 
-# Editor directories and files
+# Build output
+dist
+**/dist
+dist-ssr
+**/.vite
+*.tsbuildinfo
+
+# Local + editor
+*.local
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -22,15 +29,18 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
 dev-debug.log
-# Dependency directories
-node_modules/
-# Environment variables
+
+# Env files — keep .example committed, ignore the rest
 .env
 .env.local
-.vscode
-# OS specific
+.env.*.local
+packages/**/.env
+packages/**/.env.local
+packages/**/.env.*.local
+!**/.env.example
+!packages/web/.env.development
+!packages/web/.env.production
 
 # Claude Code / tooling state
 .taskmaster/
@@ -39,16 +49,10 @@ node_modules/
 .screenshots/
 Screenshot*.png
 
-# Task files
-# tasks.json
-# tasks/
-
-# worker
-worker/dist
-worker/.env*
-!worker/.env.example
-# docker volumes
+# Docker volumes / runtime data
 pgdata/
-# uploads
 uploads/
 /var/octio/
+
+# Scratch
+tmp/
