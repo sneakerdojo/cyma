@@ -13,13 +13,16 @@ vi.mock('../../services/gmail.js', () => ({
 }));
 
 // Import SUT after mocks are registered.
-import { sendResourcesTool } from './send-resources.js';
+import { sendResourcesTool, _clearSendResourcesCooldown } from './send-resources.js';
 
 // ---------------------------------------------------------------------------
 
 describe('sendResourcesTool', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    // Per-recipient cooldown is module-level state — reset between tests so
+    // each scenario starts fresh.
+    _clearSendResourcesCooldown();
   });
 
   it('returns { ok: true, message } when sendResourceEmail resolves', async () => {
