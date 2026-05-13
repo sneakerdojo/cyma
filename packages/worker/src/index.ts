@@ -10,6 +10,7 @@ import { eventRoutes } from './routes/event.js';
 import { privacyRoutes } from './routes/privacy.js';
 import { identifyRoutes } from './routes/identify.js';
 import { oauthRoutes } from './routes/oauth.js';
+import { voiceAgentRoutes } from './routes/voice-agent.js';
 import { cors } from 'hono/cors';
 import { logger as honoLogger } from 'hono/logger';
 import { sql } from 'drizzle-orm';
@@ -48,6 +49,7 @@ app.use('/api/*', rateLimitMiddleware('ip-only'));
 // ------------------------------------------------------------------
 app.route('/api', bookRoutes);
 app.route('/api', identifyRoutes);
+app.route('/api', voiceAgentRoutes);
 app.route('/chat', chatRoutes);
 app.route('/chat/step', stepRoutes);
 app.route('/chat/event', eventRoutes);

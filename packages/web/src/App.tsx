@@ -9,6 +9,7 @@ import { WizardProvider } from './features/octo/WizardContext';
 const OctoPage = lazy(() => import('./pages/OctoPage'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const OfferingPage = lazy(() => import('./pages/OfferingPage'));
+const VoiceAgentSimPage = lazy(() => import('./pages/VoiceAgentSimPage'));
 
 const Loader = () => <div className="min-h-screen bg-bg" />;
 
@@ -49,6 +50,14 @@ export default function App() {
               element={
                 <Suspense fallback={<Loader />}>
                   <OfferingPage expectCategory="service" />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/voice-sim"
+              element={
+                <Suspense fallback={<Loader />}>
+                  <VoiceAgentSimPage />
                 </Suspense>
               }
             />
