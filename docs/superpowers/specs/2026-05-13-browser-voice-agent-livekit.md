@@ -21,6 +21,47 @@ A second research pass (production-failure stories + named scale deployments) re
 
 Full evidence trail in commit `9f883ae` research transcripts and the comparison synthesis in the prior chat. The decision is final unless the pre-flight gates surface a blocker.
 
+## Delivery shape: v0 (mocks, days) → v1 (real services, ~1 week)
+
+**v0 — everything mocked, browser-native audio I/O.** Validate the architecture + UX + flow on the existing octio.co.za demo with no external provisioning required. iOS Safari real-device testing happens here. Patient Zero IS this v0.
+
+| v0 component | What it actually uses | Cost |
+|---|---|---|
+| Browser audio capture | **Web Speech API** (`webkitSpeechRecognition` / SpeechRecognition) | $0 |
+| Browser audio playback | **`SpeechSynthesisUtterance`** | $0 |
+| Backend STT | Mock — accepts transcript, adds 220ms latency stub | $0 |
+| Backend TTS | Mock — returns "audio ready" signal, 140ms stub | $0 |
+| Brain | Existing `mockBrain` (FSM); `OctoBrainAdapter` seam in place | $0 |
+| Tools | Existing mock tools (lookup_availability, book_appointment, route_to_human) | $0 |
+| Transport | HTTPS POST per turn (no WebRTC, no livekit-server) | $0 |
+| `/api/voice-agent/turn` endpoint | v1-shape contract — what the LiveKit worker will call later | $0 |
+| `/api/voice-agent/token` endpoint | Stub that documents the contract (returns fake LiveKit JWT) | $0 |
+| Orb UI states | Real (idle / listening / thinking / speaking) | — |
+| iOS Safari unlock UX | Real "Tap to talk" gesture | — |
+
+**v0 total cost to operate:** $0 (no external services).
+**v0 effort:** 2–3 days.
+**v0 purpose:** prove the shape; surface iOS Safari quirks; validate Mastra-brain → tool → reply loop with real(-ish) audio I/O; show real prospects "Talk to our AI" on the marketing site without paying providers yet.
+
+---
+
+**v1 — real services swapped in.** Each swap is a single-module change because the seams are already in v0.
+
+| v1 swap | v0 → v1 change | Effort |
+|---|---|---|
+| STT | Web Speech API → Deepgram Nova-3 streaming WebSocket | 1 day |
+| TTS | SpeechSynthesisUtterance → Cartesia Sonic-3 streaming | 1 day |
+| Transport | HTTPS POST → WebRTC via livekit-client | 1.5 days |
+| SFU | (none) → self-hosted livekit-server on Octio infra | 1 day pre-flight + 0.5 day deploy |
+| Brain | `mockBrain` → real Mastra Octo agent (Kimi K2 Turbo) | 0.5 day (OctoBrainAdapter swap) |
+| Tools | Mock tools → production Google Calendar + WhatsApp + Slack | 1–2 days (already specced) |
+
+**v1 total effort post-v0:** ~6 days (matches the build sequence below).
+
+The rest of this spec describes the **v1 end-state**. v0 just stops short of the swaps.
+
+---
+
 ## Goal
 
 Ship a working in-browser voice agent on `octio.co.za` in approximately **7 days** running on Octio's existing self-hosted infrastructure (no managed cloud dependency). The agent:
