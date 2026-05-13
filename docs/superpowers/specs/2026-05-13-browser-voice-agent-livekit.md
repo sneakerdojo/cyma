@@ -214,25 +214,63 @@ Self-hosting strengthens this section significantly. Audio never leaves Octio's 
 
 ## Cost model — what you actually pay
 
-At ~600 demo conversation-mins/day (200 conversations × 3 min avg) on Octio's self-hosted infra:
+Costs are **variable per second of conversation**. Every figure below derives from per-second rates; daily / monthly totals only show what those rates *would* total at an assumed volume. Real spend tracks real usage.
 
-| Item | Per minute | Per day |
+### Per-second rates (the billing unit)
+
+| Item | Per second | Per minute | Per call (3-min avg) | Notes |
+|---|---|---|---|---|
+| Deepgram Nova-3 STT | $0.000128 | $0.0077 | $0.0231 | Vendor bills per-second internally; quoted per-minute. |
+| Cartesia Sonic-3 TTS | $0.000175 | $0.0105 | $0.0315 | Assumes ~7k chars/min bot output. |
+| Mastra brain via Kimi K2 Turbo | $0.000233 | $0.014 | $0.042 | Assumes ~3k tokens/min mixed in+out. Variable per conversation density. |
+| Bandwidth (Hetzner egress, estimated) | $0.000014 | $0.00083 | $0.0025 | ~75kbps Opus + signalling. |
+| **Marginal variable cost** | **~$0.00055/sec** | **~$0.033/min** | **~$0.099/call** | Only burns while a call is connected. |
+
+### Fixed monthly infra (independent of call volume)
+
+| Item | Monthly | Per second at demo volume | Notes |
+|---|---|---|---|
+| livekit-server + coturn (shared on infra-01) | $0–$25 | ~$0.000010 | Pre-flight answers if infra-01 absorbs it. Worst case: dedicated CX22 VPS. |
+| Agent worker (Node.js, co-located) | $0 | $0 | Shares the same machine. |
+
+Fixed infra cost amortises per second of usage — heavier traffic = lower effective per-second infra cost.
+
+### What this means at different volumes
+
+Volume gets the variable rate; only fixed infra changes the per-second total.
+
+| Daily volume | Daily total (variable + amortised infra) | Effective $/sec |
 |---|---|---|
-| Self-hosted livekit-server (shared on infra-01 or dedicated VPS) | — | $0.50–0.80 (amortised) |
-| Deepgram Nova-3 STT | $0.0077 | $4.62 |
-| Cartesia Sonic-3 (~7k chars/min) | $0.0105 | $6.30 |
-| Mastra brain via Kimi K2 Turbo (~3k tokens/min) | $0.014 | $8.40 |
-| Agent worker (shared infra) | — | $0 (co-located) |
-| Bandwidth (estimated) | — | ~$0.50 |
-| **Total** | **~$0.033/min** | **~$20/day** |
+| 1 demo call (3 min) | ~$0.10 + $0.83 = $0.93 | $0.0052 (mostly fixed cost) |
+| 50 calls/day (150 min) | ~$5 + $0.83 = $5.83 | $0.00065 |
+| 200 calls/day (600 min) | ~$20 + $0.83 = $20.83 | $0.00058 |
+| 1 000 calls/day (3 000 min) | ~$99 + $0.83 = $99.83 | $0.00055 |
+| 10 000 calls/day (30 000 min) | ~$990 + $0.83 = $990.83 | $0.00055 |
 
-vs LiveKit Cloud + Haiku variant: ~$24/day. **Self-hosting saves ~$120/month at demo volume even with Kimi's higher token cost; scales linearly.**
+**Reading this:** at any non-tiny volume the variable rate dominates and the marginal per-second cost stays roughly flat (~$0.00055). The earlier "$20/day" figure was 200 calls/day — useful as a reference point, but the truth is "we pay ~$0.033 per minute of conversation, and the meter only runs while a call is connected."
 
-At 10× demo volume (6,000 min/day): self-host + Kimi ~$200/day, LiveKit Cloud + Haiku ~$240/day. **Saves $1,200/month.**
+### Comparison points (held constant: variable cost per minute of call)
 
-**Switching to Anthropic Haiku 4.5 when we provision that API key** would save ~$1.50/day at demo volume (~$45/month) — meaningful at higher scale. Plan: add Anthropic as a *fallback first*, then re-evaluate as primary after a month of comparison data.
+| Stack | $/min | vs us | Why |
+|---|---|---|---|
+| **Self-host LiveKit + Kimi (current spec)** | **$0.033** | baseline | Self-hosted SFU; Kimi for brain |
+| Self-host + Anthropic Haiku 4.5 EU (when key lands) | $0.028 | -$0.005 | Haiku cheaper than Kimi for our token split |
+| LiveKit Cloud + Haiku | $0.038 | +$0.005 | $0.010/call-min Cloud fee |
+| Vapi (managed) | $0.07–$0.25 | +$0.04–$0.22 | Orchestration tax + provider passthrough |
+| OpenAI Realtime direct | $0.18–$0.46 | +$0.15–$0.43 | Premium speech-to-speech model; Mastra lock-out |
 
-The only cost-relevant question: does infra-01 have enough capacity for the SFU + agent workers, or do we provision a dedicated VPS? Answer in pre-flight gate 3.
+### Spend guardrail
+
+Hard daily cap of **$30 USD variable spend** (≈ 900 mins of conversation ≈ 300 calls) on the demo. Worker tracks rolling 24-hour spend; if hit, voice-sim returns "demo currently at capacity, try later." This protects against runaway loops and abuse, not against legitimate scale.
+
+### Practical answer to "what does this cost"
+
+- **Per second of conversation:** ~$0.00055
+- **Per typical 3-min call:** ~$0.10
+- **Cost only accrues while someone is on a call.** Idle infra is ~$25/month max.
+- **No vendor minimum commitments.** Cancel any time.
+
+Pre-flight gate 3 still answers the only remaining cost question: does infra-01 absorb livekit-server (free), or do we provision a dedicated VPS (~$25/mo)?
 
 ## Out of scope (v1)
 
