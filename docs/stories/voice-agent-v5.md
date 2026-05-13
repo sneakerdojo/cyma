@@ -143,26 +143,34 @@ function makeTranscriptFixture(): string { return ''; }
 
 ---
 
-## US-VA-007 — Barge-in (v2)
+## US-VA-007 — Barge-in (v2) — INTEGRATION test, not unit
+
+> Barge-in behaviour is Retell-internal. We can unit-test only our CONFIG (we told Retell to enable it correctly). Real behaviour is verified by a nightly integration test against a dedicated +27 test number.
 
 ```ts
-// worker/src/__tests__/voice-agent/us-007-barge-in.spec.ts
+// worker/src/__tests__/voice-agent/us-007-barge-config.spec.ts (UNIT)
 import { describe, it, expect } from 'vitest';
-import { onCallerSpeech } from '../../services/voice-agent/barge';
+import { buildRetellAgentConfig } from '../../services/voice-agent/config';
 
-describe('US-VA-007: barge-in', () => {
-  it('stops bot TTS within 200ms of caller speech detected', async () => {
-    const stop = vi.fn();
-    const start = performance.now();
-    await onCallerSpeech({ speakingMs: 300, stopBotTts: stop });
-    expect(performance.now() - start).toBeLessThan(200);
-    expect(stop).toHaveBeenCalled();
+describe('US-VA-007: barge-in config (unit)', () => {
+  it('enables interruption with 300ms threshold', () => {
+    const cfg = buildRetellAgentConfig({});
+    expect(cfg.interruption.enabled).toBe(true);
+    expect(cfg.interruption.minSpeechMs).toBe(300);
   });
+});
+```
 
-  it('does NOT interrupt for sub-300ms noise', async () => {
-    const stop = vi.fn();
-    await onCallerSpeech({ speakingMs: 100, stopBotTts: stop });
-    expect(stop).not.toHaveBeenCalled();
+```ts
+// worker/src/__tests__/voice-agent/integration/us-007-barge-in.integration.spec.ts (NIGHTLY)
+import { describe, it, expect } from 'vitest';
+import { runLiveCallScenario } from './_harness/live-call';
+
+describe('US-VA-007: barge-in (nightly integration)', () => {
+  it('stops bot mid-greeting when caller speaks for 400ms', async () => {
+    const result = await runLiveCallScenario({ scenario: 'interrupt-during-greeting' });
+    expect(result.bot.stoppedSpeakingMs).toBeLessThan(500); // 200ms response + tolerance
+    expect(result.bot.firstTokenAfterInterruptMs).toBeLessThan(1500);
   });
 });
 ```
@@ -592,20 +600,35 @@ describe('US-VA-028: sentence-boundary TTS chunking', () => {
 
 ---
 
-## US-VA-029 — Speculative tool + filler (v4)
+## US-VA-029 — Speculative tool + filler (v4) — INTEGRATION test, not unit
+
+> The unit can verify that the filler TTS fires BEFORE awaiting the tool promise. Real-world perceived latency is verified in the nightly integration suite.
 
 ```ts
-// worker/src/__tests__/voice-agent/us-029-speculative.spec.ts
+// worker/src/__tests__/voice-agent/us-029-speculative.spec.ts (UNIT — verifies ordering)
 import { describe, it, expect, vi } from 'vitest';
 import { runToolWithFiller } from '../../services/voice-agent/speculative';
 
-describe('US-VA-029: speculative tool + filler', () => {
-  it('emits filler TTS before tool returns', async () => {
-    const tts = vi.fn();
-    const toolCall = new Promise(r => setTimeout(() => r({ slots: [] }), 1500));
-    await runToolWithFiller({ tool: () => toolCall, fillerText: 'Let me check...', tts });
-    expect(tts).toHaveBeenCalledWith(expect.objectContaining({ text: 'Let me check...' }));
-    expect(tts.mock.invocationCallOrder[0]).toBeLessThan(performance.now() + 1500);
+describe('US-VA-029: speculative tool + filler (unit)', () => {
+  it('emits filler TTS BEFORE awaiting tool result', async () => {
+    const events: string[] = [];
+    const tts = vi.fn(({ text }) => { events.push(`tts:${text}`); });
+    const tool = vi.fn(() => new Promise(r => { events.push('tool:fired'); setTimeout(() => r({ slots: [] }), 100); }));
+    await runToolWithFiller({ tool, fillerText: 'Let me check...', tts });
+    expect(events.indexOf('tts:Let me check...')).toBeLessThan(events.indexOf('tool:fired'));
+  });
+});
+```
+
+```ts
+// worker/src/__tests__/voice-agent/integration/us-029-perceived-latency.integration.spec.ts (NIGHTLY)
+import { describe, it, expect } from 'vitest';
+import { runLiveCallScenario } from './_harness/live-call';
+
+describe('US-VA-029: perceived latency (nightly integration)', () => {
+  it('filler audio reaches caller within 400ms of question', async () => {
+    const result = await runLiveCallScenario({ scenario: 'availability-lookup' });
+    expect(result.bot.fillerAudioStartMs).toBeLessThan(400);
   });
 });
 ```
@@ -630,28 +653,62 @@ describe('US-VA-030: tenant concurrency', () => {
 
 ---
 
-## US-VA-031 — Provider outage fallback (v4)
+## US-VA-031 — Provider outage fallback (v4) — orchestrator-level cascade
+
+> Retell's fallback config supports ONE alternative model, not a chain. The 3-tier cascade (Haiku → Gemini → Groq) lives at our worker orchestrator, which Retell calls per turn.
 
 ```ts
 // worker/src/__tests__/voice-agent/us-031-fallback.spec.ts
 import { describe, it, expect, vi } from 'vitest';
-import { generateReplyWithFallback } from '../../services/voice-agent/llm';
+import { generateReplyWithCascade } from '../../services/voice-agent/llm';
 
-describe('US-VA-031: provider failover', () => {
-  it('falls to Gemini Flash on Haiku 503', async () => {
-    const result = await generateReplyWithFallback({
-      primary: vi.fn().mockRejectedValue({ status: 503 }),
-      secondary: vi.fn().mockResolvedValue({ text: 'reply' }),
+describe('US-VA-031: orchestrator-level fallback cascade', () => {
+  it('returns Haiku response on first-try success', async () => {
+    const result = await generateReplyWithCascade({
+      haiku: vi.fn().mockResolvedValue({ text: 'haiku reply' }),
+      gemini: vi.fn(),
+      groq: vi.fn(),
     });
-    expect(result.provider).toBe('gemini-2.5-flash');
+    expect(result.provider).toBe('claude-haiku-4-5');
+    expect(result.failoverTrail).toEqual(['claude-haiku-4-5']);
   });
 
-  it('captures number + escalates when both providers down', async () => {
-    const result = await generateReplyWithFallback({
-      primary: vi.fn().mockRejectedValue({ status: 503 }),
-      secondary: vi.fn().mockRejectedValue({ status: 503 }),
+  it('falls to Gemini on Haiku 503', async () => {
+    const result = await generateReplyWithCascade({
+      haiku: vi.fn().mockRejectedValue({ status: 503 }),
+      gemini: vi.fn().mockResolvedValue({ text: 'gemini reply' }),
+      groq: vi.fn(),
     });
-    expect(result.action).toBe('capture_and_escalate');
+    expect(result.provider).toBe('gemini-2.5-flash');
+    expect(result.failoverTrail).toEqual(['claude-haiku-4-5', 'gemini-2.5-flash']);
+  });
+
+  it('falls to Groq Llama on Haiku + Gemini 503', async () => {
+    const result = await generateReplyWithCascade({
+      haiku: vi.fn().mockRejectedValue({ status: 503 }),
+      gemini: vi.fn().mockRejectedValue({ status: 503 }),
+      groq: vi.fn().mockResolvedValue({ text: 'groq reply' }),
+    });
+    expect(result.provider).toBe('llama-3.3-70b-groq');
+  });
+
+  it('signals Retell to use static-prompt fallback when all 3 providers exhaust', async () => {
+    const result = await generateReplyWithCascade({
+      haiku: vi.fn().mockRejectedValue({ status: 503 }),
+      gemini: vi.fn().mockRejectedValue({ status: 503 }),
+      groq: vi.fn().mockRejectedValue({ status: 503 }),
+    });
+    expect(result.action).toBe('static_capture_and_escalate');
+  });
+
+  it('combined per-turn budget for all 3 attempts is bounded ≤ 3s', async () => {
+    const start = performance.now();
+    await generateReplyWithCascade({
+      haiku: vi.fn().mockImplementation(() => new Promise((_, rej) => setTimeout(() => rej({ status: 503 }), 800))),
+      gemini: vi.fn().mockImplementation(() => new Promise((_, rej) => setTimeout(() => rej({ status: 503 }), 800))),
+      groq: vi.fn().mockImplementation(() => new Promise((_, rej) => setTimeout(() => rej({ status: 503 }), 800))),
+    });
+    expect(performance.now() - start).toBeLessThan(3000);
   });
 });
 ```
@@ -719,6 +776,235 @@ describe('US-VA-034: latency alerts', () => {
 
 ---
 
+## US-VA-035 — Returning caller personalisation (v1 addendum)
+
+```ts
+// worker/src/__tests__/voice-agent/us-035-returning.spec.ts
+import { describe, it, expect } from 'vitest';
+import { buildGreetingForCaller } from '../../services/voice-agent/greeting';
+
+describe('US-VA-035: returning caller personalisation', () => {
+  it('personalises greeting when prior call < 90 days exists', async () => {
+    const result = await buildGreetingForCaller({
+      tenant: { brand: 'Joburg Plumbing' },
+      callerNumber: '+27821234567',
+      priorCall: { name: 'Sipho', lastNeed: 'geyser leak', daysAgo: 14 },
+    });
+    expect(result.text).toMatch(/Sipho/);
+    expect(result.text).toMatch(/geyser/i);
+  });
+
+  it('uses generic greeting when prior call > 90 days (POPIA boundary)', async () => {
+    const result = await buildGreetingForCaller({
+      tenant: { brand: 'Joburg Plumbing' },
+      callerNumber: '+27821234567',
+      priorCall: { name: 'Sipho', lastNeed: 'geyser leak', daysAgo: 100 },
+    });
+    expect(result.text).not.toMatch(/Sipho/);
+  });
+
+  it('confirmed callback skips early qualification turns', async () => {
+    const result = await buildGreetingForCaller({
+      tenant: { brand: 'Joburg Plumbing' },
+      callerNumber: '+27821234567',
+      priorCall: { name: 'Sipho', lastNeed: 'geyser leak', daysAgo: 5 },
+    });
+    expect(result.qualificationStartTurn).toBe(3); // skips need + service-match turns
+  });
+});
+```
+
+---
+
+## US-VA-036 — Reschedule existing booking (v1 addendum)
+
+```ts
+// worker/src/__tests__/voice-agent/us-036-reschedule.spec.ts
+import { describe, it, expect, vi } from 'vitest';
+import { rescheduleBooking, findBookingForCaller } from '../../services/voice-agent/booking';
+
+describe('US-VA-036: reschedule', () => {
+  it('finds existing future booking by caller number', async () => {
+    const booking = await findBookingForCaller({ callerNumber: '+27821234567' });
+    expect(booking).toBeTruthy();
+    expect(booking.eventId).toBeTruthy();
+  });
+
+  it('calls update_appointment (not delete + create) on move', async () => {
+    const gcal = { update: vi.fn().mockResolvedValue({ id: 'g1' }), delete: vi.fn(), insert: vi.fn() };
+    await rescheduleBooking({ eventId: 'g1', newSlot: '2026-05-20T14:00:00Z', gcal });
+    expect(gcal.update).toHaveBeenCalled();
+    expect(gcal.delete).not.toHaveBeenCalled();
+    expect(gcal.insert).not.toHaveBeenCalled();
+  });
+});
+```
+
+---
+
+## US-VA-037 — Cancel existing booking (v1 addendum)
+
+```ts
+// worker/src/__tests__/voice-agent/us-037-cancel.spec.ts
+import { describe, it, expect, vi } from 'vitest';
+import { cancelBooking } from '../../services/voice-agent/booking';
+
+describe('US-VA-037: cancel', () => {
+  it('asks once about rescheduling before cancelling', async () => {
+    const result = await cancelBooking({ eventId: 'g1', confirmedCancel: false });
+    expect(result.kind).toBe('offer_reschedule');
+  });
+
+  it('deletes (or marks cancelled) the calendar event on confirmed cancel', async () => {
+    const gcal = { delete: vi.fn().mockResolvedValue({ ok: true }) };
+    await cancelBooking({ eventId: 'g1', confirmedCancel: true, gcal });
+    expect(gcal.delete).toHaveBeenCalledWith({ eventId: 'g1' });
+  });
+});
+```
+
+---
+
+## US-VA-038 — Business-hours awareness (v1 addendum)
+
+```ts
+// worker/src/__tests__/voice-agent/us-038-business-hours.spec.ts
+import { describe, it, expect } from 'vitest';
+import { answerBusinessHours } from '../../services/voice-agent/tenant-facts';
+
+describe('US-VA-038: business hours', () => {
+  it('answers from deterministic tool, not LLM completion', async () => {
+    const result = await answerBusinessHours({ tenant: { hours: 'Mon-Fri 8am-5pm' } });
+    expect(result.source).toBe('deterministic');
+    expect(result.text).toContain('Mon-Fri 8am-5pm');
+  });
+
+  it('falls to callback-request when hours not configured', async () => {
+    const result = await answerBusinessHours({ tenant: { hours: undefined } });
+    expect(result.action).toBe('capture_callback');
+  });
+});
+```
+
+---
+
+## US-VA-039 — Service-catalog awareness (v1 addendum)
+
+```ts
+// worker/src/__tests__/voice-agent/us-039-service-catalog.spec.ts
+import { describe, it, expect } from 'vitest';
+import { answerServiceQuery } from '../../services/voice-agent/tenant-facts';
+
+describe('US-VA-039: service catalog', () => {
+  it('confirms a service from configured catalog', async () => {
+    const result = await answerServiceQuery({ tenant: { services: ['plumbing', 'geyser repair', 'blocked drains'] }, query: 'do you do geyser repair?' });
+    expect(result.kind).toBe('yes_continue');
+  });
+
+  it('declines politely + suggests adjacent service when not configured', async () => {
+    const result = await answerServiceQuery({ tenant: { services: ['plumbing', 'geyser repair'] }, query: 'do you do electrical?' });
+    expect(result.kind).toBe('no_decline');
+    expect(result.text).not.toMatch(/electrical/i); // no hallucination
+  });
+
+  it('never invents a service not in the catalog', async () => {
+    const result = await answerServiceQuery({ tenant: { services: ['plumbing'] }, query: 'do you do solar panel install?' });
+    expect(result.kind).toBe('no_decline');
+  });
+});
+```
+
+---
+
+## US-VA-040 — Calendar OAuth expiry mid-call (v2 addendum)
+
+```ts
+// worker/src/__tests__/voice-agent/us-040-oauth-expiry.spec.ts
+import { describe, it, expect, vi } from 'vitest';
+import { bookWithOAuthRecovery } from '../../services/voice-agent/booking';
+
+describe('US-VA-040: OAuth expiry', () => {
+  it('on 401 invalid_grant, attempts one refresh', async () => {
+    const gcal = {
+      insert: vi.fn()
+        .mockRejectedValueOnce({ status: 401, error: 'invalid_grant' })
+        .mockResolvedValueOnce({ id: 'g1' }),
+      refreshToken: vi.fn().mockResolvedValue({ access_token: 'new-tok' }),
+    };
+    await bookWithOAuthRecovery({ slot: '2026-05-20T10:00:00Z', gcal });
+    expect(gcal.refreshToken).toHaveBeenCalledOnce();
+    expect(gcal.insert).toHaveBeenCalledTimes(2);
+  });
+
+  it('on refresh failure, captures slot intent + alerts customer', async () => {
+    const gcal = {
+      insert: vi.fn().mockRejectedValue({ status: 401, error: 'invalid_grant' }),
+      refreshToken: vi.fn().mockRejectedValue({ status: 400, error: 'invalid_grant' }),
+    };
+    const slack = vi.fn();
+    const dashboard = { setBanner: vi.fn() };
+    const result = await bookWithOAuthRecovery({ slot: '2026-05-20T10:00:00Z', gcal, slack, dashboard });
+    expect(result.kind).toBe('capture_intent_for_followup');
+    expect(slack).toHaveBeenCalledWith(expect.objectContaining({ text: expect.stringMatching(/calendar.*disconnected/i) }));
+    expect(dashboard.setBanner).toHaveBeenCalled();
+  });
+
+  it('never claims booking success when calendar was not actually written', async () => {
+    const gcal = {
+      insert: vi.fn().mockRejectedValue({ status: 401 }),
+      refreshToken: vi.fn().mockRejectedValue({ status: 400 }),
+    };
+    const result = await bookWithOAuthRecovery({ slot: '2026-05-20T10:00:00Z', gcal });
+    expect(result.kind).not.toBe('booked');
+  });
+
+  it('returns early when customer has no calendar OAuth at all', async () => {
+    const gcal = { hasValidOAuth: () => false };
+    const result = await bookWithOAuthRecovery({ slot: '2026-05-20T10:00:00Z', gcal });
+    expect(result.kind).toBe('capture_intent_for_followup');
+  });
+});
+```
+
+---
+
+## US-VA-041 — Long-call cost cap + wrap-up (v4 addendum)
+
+```ts
+// worker/src/__tests__/voice-agent/us-041-long-call.spec.ts
+import { describe, it, expect } from 'vitest';
+import { evaluateCallCaps } from '../../services/voice-agent/cost-cap';
+
+describe('US-VA-041: long-call caps', () => {
+  it('soft cap at 8 minutes triggers gentle wrap-up nudge', () => {
+    const result = evaluateCallCaps({ durationMs: 8 * 60 * 1000, costZar: 20 });
+    expect(result.action).toBe('soft_wrap_nudge');
+  });
+
+  it('hard cap at 10 minutes triggers forced wrap-up', () => {
+    const result = evaluateCallCaps({ durationMs: 10 * 60 * 1000 + 1, costZar: 20 });
+    expect(result.action).toBe('force_wrap');
+  });
+
+  it('per-call cost ceiling (3x median) flags outlier mid-call', () => {
+    const result = evaluateCallCaps({ durationMs: 5 * 60 * 1000, costZar: 45, medianCostZar: 15 });
+    expect(result.action).toBe('drive_to_resolution');
+  });
+
+  it('hard-wrap sends WhatsApp + Slack with full transcript', async () => {
+    const slack = vi.fn();
+    const wapp = vi.fn();
+    await executeHardWrap({ callId: 'c1', slack, wapp });
+    expect(slack).toHaveBeenCalled();
+    expect(wapp).toHaveBeenCalled();
+  });
+});
+
+async function executeHardWrap(_args: any): Promise<void> {}
+```
+
+---
+
 ## Fixtures + harness
 
 ### `worker/src/__tests__/voice-agent/_fixtures/call-load.ts`
@@ -739,6 +1025,24 @@ export function makeTranscript(scenarioName: string): string {
 }
 ```
 
+### `worker/src/__tests__/voice-agent/integration/_harness/live-call.ts`
+
+```ts
+// Nightly-only — uses a dedicated +27 test number + scripted caller audio
+// Not run on every commit. Tagged describe.skipIf(!process.env.RUN_LIVE_CALLS)
+export async function runLiveCallScenario({ scenario }: { scenario: string }) {
+  // Plays pre-recorded caller-side audio into the live Retell agent.
+  // Captures: bot.firstAudioMs, bot.stoppedSpeakingMs, bot.fillerAudioStartMs, etc.
+  return {
+    bot: {
+      stoppedSpeakingMs: 0,
+      firstTokenAfterInterruptMs: 0,
+      fillerAudioStartMs: 0,
+    },
+  };
+}
+```
+
 ---
 
 ## CI gates
@@ -751,8 +1055,28 @@ export function makeTranscript(scenarioName: string): string {
 
 ## Definition of done for v5
 
-- All test signatures land.
+- All test signatures land (42 stories: 34 original + 7 added in post-review + 1 reframed integration).
 - Test bodies replace `expect.fail` markers as engineers implement.
-- Nightly integration measures real latency on real telephony.
+- Nightly integration (live-call harness) measures real latency + barge-in + speculative-tool perceived latency on real telephony.
 - Coverage ≥ 80% on voice-agent service code.
 - 7-day Patient Zero on Octio's own inbound — zero critical bugs, p95 ≤ 2000ms — before first customer.
+
+## Post-review changelog (2026-05-13)
+
+Fixes:
+- US-VA-001 pickup target → p50 ≤ 1s / p99 ≤ 2s (was unconditional ≤1s)
+- US-VA-008 silence threshold → 5s+5s (was 8s+8s — 8s feels broken)
+- US-VA-013 language switch → 3 turns OR explicit ask (was 2 turns — misclassified bilingual callers)
+- US-VA-014 prompt injection → marked Phase 2 priority (real but low-probability risk)
+- US-VA-027 over-budget → tenant overflow contact, not founder (founder ≠ on-call for tenant overflow)
+- US-VA-031 fallback → orchestrator-level 3-tier cascade (Retell only supports one fallback)
+- US-VA-007 + US-VA-029 → split into unit + nightly integration tests (real behaviour is Retell-internal)
+
+New stories:
+- US-VA-035 Returning caller personalisation
+- US-VA-036 Reschedule existing booking
+- US-VA-037 Cancel existing booking
+- US-VA-038 Business-hours awareness (deterministic)
+- US-VA-039 Service-catalog awareness (deterministic)
+- US-VA-040 Calendar OAuth expiry mid-call
+- US-VA-041 Long-call cost cap + wrap-up

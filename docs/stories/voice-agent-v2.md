@@ -36,11 +36,11 @@ US-VA-001 through US-VA-006 remain in scope.
 
 ### Acceptance criteria
 
-**Scenario: 8+ seconds of silence after agent's question**
+**Scenario: 5+ seconds of silence after agent's question**
 - **Given** the agent has asked a question
-- **When** the caller is silent for 8+ seconds
+- **When** the caller is silent for 5+ seconds (8s is the user-feel cliff — most operators settle on 5–6s)
 - **Then** the agent prompts once: "Are you still there?"
-- **And** if 8+ more seconds of silence, the agent ends the call politely
+- **And** if 5+ more seconds of silence, the agent ends the call politely
 - **And** the call outcome is logged as `dead_air`
 
 ---
@@ -124,19 +124,23 @@ US-VA-001 through US-VA-006 remain in scope.
 ### Acceptance criteria
 
 **Scenario: Phase 1 (English only)**
-- **Given** the agent detects non-English (Deepgram language tag) for 2+ turns
+- **Given** the agent detects non-English (Deepgram language tag) for **3+ consecutive turns OR** the caller explicitly says "can we do this in [language]?"
 - **When** the agent processes the detection
 - **Then** the agent says "Apologies — I can only help in English right now. I'll have [Customer] call you back. What's your number?"
 - **And** captures the number + flags `language_mismatch = af|zu|xh|st`
 - **And** routes via Slack as a callback request
 
+**Why 3 turns + explicit signal:** SA callers routinely code-switch (insert one Afrikaans/Zulu phrase mid-English sentence). A 2-turn rule misclassified bilingual callers as "non-English" in pilot testing.
+
 ---
 
-## US-VA-014 — Prompt injection via spoken word
+## US-VA-014 — Prompt injection via spoken word (Phase 2 priority — lower urgency)
 
 **As a** business owner (customer)
 **I want** the agent to ignore spoken attempts to override its instructions
 **So that** my brand isn't hijacked verbally
+
+> **Priority note:** Spoken prompt injection is a real but low-probability risk for a voice receptionist — the attacker needs to know our stack to craft an effective injection. This is in v2 for completeness; implementation can defer to Phase 2 if other v2 work is blocked. Still test it; just don't gate v1 launch on it.
 
 ### Acceptance criteria
 
@@ -171,6 +175,36 @@ US-VA-001 through US-VA-006 remain in scope.
 
 ---
 
+---
+
+## US-VA-040 — Customer's calendar OAuth token expires mid-call
+
+**As a** business owner (customer)
+**I want** the agent to handle expired calendar tokens gracefully
+**So that** my visitor isn't told "your booking succeeded" when it actually failed
+
+### Acceptance criteria
+
+**Scenario: Google Calendar returns 401 on book attempt**
+- **Given** the caller has selected a slot
+- **And** the customer's stored OAuth refresh token has expired or been revoked
+- **When** the agent calls `book_appointment`
+- **And** Google returns 401 with `invalid_grant`
+- **Then** the agent attempts a one-time refresh
+- **And** on refresh failure, the agent says "Let me have [Customer] confirm your booking — what's the best WhatsApp to send the confirmed time to?"
+- **And** captures the slot intent + WhatsApp number
+- **And** posts a high-priority Slack alert to the customer: "Your Google Calendar is disconnected — reconnect at [link]"
+- **And** the customer's dashboard shows a banner: "Calendar disconnected — bookings paused until you reconnect"
+
+**Scenario: Customer has never connected calendar**
+- **Given** the customer onboarded without completing the Google OAuth step
+- **When** the agent reaches a booking moment
+- **Then** the agent never attempts the book and never claims success
+- **And** falls through to "I'll have [Customer] confirm a time and message you back"
+- **And** the customer's onboarding flow surfaces the missing step prominently
+
+---
+
 ## Definition of done for v2
 
-All 15 stories pass. Founder-supervised 7-day Patient Zero soak on Octio's own line with zero critical incidents.
+All 17 stories (15 original + 2 newly added: US-VA-040) pass. Founder-supervised 7-day Patient Zero soak on Octio's own line with zero critical incidents.

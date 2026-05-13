@@ -75,8 +75,12 @@ US-VA-001 through US-VA-024 remain in scope.
 - **Given** Tenant A's monthly budget is 1,000 minutes
 - **And** they have used 1,000 minutes
 - **When** the next call comes in
-- **Then** the agent answers with a polite message and offers a callback OR routes directly to the founder
+- **Then** the agent answers with a polite message: "Thanks for calling [Customer]. Please leave your number and we'll call you back."
+- **And** captures the number + need via short voicemail-style flow (max 90 seconds)
+- **And** sends a WhatsApp follow-up to the caller with the same prompt
+- **And** posts the lead to the customer's overflow Slack channel
 - **And** logs `over_budget = true`
+- **And** **Octio founder is NOT in the routing path** — the tenant's monthly budget is the tenant's choice; founder doesn't absorb tenant overflow
 
 ---
 
@@ -137,17 +141,25 @@ US-VA-001 through US-VA-024 remain in scope.
 
 ### Acceptance criteria
 
+> **Important: Retell's fallback config supports ONE alternative model, not a cascading chain.** We implement multi-provider failover at OUR orchestrator level (worker), not inside Retell. Retell routes to Octio's orchestrator endpoint; our endpoint tries Haiku → Gemini → Groq in order, and only returns failure to Retell after all three exhaust.
+
 **Scenario: Haiku 4.5 returns 503 for 30+ seconds**
 - **Given** the LLM provider is having an outage
-- **When** the agent tries to generate a response
-- **Then** Retell's fallback config routes to Gemini 2.5 Flash within 1 turn
+- **When** the worker's per-turn orchestrator tries to generate a response
+- **Then** the orchestrator catches the 503 and immediately tries Gemini 2.5 Flash
 - **And** the call continues without the caller noticing (no apology required)
-- **And** the call record tags `provider_failover = true`
+- **And** the call record tags `provider_failover = haiku→gemini`
 
-**Scenario: Both providers down**
-- **Given** Haiku + Gemini both return 503
-- **When** the agent fires the second fallback
-- **Then** the agent says "I'm having a connection issue — can I have someone call you back? What's your number?"
+**Scenario: Haiku + Gemini both return 503**
+- **Given** the orchestrator has tried Haiku (failed) and Gemini (failed) in <2s combined
+- **When** the orchestrator falls to Llama 3.3 70B on Groq
+- **And** Groq succeeds
+- **Then** the call continues with `provider_failover = haiku→gemini→groq`
+
+**Scenario: All three providers down**
+- **Given** Haiku + Gemini + Groq all return 503 within the per-turn budget (~3s combined)
+- **When** the orchestrator exhausts the chain
+- **Then** the orchestrator returns a special signal to Retell that triggers a static fallback prompt: "I'm having a connection issue — can I have someone call you back? What's your number?"
 - **And** captures the number + escalates via Slack
 - **And** the call ends cleanly
 
@@ -204,6 +216,38 @@ US-VA-001 through US-VA-024 remain in scope.
 
 ---
 
+---
+
+## US-VA-041 — Long-call cost cap + wrap-up
+
+**As a** founder protecting unit economics
+**I want** long calls to gracefully wrap up before they destroy margin
+**So that** a 30-minute call doesn't cost more than the tenant's monthly retainer covers
+
+### Acceptance criteria
+
+**Scenario: Call duration exceeds soft cap (8 minutes)**
+- **Given** a call is in progress for 8 minutes
+- **When** the duration crosses the soft cap
+- **Then** the agent gently steers toward resolution: "I want to make sure we get you sorted — should we book a time for [Customer] to call you back to go through the rest in detail?"
+- **And** if the caller declines, continues for up to 2 more minutes (hard cap at 10 minutes)
+
+**Scenario: Hard cap reached (10 minutes)**
+- **Given** a call has run 10 minutes
+- **When** the hard cap fires
+- **Then** the agent wraps up: "I've captured everything — [Customer] will follow up within an hour. Thanks for calling."
+- **And** sends a WhatsApp summary template to the caller
+- **And** posts a high-priority Slack alert to the customer's channel with full transcript
+- **And** logs the call with `outcome = capped_long_call`
+
+**Scenario: Per-call cost ceiling**
+- **Given** the per-call cost telemetry shows R45 spent (3x the median cost-per-call)
+- **When** the cost monitor fires mid-call
+- **Then** the orchestrator informs the agent to drive toward resolution faster
+- **And** the founder dashboard surfaces this call as an outlier for review
+
+---
+
 ## Definition of done for v4
 
-All 34 stories pass. Latency SLOs measured over a 7-day Patient Zero. Cost-per-call tracked and within budget. Fallback paths tested by chaos-engineering a manual provider blackout.
+All 35 stories (34 original + 1 newly added: US-VA-041) pass. Latency SLOs measured over a 7-day Patient Zero. Cost-per-call tracked and within budget. Fallback paths tested by chaos-engineering a manual provider blackout. Multi-provider fallback chain verified at orchestrator level (not relying on Retell's single-fallback config).
