@@ -100,9 +100,9 @@ Ship a working in-browser voice agent on `octio.co.za` in approximately **7 days
 | Brain integration | **OctoBrainAdapter** — small adapter wrapping the existing Mastra Octo agent as `@livekit/agents` `LLM` | Mock brain stays gated behind `NODE_ENV=development && VOICE_USE_MOCK_BRAIN=1` | $0 (code only) |
 | STT | **Deepgram Nova-3 streaming** via `@livekit/agents-plugin-deepgram` | 150–300ms first-final. ⚠️ SA accent unverified — see Pre-flight gate. | $0.0077/min PAYG |
 | STT audio format | **PCM linear16 @ 16kHz mono** | LiveKit handles Opus → PCM conversion before forwarding to Deepgram | — |
-| Brain | **Real Mastra Octo agent** on Bun/Hono via OctoBrainAdapter | No HTTP hop if co-located; falls back to HTTP if separated. Existing agent unchanged. | ~$0.012/min Haiku 4.5 EU (token spend) |
+| Brain | **Real Mastra Octo agent** (currently using Kimi K2 Turbo) via OctoBrainAdapter | Matches existing `packages/worker/src/mastra/agents/octo.ts` config. No HTTP hop if co-located; falls back to HTTP if separated. Anthropic added as fallback when the API key is provisioned. | ~$0.014/min Kimi K2 Turbo ($1.15 in / $8 out per 1M, ~3k tokens/min mixed) |
 | TTS | **Cartesia Sonic-3** via `@livekit/agents-plugin-cartesia`, ElevenLabs Flash fallback | 90ms TTFA; LiveKit aggregates sentence chunks automatically | $0.0105/min |
-| Total provider cost | | | **~$0.030/min providers + ~$0/min SFU = ~$0.030/min** (Cloud option saved) |
+| Total provider cost | | | **~$0.032/min providers + ~$0/min SFU = ~$0.032/min** (Cloud option saved; Kimi vs Haiku adds ~$0.005/min) |
 
 ## User flow (caller-facing)
 
@@ -195,7 +195,7 @@ Reuses test signatures from `docs/stories/voice-agent-v1.md` and `voice-agent-v2
 | US-VA-001 pickup | First audio reaches browser ≤ 2s after Start tap | Playwright E2E |
 | US-VA-007 barge-in | Bot stops within 200ms of caller speech detected | Manual real-device + unit test on LiveKit-Silero plugin |
 | US-VA-025 latency p50/p95 | p50 < 1.3s / p95 < 2.0s over 100 simulated calls | LiveKit load-test client |
-| US-VA-031 fallback cascade | Anthropic 503 → Gemini Flash → Groq → static reply | Mocked at brain endpoint |
+| US-VA-031 fallback cascade | Kimi 503 → static reply (v1; no fallback while only Kimi key is configured). Test the static-reply path. After Anthropic key lands: Kimi → Haiku → static. | Mocked at brain endpoint |
 | US-VA-042 spoken consent | After first qualification turn, agent asks consent; persists decision | Browser E2E |
 
 Pre-existing 29 voice-agent unit tests stay green.
@@ -205,11 +205,11 @@ Pre-existing 29 voice-agent unit tests stay green.
 Self-hosting strengthens this section significantly. Audio never leaves Octio's infrastructure except for STT/TTS API calls (which go to providers with verified EU/SA residency).
 
 - **Audio data sovereignty:** WebRTC audio terminates on Octio's self-hosted SFU. Never traverses a third-party SFU vendor. POPIA s.72 cross-border transfer obligations only apply to the STT/TTS provider calls.
-- **Consent disclosure on Start tap:** "By talking to us, you agree to our [Privacy Notice]. Audio is processed by Octio in real-time, not recorded." Reuses `recordConsent` from profile service.
+- **Consent disclosure on Start tap:** "By talking to us, you agree to our [Privacy Notice]. Audio is processed by Octio in real-time, not recorded. Transcripts are processed by AI providers including Moonshot (China) and Deepgram (US)." Reuses `recordConsent` from profile service.
 - **No call recording in v1.** Audio is processed in-flight (STT → discarded immediately). Transcripts stored 90 days per existing retention policy.
 - **POPIA Information Officer:** unchanged — founder is the IO; audit log captures every turn via `profileAuditLog`.
 - **WebRTC encryption:** SRTP end-to-end between browser and SFU. TLS on the WebSocket signalling channel. SFU-to-agent is in-cluster (loopback) when co-located, TLS otherwise.
-- **EU residency for Deepgram + Anthropic + Cartesia:** verified during pre-flight. Cartesia EU endpoints used.
+- **Cross-border transfer disclosure (POPIA s.72):** Audio→STT goes to Deepgram (US). Transcripts→brain go to Moonshot (China) via Kimi K2 Turbo. Text→TTS goes to Cartesia (EU). All three must be explicitly named in the Privacy Notice. When Anthropic Haiku 4.5 EU comes online as fallback, brain transfers move to EU-only — material POPIA improvement.
 - **Operator-only access:** livekit-server admin API token kept in env; only founder/operator can dispatch agents or inspect rooms.
 
 ## Cost model — what you actually pay
@@ -221,14 +221,16 @@ At ~600 demo conversation-mins/day (200 conversations × 3 min avg) on Octio's s
 | Self-hosted livekit-server (shared on infra-01 or dedicated VPS) | — | $0.50–0.80 (amortised) |
 | Deepgram Nova-3 STT | $0.0077 | $4.62 |
 | Cartesia Sonic-3 (~7k chars/min) | $0.0105 | $6.30 |
-| Mastra brain (Haiku 4.5, ~3k tokens/min) | $0.012 | $7.20 |
+| Mastra brain via Kimi K2 Turbo (~3k tokens/min) | $0.014 | $8.40 |
 | Agent worker (shared infra) | — | $0 (co-located) |
 | Bandwidth (estimated) | — | ~$0.50 |
-| **Total** | **~$0.031/min** | **~$19/day** |
+| **Total** | **~$0.033/min** | **~$20/day** |
 
-vs LiveKit Cloud variant: ~$24/day. **Self-hosting saves ~$150/month at demo volume, scales linearly.**
+vs LiveKit Cloud + Haiku variant: ~$24/day. **Self-hosting saves ~$120/month at demo volume even with Kimi's higher token cost; scales linearly.**
 
-At 10× demo volume (6,000 min/day): self-host stays ~$0.031/min (~$190/day), LiveKit Cloud variant becomes ~$0.040/min (~$240/day). **Saves $1,500/month.**
+At 10× demo volume (6,000 min/day): self-host + Kimi ~$200/day, LiveKit Cloud + Haiku ~$240/day. **Saves $1,200/month.**
+
+**Switching to Anthropic Haiku 4.5 when we provision that API key** would save ~$1.50/day at demo volume (~$45/month) — meaningful at higher scale. Plan: add Anthropic as a *fallback first*, then re-evaluate as primary after a month of comparison data.
 
 The only cost-relevant question: does infra-01 have enough capacity for the SFU + agent workers, or do we provision a dedicated VPS? Answer in pre-flight gate 3.
 
@@ -252,7 +254,9 @@ The only cost-relevant question: does infra-01 have enough capacity for the SFU 
 | iOS Safari quirk breaks demo | Medium | High | Pre-flight real-device test. Foreground-only constraint accepted. |
 | Cartesia outage | Low | Medium | ElevenLabs Flash v2.5 fallback configured in LiveKit pipeline |
 | Deepgram outage | Low | High | Speechmatics fallback configured in LiveKit pipeline |
-| Anthropic API rate limit / Mastra brain failure | Medium | High | Existing fallback cascade (Haiku → Gemini → Groq) inside the Mastra agent. **Note:** failure surface is larger than mock-brain — real LLM hallucinations + provider rate limits both possible. |
+| Kimi K2 Turbo rate limit / outage | Medium | High | v1 has Kimi as primary, no fallback (single API key today). Add Anthropic Haiku 4.5 EU as fallback when key is provisioned — non-blocker for v1 launch but **must land before any external customer signs up.** |
+| Kimi function-calling reliability (`book_appointment`, `route_to_human`) | Medium | Medium | Less battle-tested than Anthropic/OpenAI tool use. Pre-flight smoke-test the 3 production tools end-to-end before launch. If unreliable, fall back to Anthropic earlier. |
+| Cross-border PII transfer (Kimi = China) | Medium (compliance, not technical) | Medium | Privacy Notice must explicitly name Moonshot/China. Migration path to Anthropic EU as primary is documented; review at customer-1 onboarding. |
 | Cost overrun on demo traffic | Low | Low | Daily cap at $30 spend; auto-disable demo if exceeded |
 | LiveKit Agents 1.x → 2.x breaking change | Low (1.0 already shipped May 2025) | Medium | Version-pin SDK; review release notes per minor |
 | infra-01 voice load competes with website / chat / worker | Medium | Medium | Monitor CPU + memory during pre-flight. If >50% utilisation under simulated load, provision a dedicated voice VPS (~$15–25/mo Hetzner) — keeps SFU isolated. |
