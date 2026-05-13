@@ -29,6 +29,13 @@
       "when": 1776355918795,
       "tag": "0003_gifted_mojo",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778648866235,
+      "tag": "0004_legal_shriek",
+      "breakpoints": true
     }
   ]
 }

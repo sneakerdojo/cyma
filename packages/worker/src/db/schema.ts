@@ -193,3 +193,159 @@ export const consentEvents = pgTable('consent_events', {
   userAgent: text('user_agent'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Profile system
+// ─────────────────────────────────────────────────────────────────────────────
+// Per-tenant persistent profiles of people who interact with our agents
+// (chat visitors, voice callers). See docs/superpowers/specs/2026-05-13-
+// profile-system.md for the full design.
+//
+// All profile tables carry `tenant_id` (default 1 = Octio Patient Zero).
+// Cross-tenant data sharing is explicitly disallowed by the spec.
+//
+// PII handling note for v1 (single-tenant):
+//   - value_hash columns are SHA-256(kind:normalised value), used for lookup
+//   - value columns store the raw value
+//   - HARDENING TODO before any second tenant is onboarded: enable pgcrypto
+//     column encryption on value columns or move to envelope-encrypted JSONB
+//
+// pgvector for semantic recall is deferred to v2 — v1 uses the summary text
+// only. profile_embeddings table is not created here.
+
+// ── profiles ──────────────────────────────────────────────────────────────────
+// Root entity. One row per recognised person per tenant.
+export const profiles = pgTable(
+  'profiles',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: integer('tenant_id').notNull().default(1),
+    displayName: text('display_name'),
+    // Pre-summarised compact context (~300 tokens max). Regenerated nightly.
+    // Injected into the consuming agent's system prompt at session start.
+    summary: text('summary'),
+    // Channel preference inferred from facts or explicitly stated.
+    preferredChannel: text('preferred_channel'), // 'chat' | 'voice' | 'whatsapp' | 'email' | null
+    identityConfidence: text('identity_confidence'), // numeric stored as text for portability; 0.00–1.00
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).defaultNow(),
+    summaryUpdatedAt: timestamp('summary_updated_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('profiles_tenant_id_last_seen_at_idx').on(
+      table.tenantId,
+      table.lastSeenAt,
+    ),
+  ],
+);
+
+// ── profile_identifiers ───────────────────────────────────────────────────────
+// One profile can have multiple identifiers (phone, email, whatsapp, name_hint).
+// Lookup is by (tenant_id, kind, value_hash).
+export const profileIdentifiers = pgTable(
+  'profile_identifiers',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    profileId: uuid('profile_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    tenantId: integer('tenant_id').notNull().default(1),
+    kind: text('kind').notNull(), // 'phone' | 'email' | 'whatsapp' | 'name_hint'
+    valueHash: text('value_hash').notNull(), // SHA-256(kind:normalised value)
+    value: text('value').notNull(), // raw value (see HARDENING TODO above)
+    firstSeenAt: timestamp('first_seen_at', { withTimezone: true }).defaultNow(),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).defaultNow(),
+    supersededAt: timestamp('superseded_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('profile_identifiers_lookup_idx').on(
+      table.tenantId,
+      table.kind,
+      table.valueHash,
+    ),
+    index('profile_identifiers_profile_id_idx').on(table.profileId),
+  ],
+);
+
+// ── profile_facts ─────────────────────────────────────────────────────────────
+// Per-fact category drives per-category retention TTL:
+//   sensitive  → 90 days
+//   off_topic  → 12 months
+//   personal / preference / history / service_context → matches profile root
+export const profileFacts = pgTable(
+  'profile_facts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    profileId: uuid('profile_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    tenantId: integer('tenant_id').notNull().default(1),
+    category: text('category').notNull(), // 'preference'|'history'|'service_context'|'personal'|'off_topic'|'sensitive'
+    key: text('key').notNull(),
+    value: jsonb('value'),
+    source: text('source').notNull(), // 'agent_inferred'|'user_stated'|'system_recorded'
+    confidence: text('confidence').notNull().default('1.0'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('profile_facts_profile_id_category_idx').on(
+      table.profileId,
+      table.category,
+    ),
+    index('profile_facts_tenant_expires_idx').on(
+      table.tenantId,
+      table.expiresAt,
+    ),
+  ],
+);
+
+// ── profile_consent ───────────────────────────────────────────────────────────
+// Audit trail of consent grants + revocations.
+// consent_text_hash captures the exact text shown for compliance evidence.
+export const profileConsent = pgTable(
+  'profile_consent',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    profileId: uuid('profile_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    tenantId: integer('tenant_id').notNull().default(1),
+    granted: boolean('granted').notNull(),
+    channel: text('channel').notNull(), // 'chat' | 'voice'
+    consentTextHash: text('consent_text_hash').notNull(),
+    // For voice consent we capture the transcript snippet that contained the response.
+    transcriptSnippet: text('transcript_snippet'),
+    // Audit metadata
+    ipOrCallerIdHash: text('ip_or_caller_id_hash'),
+    grantedAt: timestamp('granted_at', { withTimezone: true }).defaultNow(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('profile_consent_profile_idx').on(table.profileId),
+  ],
+);
+
+// ── profile_audit_log ─────────────────────────────────────────────────────────
+// Append-only audit log for every profile read/write/consent/export/deletion.
+// PII is hashed before logging (raw values never appear here).
+export const profileAuditLog = pgTable(
+  'profile_audit_log',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: integer('tenant_id').notNull().default(1),
+    actor: text('actor').notNull(), // 'system:bot' | 'operator:<email>' | 'system:cron' | etc.
+    action: text('action').notNull(), // 'lookup'|'extend'|'consent'|'forget'|'export'|'auto_purge'
+    targetProfileId: uuid('target_profile_id'),
+    targetHash: text('target_hash'), // sha256 of profile_id or identifier — never raw
+    metadata: jsonb('metadata'), // free-form; should not contain raw PII
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    index('profile_audit_tenant_action_idx').on(
+      table.tenantId,
+      table.action,
+      table.createdAt,
+    ),
+  ],
+);
