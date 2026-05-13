@@ -317,14 +317,28 @@ export function buildEnrichLeadHarnessConfig(): HarnessConfig {
           'You are Octio, qualifying potential customers. Follow the per-scenario system instructions exactly.',
         recordCall,
       }),
-    // Phase-based routing replaces the previous regex guard. The runner
-    // derives the current phase from message + tool-call history each step
-    // and passes `activeTools` for that phase via Mastra's `prepareStep`.
-    // For enrich_lead scenarios the harness uses 'discovery' until the
-    // first enrich_lead call lands, then 'qualify'. enrich_lead is in the
-    // active-tools list for both, so the model can always fire it — and
-    // forbidden tools (show_scheduler, prepare_call_brief) are simply
-    // hidden from the model in those phases.
+    // Phase-based routing — Retell/Pipecat-style state machine. In
+    // production this restricts the 13-tool surface to 4-6 per phase,
+    // preventing wrong-tool firing (e.g. prepare_call_brief in cold).
+    // In the harness (which registers only enrich_lead), it doesn't
+    // change much — but it's wired here so the harness exercises the
+    // same code path production uses.
     phaseRouting: { enabled: true },
+    // Hallucination guard for Kimi's "acknowledge without firing" pattern.
+    // Phase routing solves WRONG-tool failures; the guard recovers from
+    // NO-tool failures (model says "got it" without calling the tool).
+    // Both are needed — they address different failure modes.
+    guard: {
+      rules: [
+        {
+          pattern:
+            /(?:\b(?:useful context|noted\b|noting\b)|got it[\s,.—-]|\b(?:that's exactly (?:where|the kind|what)|that's a (?:common|real|critical) pain|classic pain|pain points? where|kind of pain|pay off (?:fast|quickly)|AI agents (?:can|will) (?:eliminate|help|cut|handle)|tight timeline|tight deadline|tight but|aggressive but|earn their keep|\d+-person\b|\d+-engineer\b|\d+-designer\b|team of \d+|\d+-?week (?:timeline|deadline|timeframe)|\d+ weeks? (?:is|are)\s*(?:tight|doable|aggressive|reasonable|workable)|\d+ weeks? to (?:ship|launch|deliver)|long (?:onboarding|customer onboarding)|support (?:overload|drowning)|legacy[- ]system|drowning in)\b)/i,
+          tool: 'enrich_lead',
+          kind: 'qualifying_acknowledgement',
+        },
+      ],
+      buildNudge: () =>
+        `[system reminder] You just acknowledged qualifying information about the lead without calling enrich_lead. Call enrich_lead now with the correct field (team_size / timeline_urgency / pain_points / etc), the user's contactEmail, and a value starting with "${TEST_PREFIX}: " followed by your summary. Do this immediately.`,
+    },
   };
 }
