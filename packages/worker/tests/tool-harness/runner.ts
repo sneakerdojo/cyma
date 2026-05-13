@@ -14,6 +14,7 @@
  */
 
 import type { Agent } from '@mastra/core/agent';
+import { runGuard, type GuardSpec } from './guard.js';
 
 export type ScenarioCategory = 'smoke' | 'stress' | 'adversarial';
 
@@ -72,6 +73,13 @@ export interface HarnessConfig {
   beforeEach?: (scenario: Scenario) => Promise<void> | void;
   /** Per-scenario teardown. */
   afterEach?: (scenario: Scenario, record: ScenarioRunRecord) => Promise<void> | void;
+  /**
+   * Optional hallucination guard. When set, the runner inspects each turn's
+   * reply for "acknowledge-without-firing" patterns and re-prompts with
+   * toolChoice forcing the matching tool. Same pattern as the production
+   * voice-agent (src/services/voice-agent/mastra-brain.ts).
+   */
+  guard?: GuardSpec;
 }
 
 export interface HarnessReport {
@@ -93,7 +101,7 @@ export async function runHarness(cfg: HarnessConfig): Promise<HarnessReport> {
   for (const scenario of cfg.scenarios) {
     if (cfg.beforeEach) await cfg.beforeEach(scenario);
 
-    const record = await runOne(scenario, cfg.buildAgent);
+    const record = await runOne(scenario, cfg.buildAgent, cfg.guard);
     records.push(record);
 
     if (cfg.afterEach) await cfg.afterEach(scenario, record);
@@ -119,6 +127,7 @@ export async function runHarness(cfg: HarnessConfig): Promise<HarnessReport> {
 async function runOne(
   scenario: Scenario,
   buildAgent: HarnessConfig['buildAgent'],
+  guard?: GuardSpec,
 ): Promise<ScenarioRunRecord> {
   const calls: CapturedCall[] = [];
   const agent = buildAgent((c) => calls.push(c));
@@ -155,6 +164,29 @@ async function runOne(
       assistantReply = `[ERROR] ${err instanceof Error ? err.message : String(err)}`;
     }
 
+    // Hallucination guard — must run before history-append since the retry
+    // may add tool calls that should be attributed to THIS turn.
+    if (guard) {
+      const callsThisTurnRaw = calls.slice(callsBefore);
+      const guardOutcome = await runGuard({
+        guard,
+        agent,
+        // Pass the conversation history WITHOUT the empty assistant reply
+        // — the guard appends its own version inside runGuard.
+        messages,
+        reply: assistantReply,
+        callsThisTurn: callsThisTurnRaw,
+        prevCalls: calls.slice(0, callsBefore),
+      });
+      if (guardOutcome.triggered) {
+        if (guardOutcome.newReply) {
+          assistantReply = guardOutcome.newReply;
+        }
+        tokensIn += guardOutcome.retryTokensIn;
+        tokensOut += guardOutcome.retryTokensOut;
+      }
+    }
+
     const ms = Date.now() - start;
     // Skip pushing empty assistant replies — Moonshot rejects them on next turn.
     messages.push({
@@ -162,9 +194,8 @@ async function runOne(
       content: assistantReply.trim() || '(no reply)',
     });
 
-    // Tag captures from this turn with the turn index.
+    // Tag captures from this turn with the turn index (guard may have added more).
     const callsThisTurn = calls.slice(callsBefore).map((c) => ({ ...c, turn: i }));
-    // Mutate the records in place so allCalls reflects the turn index.
     for (let k = callsBefore; k < calls.length; k++) {
       calls[k] = { ...calls[k], turn: i };
     }
