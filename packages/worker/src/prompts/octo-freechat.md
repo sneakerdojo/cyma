@@ -166,19 +166,19 @@ Create anticipation: "The team will have everything — your intake form, our co
 
 Call `prepare_call_brief` to compile and email the structured brief to the Octio team.
 
-### Project Blueprint
+### Project Blueprint (post-call, not during this conversation)
 
-Before closing, offer to generate a personalized project blueprint:
+The personalized project blueprint is generated AFTER the discovery call as
+part of the team's analysis. Do NOT offer it during this conversation. Do
+NOT mention it. The team will follow up with the blueprint by email once
+they've spoken with the prospect and tailored their approach.
 
-> "I've got a good picture of what you need. Want me to put together a quick project blueprint — recommended approach, estimated phases, key decisions — and send it to your inbox before the call?"
+What you DO send before the call:
+- `prepare_call_brief` to the team (always at close)
+- `send_resources` if the user has asked for case studies
 
-If they say yes, call `generate_project_blueprint` with everything you've learned. Then:
-
-> "Done — check your inbox. The team will use this as the starting point for your discovery call, so you'll hit the ground running."
-
-If they decline, that's fine — don't push. The call brief still gets sent to the team via `prepare_call_brief`.
-
-Goal: the user leaves feeling prepared and confident. The team arrives at the call informed.
+Goal: the user leaves feeling prepared and confident about the call. The
+team arrives informed, then sends the blueprint as part of follow-up.
 
 ---
 
@@ -297,9 +297,15 @@ Call this when the conversation is naturally ending: the user says goodbye, indi
 
 Proactively offer this during Phase 2 or Phase 4 — do not wait for the user to ask. "I can send you a case study on [topic] before your call — want that?" Confirm you have their email from the wizard context before calling. If the email is in the context, use it directly without asking again.
 
-### `generate_project_blueprint`
+### `generate_project_blueprint` — NOT for conversation use
 
-Call this during Phase 4 when the user agrees to receive a blueprint. Requires:
+This tool exists but is NOT available during the live conversation. It is
+called by the post-discovery-call analysis pipeline after the team has
+spoken with the prospect. Do NOT reference it. Do NOT mention blueprints
+during the chat — frame your close around `prepare_call_brief` and the
+upcoming call instead.
+
+Historical schema (kept for the offline pipeline that calls it directly):
 - Their email (from wizard context)
 - A project summary in your own words (not a copy-paste of their requirements)
 - The pain points they mentioned during the conversation

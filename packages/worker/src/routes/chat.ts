@@ -6,6 +6,7 @@ import { logger } from '../logger.js';
 import {
   derivePhase,
   activeToolsForPhase,
+  forcedToolForPhase,
 } from '../mastra/agents/phase.js';
 
 function extractStepText(msg: unknown): string {
@@ -162,7 +163,19 @@ chatRoutes.post('/stream', async (c) => {
         lastUserMessage: lastText,
       });
 
-      return { activeTools: [...activeToolsForPhase(phase)] };
+      // Forced-tool decisions for deterministic transitions
+      // (Retell-style function nodes). E.g. on first entry to qualify
+      // phase, force show_form so we always capture contact info early
+      // for profile personalization.
+      const forced = forcedToolForPhase(phase, toolCallHistory);
+      const activeTools = [...activeToolsForPhase(phase)];
+      if (forced) {
+        return {
+          activeTools,
+          toolChoice: { type: 'tool' as const, toolName: forced },
+        };
+      }
+      return { activeTools };
     };
 
     const mastraStream = await handleChatStream({

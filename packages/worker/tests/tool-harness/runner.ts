@@ -18,6 +18,7 @@ import { runGuard, type GuardSpec } from './guard.js';
 import {
   derivePhase,
   activeToolsForPhase,
+  forcedToolForPhase,
   type Phase,
 } from '../../src/mastra/agents/phase.js';
 
@@ -175,13 +176,23 @@ async function runOne(
         .reverse()
         .find((m: { role?: string }) => m.role === 'user');
       const lastUserText = extractMsgText(lastUser);
+      const history = calls.map((c) => ({ name: c.tool }));
       const phase = derivePhase({
         userTurnsSoFar: userTurns,
-        toolCallHistory: calls.map((c) => ({ name: c.tool })),
+        toolCallHistory: history,
         lastUserMessage: lastUserText,
       });
       phaseRouting.onPhaseObserved?.(phase, stepNumber);
-      return { activeTools: [...activeToolsForPhase(phase)] };
+
+      const forced = forcedToolForPhase(phase, history);
+      const activeTools = [...activeToolsForPhase(phase)];
+      if (forced) {
+        return {
+          activeTools,
+          toolChoice: { type: 'tool', toolName: forced },
+        };
+      }
+      return { activeTools };
     };
   };
 

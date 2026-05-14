@@ -10,7 +10,6 @@ import { sendResourcesTool } from '../tools/send-resources.js';
 import { handoffToHumanTool } from '../tools/handoff-to-human.js';
 import { enrichLeadTool } from '../tools/enrich-lead.js';
 import { prepareCallBriefTool } from '../tools/prepare-call-brief.js';
-import { generateProjectBlueprintTool } from '../tools/generate-project-blueprint.js';
 import { showChoicesTool } from '../tools/show-choices.js';
 import { showMultiSelectTool } from '../tools/show-multi-select.js';
 import { showTextInputTool } from '../tools/show-text-input.js';
@@ -75,7 +74,12 @@ export const octoAgent = new Agent({
     handoff_to_human: handoffToHumanTool,
     enrich_lead: enrichLeadTool,
     prepare_call_brief: prepareCallBriefTool,
-    generate_project_blueprint: generateProjectBlueprintTool,
+    // generate_project_blueprint is intentionally NOT registered on the
+    // conversational agent (product decision 2026-05-14). The blueprint
+    // is generated as part of the post-discovery-call analysis pipeline,
+    // not during the conversation. The tool definition is kept in
+    // src/mastra/tools/generate-project-blueprint.ts for that pipeline.
+    //
     // UI tools — pass-through signals for the frontend conversational UI renderer
     show_choices: showChoicesTool,
     show_multi_select: showMultiSelectTool,

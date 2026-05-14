@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   derivePhase,
   activeToolsForPhase,
+  forcedToolForPhase,
   TOOLS_BY_PHASE,
 } from './phase.js';
 
@@ -110,11 +111,12 @@ describe('activeToolsForPhase', () => {
     expect(tools).not.toContain('prepare_call_brief');
   });
 
-  it('close phase includes prepare_call_brief + generate_project_blueprint', () => {
+  it('close phase includes prepare_call_brief + send_resources but NOT generate_project_blueprint', () => {
     const tools = activeToolsForPhase('close');
     expect(tools).toContain('prepare_call_brief');
-    expect(tools).toContain('generate_project_blueprint');
     expect(tools).toContain('send_resources');
+    // Blueprint is post-call analysis only (product decision 2026-05-14).
+    expect(tools).not.toContain('generate_project_blueprint');
   });
 
   it('book phase includes show_scheduler + show_form', () => {
@@ -137,5 +139,81 @@ describe('activeToolsForPhase', () => {
     >) {
       expect(TOOLS_BY_PHASE[phase]).toContain('answer_service_question');
     }
+  });
+
+  it('no phase exposes generate_project_blueprint (post-call analysis only)', () => {
+    for (const phase of Object.keys(TOOLS_BY_PHASE) as Array<
+      keyof typeof TOOLS_BY_PHASE
+    >) {
+      expect(TOOLS_BY_PHASE[phase]).not.toContain('generate_project_blueprint');
+    }
+  });
+});
+
+describe('forcedToolForPhase', () => {
+  it('forces show_form on first entry to qualify phase', () => {
+    expect(forcedToolForPhase('qualify', [])).toBe('show_form');
+  });
+
+  it('does NOT re-force show_form once it has fired this session', () => {
+    expect(forcedToolForPhase('qualify', [{ name: 'show_form' }])).toBeUndefined();
+  });
+
+  it('does not force anything in cold phase', () => {
+    expect(forcedToolForPhase('cold', [])).toBeUndefined();
+  });
+
+  it('does not force anything in discovery phase', () => {
+    expect(forcedToolForPhase('discovery', [])).toBeUndefined();
+  });
+
+  it('does not force anything in close phase', () => {
+    expect(forcedToolForPhase('close', [])).toBeUndefined();
+  });
+
+  it('does not force anything in book phase', () => {
+    expect(forcedToolForPhase('book', [])).toBeUndefined();
+  });
+});
+
+describe('derivePhase — contact-capture intent', () => {
+  it('jumps to qualify on "add me to the discovery call list" (turn 1)', () => {
+    expect(
+      derivePhase({
+        userTurnsSoFar: 1,
+        toolCallHistory: [],
+        lastUserMessage: "I'd like to be added to your discovery call list.",
+      }),
+    ).toBe('qualify');
+  });
+
+  it('jumps to qualify on "sign me up"', () => {
+    expect(
+      derivePhase({
+        userTurnsSoFar: 1,
+        toolCallHistory: [],
+        lastUserMessage: 'Sign me up please.',
+      }),
+    ).toBe('qualify');
+  });
+
+  it('jumps to qualify on "get in touch"', () => {
+    expect(
+      derivePhase({
+        userTurnsSoFar: 2,
+        toolCallHistory: [],
+        lastUserMessage: 'I want someone to get in touch with me.',
+      }),
+    ).toBe('qualify');
+  });
+
+  it('does not trip on tangential mentions of "list"', () => {
+    expect(
+      derivePhase({
+        userTurnsSoFar: 1,
+        toolCallHistory: [],
+        lastUserMessage: 'Can you list your services?',
+      }),
+    ).toBe('cold');
   });
 });

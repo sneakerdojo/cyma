@@ -15,7 +15,10 @@ import { runHarness, formatReport, type HarnessReport } from '../tests/tool-harn
 import { buildHandoffToHumanHarnessConfig } from '../tests/tool-harness/scenarios/handoff-to-human.js';
 import { buildSendResourcesHarnessConfig } from '../tests/tool-harness/scenarios/send-resources.js';
 import { buildPrepareCallBriefHarnessConfig } from '../tests/tool-harness/scenarios/prepare-call-brief.js';
-import { buildGenerateProjectBlueprintHarnessConfig } from '../tests/tool-harness/scenarios/generate-project-blueprint.js';
+// generate_project_blueprint dropped from the conversational tool surface
+// (product decision 2026-05-14): blueprint is generated as part of post-
+// discovery-call analysis, not during the conversation. The tool still
+// exists in src/mastra/tools/ for off-line use by the follow-up pipeline.
 import { buildAnswerServiceQuestionHarnessConfig } from '../tests/tool-harness/scenarios/answer-service-question.js';
 import { buildShowChoicesHarnessConfig } from '../tests/tool-harness/scenarios/show-choices.js';
 import { buildAllShowUiToolHarnessConfigs } from '../tests/tool-harness/scenarios/show-ui-tools.js';
@@ -62,11 +65,6 @@ async function main(): Promise<void> {
     () => safeRun('handoff_to_human', buildHandoffToHumanHarnessConfig),
     () => safeRun('send_resources', buildSendResourcesHarnessConfig),
     () => safeRun('prepare_call_brief', buildPrepareCallBriefHarnessConfig),
-    () =>
-      safeRun(
-        'generate_project_blueprint',
-        buildGenerateProjectBlueprintHarnessConfig,
-      ),
     () => safeRun('enrich_lead', buildEnrichLeadHarnessConfig, cleanupEnrichLead),
   ];
   const knowledgeRuns = [

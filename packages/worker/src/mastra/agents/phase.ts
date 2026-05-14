@@ -47,10 +47,13 @@ export const TOOLS_BY_PHASE: Record<Phase, readonly string[]> = {
     'show_choices',
     'show_multi_select',
   ],
+  // Close phase does NOT include generate_project_blueprint by product
+  // decision (2026-05-14) — the blueprint is generated as part of post-
+  // discovery-call analysis, not during the conversation. The tool still
+  // exists for off-line use by the follow-up pipeline.
   close: [
     ...UNIVERSAL_TOOLS,
     'prepare_call_brief',
-    'generate_project_blueprint',
     'send_resources',
     'show_choices',
   ],
@@ -95,9 +98,30 @@ export function derivePhase(input: PhaseDerivationInput): Phase {
       lastUserMessage,
     );
 
-  // Cold: no messages yet, or very first message with no tool calls.
+  // Contact-capture intent — user wants to be added / contacted / signed up.
+  // Skips ahead to qualify phase so the deterministic show_form fires (see
+  // forcedToolForPhase). This is the Retell "function node" pattern — when
+  // we know exactly what side-effect should fire, we don't let the LLM
+  // decide whether to fire it.
+  const contactCaptureIntent =
+    /\b(?:(?:add|sign) me (?:to|up|in)|(?:put|get) me on (?:the |your )?list|discovery call list|i (?:want|would like) to (?:be )?(?:added|contacted|on)|reach out (?:to me|when)|get in touch)\b/i.test(
+      lastUserMessage,
+    );
+
+  // Cold: no messages yet, or very first message with no tool calls AND
+  // no strong intent signal.
   if (userTurnsSoFar === 0) return 'cold';
-  if (userTurnsSoFar === 1 && toolCallHistory.length === 0) return 'cold';
+  if (
+    userTurnsSoFar === 1 &&
+    toolCallHistory.length === 0 &&
+    !contactCaptureIntent &&
+    !bookingIntent
+  ) {
+    return 'cold';
+  }
+
+  // Contact-capture intent jumps straight to qualify so show_form fires.
+  if (contactCaptureIntent) return 'qualify';
 
   // Booking phase overrides everything else (caller explicitly wants to book).
   if (bookingIntent) return 'book';
@@ -130,6 +154,41 @@ export function derivePhase(input: PhaseDerivationInput): Phase {
  */
 export function activeToolsForPhase(phase: Phase): readonly string[] {
   return TOOLS_BY_PHASE[phase];
+}
+
+/**
+ * Deterministic forced-tool decision for a phase transition.
+ *
+ * Implements the Retell "function node" / Pipecat Flows "function call"
+ * pattern: at known phase transitions, deterministically force the tool
+ * that captures the data needed to advance the conversation. The LLM
+ * gets no say in whether it fires — `toolChoice` makes the call mandatory.
+ *
+ * Current rule:
+ *   - On entry to `qualify` phase, if we haven't yet captured contact info
+ *     (no prior show_form call), force `show_form`. This lets us look up
+ *     or create a profile early, so all subsequent turns can personalise
+ *     using captured name/email/company.
+ *
+ * Returns the tool name to force, or undefined for "no force, let auto
+ * tool selection apply".
+ */
+export function forcedToolForPhase(
+  phase: Phase,
+  toolCallHistory: ReadonlyArray<{ name: string }>,
+): string | undefined {
+  const haveContactCapture = toolCallHistory.some(
+    (c) => c.name === 'show_form',
+  );
+
+  // Qualify-phase entry: force show_form if we don't have contact info yet.
+  // Profile-personalisation requires identity capture — this is the
+  // deterministic entry to the qualify state.
+  if (phase === 'qualify' && !haveContactCapture) {
+    return 'show_form';
+  }
+
+  return undefined;
 }
 
 // ---------------------------------------------------------------------------
