@@ -114,7 +114,42 @@ export function base64url(message: string): string {
 // Private send helper (single responsibility: talk to Gmail API)
 // ---------------------------------------------------------------------------
 
+/**
+ * Test-mode interception. When GMAIL_INTERCEPT=1 is set, sendEmail records
+ * the message into an in-memory buffer instead of calling the Gmail API.
+ * Used by the tool-intensity harness in tests/tool-harness/ to verify
+ * email content + recipients without spamming real inboxes.
+ *
+ * Production code never reads the flag (env unset).
+ */
+export interface InterceptedEmail {
+  id: string;
+  options: SendEmailOptions;
+  timestamp: number;
+}
+const interceptedEmailsBuffer: InterceptedEmail[] = [];
+
+export function getInterceptedEmails(): readonly InterceptedEmail[] {
+  return interceptedEmailsBuffer;
+}
+
+export function clearInterceptedEmails(): void {
+  interceptedEmailsBuffer.length = 0;
+}
+
 export async function sendEmail(options: SendEmailOptions): Promise<string> {
+  if (process.env.GMAIL_INTERCEPT === '1') {
+    const id = `intercepted-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2, 8)}`;
+    interceptedEmailsBuffer.push({ id, options, timestamp: Date.now() });
+    logger.info(
+      { to: options.to, subject: options.subject, intercepted: true },
+      'email intercepted (GMAIL_INTERCEPT=1)',
+    );
+    return id;
+  }
+
   const auth = getOAuth2Client();
   const gmail = google.gmail({ version: 'v1', auth });
 

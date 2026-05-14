@@ -139,6 +139,15 @@ export function getSession(sessionId: string): SessionState | null {
   return sessions.get(sessionId)?.state ?? null;
 }
 
+/**
+ * Persist a session's state. Used by the real-brain code path
+ * (routes/voice-agent.ts) which manages its own turn execution but shares
+ * the simulator's in-memory store so /reset and /session/:id work uniformly.
+ */
+export function setSession(sessionId: string, state: SessionState): void {
+  sessions.set(sessionId, { state, lastTouchedAt: Date.now() });
+}
+
 /** Test-only: clears all sessions. */
 export function _resetAllSessions(): void {
   sessions.clear();
