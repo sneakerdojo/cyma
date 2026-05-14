@@ -9,6 +9,26 @@ import {
   forcedToolForPhase,
 } from '../mastra/agents/phase.js';
 
+/**
+ * Canonical list of tools registered on the Octo agent. Must stay in sync
+ * with the `tools: { ... }` block in src/mastra/agents/octo.ts. Used to
+ * bound forcedToolForPhase — we only force a tool the agent actually has.
+ */
+const PRODUCTION_OCTO_TOOLS = [
+  'answer_service_question',
+  'send_resources',
+  'handoff_to_human',
+  'enrich_lead',
+  'prepare_call_brief',
+  'show_choices',
+  'show_multi_select',
+  'show_text_input',
+  'show_file_upload',
+  'show_form',
+  'show_scheduler',
+  'show_diagram',
+] as const;
+
 function extractStepText(msg: unknown): string {
   if (!msg || typeof msg !== 'object') return '';
   const m = msg as { content?: unknown; parts?: unknown };
@@ -167,7 +187,15 @@ chatRoutes.post('/stream', async (c) => {
       // (Retell-style function nodes). E.g. on first entry to qualify
       // phase, force show_form so we always capture contact info early
       // for profile personalization.
-      const forced = forcedToolForPhase(phase, toolCallHistory);
+      // PRODUCTION_OCTO_TOOLS lists every tool registered on the agent
+      // — without it, forcedToolForPhase could ask for a tool the agent
+      // doesn't have (the same bug that hit the harness on isolated
+      // single-tool scenarios).
+      const forced = forcedToolForPhase(
+        phase,
+        toolCallHistory,
+        PRODUCTION_OCTO_TOOLS,
+      );
       const activeTools = [...activeToolsForPhase(phase)];
       if (forced) {
         return {

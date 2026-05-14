@@ -165,6 +165,6 @@ export function buildSendResourcesHarnessConfig(): HarnessConfig {
       // prior scenario already sent to the same address.
       _clearSendResourcesCooldown();
     },
-    phaseRouting: { enabled: true },
+    phaseRouting: { enabled: true, availableTools: ['send_resources'] },
   };
 }

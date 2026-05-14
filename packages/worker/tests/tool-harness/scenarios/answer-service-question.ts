@@ -123,6 +123,6 @@ export function buildAnswerServiceQuestionHarnessConfig(): HarnessConfig {
         instructions: 'You are Octio, a conversational assistant.',
         recordCall,
       }),
-    phaseRouting: { enabled: true },
+    phaseRouting: { enabled: true, availableTools: ['answer_service_question'] },
   };
 }

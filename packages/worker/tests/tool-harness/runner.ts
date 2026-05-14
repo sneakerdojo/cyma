@@ -103,6 +103,13 @@ export interface HarnessConfig {
     enabled: true;
     /** Records phase observed at each step — useful for debugging report. */
     onPhaseObserved?: (phase: Phase, stepNumber: number) => void;
+    /**
+     * Tool IDs registered on this scenario's agent. Passed to
+     * forcedToolForPhase so the runner only forces a tool the agent
+     * actually has. Without this, forcing a non-registered tool
+     * causes Mastra/Kimi to emit text with no tool call.
+     */
+    availableTools?: readonly string[];
   };
 }
 
@@ -184,7 +191,11 @@ async function runOne(
       });
       phaseRouting.onPhaseObserved?.(phase, stepNumber);
 
-      const forced = forcedToolForPhase(phase, history);
+      const forced = forcedToolForPhase(
+        phase,
+        history,
+        phaseRouting.availableTools,
+      );
       const activeTools = [...activeToolsForPhase(phase)];
       if (forced) {
         return {

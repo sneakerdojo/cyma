@@ -176,16 +176,25 @@ export function activeToolsForPhase(phase: Phase): readonly string[] {
 export function forcedToolForPhase(
   phase: Phase,
   toolCallHistory: ReadonlyArray<{ name: string }>,
+  /**
+   * The set of tools actually registered with the agent for this call.
+   * Passed by the harness (single-tool scenarios) and by production
+   * (full tool registry). Prevents the runner from forcing a tool the
+   * model doesn't have — which Mastra/Kimi handles by emitting text
+   * with no tool call (the exact bug this guard exists to prevent).
+   */
+  availableTools?: ReadonlyArray<string>,
 ): string | undefined {
   const haveContactCapture = toolCallHistory.some(
     (c) => c.name === 'show_form',
   );
 
-  // Qualify-phase entry: force show_form if we don't have contact info yet.
-  // Profile-personalisation requires identity capture — this is the
-  // deterministic entry to the qualify state.
+  // Qualify-phase entry: force show_form if we don't have contact info yet
+  // AND show_form is actually registered with the agent.
   if (phase === 'qualify' && !haveContactCapture) {
-    return 'show_form';
+    if (!availableTools || availableTools.includes('show_form')) {
+      return 'show_form';
+    }
   }
 
   return undefined;

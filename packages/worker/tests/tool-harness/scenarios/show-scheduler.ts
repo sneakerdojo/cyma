@@ -72,7 +72,7 @@ export function buildShowSchedulerHarnessConfig(): HarnessConfig {
   return {
     toolGroup: 'show_scheduler',
     scenarios: buildShowSchedulerScenarios(),
-    phaseRouting: { enabled: true },
+    phaseRouting: { enabled: true, availableTools: ['show_scheduler'] },
     buildAgent: (recordCall) =>
       buildHarnessAgent({
         realTools: { show_scheduler: showSchedulerTool },

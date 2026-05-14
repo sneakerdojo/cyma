@@ -174,6 +174,23 @@ describe('forcedToolForPhase', () => {
   it('does not force anything in book phase', () => {
     expect(forcedToolForPhase('book', [])).toBeUndefined();
   });
+
+  it('returns undefined when availableTools does NOT include the would-be forced tool', () => {
+    expect(
+      forcedToolForPhase('qualify', [], ['enrich_lead']),
+    ).toBeUndefined();
+  });
+
+  it('returns show_form when availableTools includes it', () => {
+    expect(
+      forcedToolForPhase('qualify', [], ['show_form', 'enrich_lead']),
+    ).toBe('show_form');
+  });
+
+  it('omitting availableTools (undefined) keeps the forced tool', () => {
+    // Default behaviour for callers that don't know what's registered.
+    expect(forcedToolForPhase('qualify', [])).toBe('show_form');
+  });
 });
 
 describe('derivePhase — contact-capture intent', () => {

@@ -323,7 +323,7 @@ export function buildEnrichLeadHarnessConfig(): HarnessConfig {
     // In the harness (which registers only enrich_lead), it doesn't
     // change much — but it's wired here so the harness exercises the
     // same code path production uses.
-    phaseRouting: { enabled: true },
+    phaseRouting: { enabled: true, availableTools: ['enrich_lead'] },
     // Hallucination guard for Kimi's "acknowledge without firing" pattern.
     // Phase routing solves WRONG-tool failures; the guard recovers from
     // NO-tool failures (model says "got it" without calling the tool).

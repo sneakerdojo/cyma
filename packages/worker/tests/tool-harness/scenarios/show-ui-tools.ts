@@ -284,7 +284,7 @@ export function buildAllShowUiToolHarnessConfigs(): HarnessConfig[] {
     {
       toolGroup: 'show_multi_select',
       scenarios: buildShowMultiSelectScenarios(),
-      phaseRouting: { enabled: true },
+      phaseRouting: { enabled: true, availableTools: ['show_multi_select'] },
       buildAgent: (recordCall) =>
         buildHarnessAgent({
           realTools: { show_multi_select: showMultiSelectTool },
@@ -295,7 +295,7 @@ export function buildAllShowUiToolHarnessConfigs(): HarnessConfig[] {
     {
       toolGroup: 'show_text_input',
       scenarios: buildShowTextInputScenarios(),
-      phaseRouting: { enabled: true },
+      phaseRouting: { enabled: true, availableTools: ['show_text_input'] },
       buildAgent: (recordCall) =>
         buildHarnessAgent({
           realTools: { show_text_input: showTextInputTool },
@@ -306,7 +306,7 @@ export function buildAllShowUiToolHarnessConfigs(): HarnessConfig[] {
     {
       toolGroup: 'show_file_upload',
       scenarios: buildShowFileUploadScenarios(),
-      phaseRouting: { enabled: true },
+      phaseRouting: { enabled: true, availableTools: ['show_file_upload'] },
       buildAgent: (recordCall) =>
         buildHarnessAgent({
           realTools: { show_file_upload: showFileUploadTool },
@@ -317,7 +317,7 @@ export function buildAllShowUiToolHarnessConfigs(): HarnessConfig[] {
     {
       toolGroup: 'show_form',
       scenarios: buildShowFormScenarios(),
-      phaseRouting: { enabled: true },
+      phaseRouting: { enabled: true, availableTools: ['show_form'] },
       buildAgent: (recordCall) =>
         buildHarnessAgent({
           realTools: { show_form: showFormTool },
@@ -342,7 +342,7 @@ export function buildAllShowUiToolHarnessConfigs(): HarnessConfig[] {
     {
       toolGroup: 'show_diagram',
       scenarios: buildShowDiagramScenarios(),
-      phaseRouting: { enabled: true },
+      phaseRouting: { enabled: true, availableTools: ['show_diagram'] },
       buildAgent: (recordCall) =>
         buildHarnessAgent({
           realTools: { show_diagram: showDiagramTool },
