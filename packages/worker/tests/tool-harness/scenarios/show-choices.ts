@@ -184,6 +184,7 @@ export function buildShowChoicesHarnessConfig(): HarnessConfig {
   return {
     toolGroup: 'show_choices',
     scenarios: buildShowChoicesScenarios(),
+    phaseRouting: { enabled: true },
     buildAgent: (recordCall) =>
       buildHarnessAgent({
         realTools: { show_choices: showChoicesTool },

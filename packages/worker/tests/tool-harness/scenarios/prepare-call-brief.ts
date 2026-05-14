@@ -166,5 +166,6 @@ export function buildPrepareCallBriefHarnessConfig(): HarnessConfig {
         recordCall,
       }),
     beforeEach: () => clearInterceptedEmails(),
+    phaseRouting: { enabled: true },
   };
 }

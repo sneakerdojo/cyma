@@ -203,5 +203,6 @@ export function buildHandoffToHumanHarnessConfig(): HarnessConfig {
         recordCall,
       }),
     beforeEach: () => clearInterceptedEmails(),
+    phaseRouting: { enabled: true },
   };
 }

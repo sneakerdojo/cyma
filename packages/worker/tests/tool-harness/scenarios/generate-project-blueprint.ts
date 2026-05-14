@@ -157,6 +157,7 @@ export function buildGenerateProjectBlueprintHarnessConfig(): HarnessConfig {
         recordCall,
       }),
     beforeEach: () => clearInterceptedEmails(),
+    phaseRouting: { enabled: true },
     // Guard against the "promising the blueprint without firing" pattern.
     // Same shape as the enrich_lead guard — detect commitment phrases,
     // re-prompt with toolChoice if no call landed.
