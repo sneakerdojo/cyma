@@ -22,11 +22,54 @@ import {
   simulateTurn,
   resetSession,
   getSession,
+  setSession,
 } from '../services/voice-agent/index.js';
 import { createMockBrain } from '../services/voice-agent/mock-brain.js';
 import { createOctoBrainAdapter } from '../services/voice-agent/octo-brain-adapter.js';
-import { createMockTools } from '../services/voice-agent/tools.js';
+import {
+  createMockTools,
+  mockLookupAvailability,
+  mockBookAppointment,
+  mockRouteToHuman,
+} from '../services/voice-agent/tools.js';
 import { runTurn } from '../services/voice-agent/orchestrator.js';
+import {
+  createMastraVoiceBrain,
+  type MastraVoiceBrain,
+} from '../services/voice-agent/mastra-brain.js';
+import type { SessionState } from '../services/voice-agent/orchestrator.js';
+import { config } from '../config.js';
+import { logger } from '../logger.js';
+
+// Lazy-built singleton — only constructed when /turn is called with the
+// real-brain flag enabled, so missing Kimi credentials don't break the
+// process on boot. Rebuilt per call would mean rebuilding the openai-compatible
+// provider; not worth it for the hot path.
+let cachedRealBrain: MastraVoiceBrain | null = null;
+function getRealBrain(tenantBrand: string): MastraVoiceBrain {
+  if (cachedRealBrain) return cachedRealBrain;
+  if (!config.kimiApiKey) {
+    throw new Error(
+      'VOICE_USE_REAL_BRAIN is enabled but KIMI_API_KEY is not set',
+    );
+  }
+  cachedRealBrain = createMastraVoiceBrain({
+    tenantBrand,
+    llm: {
+      apiKey: config.kimiApiKey,
+      baseUrl: config.kimiBaseUrl,
+      model: config.kimiModel,
+    },
+    // Inject the mock tool impls for now. The next swap (v1 step) is wiring
+    // real Google Calendar + Twilio behind these same function signatures.
+    toolImpls: {
+      lookupAvailability: (a) => mockLookupAvailability(a),
+      bookAppointment: (a) => mockBookAppointment(a),
+      routeToHuman: (a) => mockRouteToHuman(a),
+    },
+  });
+  return cachedRealBrain;
+}
 
 export const voiceAgentRoutes = new Hono();
 
@@ -125,44 +168,120 @@ voiceAgentRoutes.post('/voice-agent/turn', async (c) => {
   }
 
   const tenantBrand = parsed.data.tenantBrand ?? 'Octio';
+  const useRealBrain =
+    process.env.VOICE_USE_REAL_BRAIN === '1' ||
+    process.env.VOICE_USE_REAL_BRAIN === 'true';
 
-  // Underlying brain. v0 = mockBrain (deterministic FSM).
-  // v1 swap: real Mastra Octo agent wrapped to satisfy the Brain interface.
-  const underlying = createMockBrain({ tenantBrand });
+  if (!useRealBrain) {
+    // Mock path — deterministic FSM, no LLM cost. Used by the /voice-sim
+    // page when the real-brain flag is off.
+    const underlying = createMockBrain({ tenantBrand });
+    const brain = createOctoBrainAdapter({
+      underlying,
+      tenantBrand,
+      profileSummary: parsed.data.profileSummary,
+    });
+    const result = await simulateTurn({
+      sessionId: parsed.data.sessionId,
+      tenantId: parsed.data.tenantId,
+      callerNumber: parsed.data.callerNumber ?? null,
+      tenantBrand,
+      transcript: parsed.data.transcript,
+    });
+    // Mark the adapter as referenced — the seam exists for when we wire it
+    // into the mock simulator. Not load-bearing yet.
+    void brain;
+    void runTurn;
 
-  // Adapter adds timeout + system-hint injection. Stays put across v0 → v1.
-  const brain = createOctoBrainAdapter({
-    underlying,
+    return c.json({
+      sessionId: result.sessionId,
+      reply: result.reply,
+      toolCalls: result.toolCalls,
+      latencyMs: result.latencyMs,
+      ended: result.ended,
+      endedReason: result.endedReason,
+      bookedSlot: result.bookedSlot,
+      brain: 'mock',
+    });
+  }
+
+  // Real-brain path — Mastra + Kimi K2 Turbo + hallucination guard.
+  // Session state is still managed by the simulator's in-memory store; we
+  // round-trip through it manually because simulateTurn() always uses the
+  // mock brain.
+  let realBrain: MastraVoiceBrain;
+  try {
+    realBrain = getRealBrain(tenantBrand);
+  } catch (err) {
+    logger.error(
+      { err: err instanceof Error ? err.message : String(err) },
+      'real-brain init failed',
+    );
+    return c.json({ error: 'Voice brain not configured' }, 503);
+  }
+
+  // Pull session state by calling getSession; if absent, simulateTurn would
+  // have created it on first call. To avoid duplicating that logic, run a
+  // no-op simulate first to ensure the session exists, then operate on it.
+  let sessionState: SessionState | null = getSession(parsed.data.sessionId);
+  if (!sessionState) {
+    sessionState = {
+      sessionId: parsed.data.sessionId,
+      tenantId: parsed.data.tenantId,
+      callerNumber: parsed.data.callerNumber ?? null,
+      history: [],
+      bookedSlot: null,
+    };
+  }
+
+  if (sessionState.ended) {
+    return c.json({
+      sessionId: parsed.data.sessionId,
+      reply: 'This call has ended. Refresh to start a new session.',
+      toolCalls: [],
+      latencyMs: { stt: 0, brain: 0, tts: 0, totalMouthToEar: 0 },
+      ended: true,
+      endedReason: sessionState.endedReason,
+      bookedSlot: sessionState.bookedSlot,
+      brain: 'real',
+    });
+  }
+
+  const outcome = await realBrain.runTurn({
+    sessionState,
+    transcript: parsed.data.transcript,
     tenantBrand,
     profileSummary: parsed.data.profileSummary,
   });
 
-  // Pull or initialise session state (reuses the simulator's in-memory store
-  // via simulateTurn for now — keeps the two endpoints consistent in v0).
-  const result = await simulateTurn({
-    sessionId: parsed.data.sessionId,
-    tenantId: parsed.data.tenantId,
-    callerNumber: parsed.data.callerNumber ?? null,
-    tenantBrand,
-    transcript: parsed.data.transcript,
-  });
+  // Persist new state into the shared session store so /reset and
+  // /session/:id work uniformly across both brain paths.
+  setSession(parsed.data.sessionId, outcome.nextState);
 
-  // Touch the adapter so coverage shows it's wired even though simulateTurn
-  // currently builds its own brain. This is the seam — when we wire the
-  // adapter into simulator.ts (v0.1), this becomes the source of truth.
-  void brain;
-  void runTurn;
+  if (outcome.guardRetries > 0) {
+    logger.info(
+      {
+        sessionId: parsed.data.sessionId,
+        guardRetries: outcome.guardRetries,
+        brainLatencyMs: outcome.latencyMs.brain,
+      },
+      'voice-agent guard fired',
+    );
+  }
 
   return c.json({
-    sessionId: result.sessionId,
-    reply: result.reply,
-    toolCalls: result.toolCalls,
-    latencyMs: result.latencyMs,
-    ended: result.ended,
-    endedReason: result.endedReason,
-    bookedSlot: result.bookedSlot,
+    sessionId: parsed.data.sessionId,
+    reply: outcome.reply,
+    toolCalls: outcome.toolCalls,
+    latencyMs: outcome.latencyMs,
+    ended: outcome.nextState.ended === true,
+    endedReason: outcome.nextState.endedReason,
+    bookedSlot: outcome.nextState.bookedSlot,
+    brain: 'real',
+    guardRetries: outcome.guardRetries,
   });
 });
+
 
 const TokenBodySchema = z.object({
   sessionId: z.string().min(1).max(128),

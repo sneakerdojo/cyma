@@ -35,5 +35,18 @@ export {
   simulateTurn,
   resetSession,
   getSession,
+  setSession,
 } from './simulator.js';
 export type { SimulateTurnArgs, SimulateTurnResponse } from './simulator.js';
+
+export {
+  createMastraVoiceBrain,
+  detectHallucinatedAction,
+} from './mastra-brain.js';
+export type {
+  MastraVoiceBrain,
+  ToolImpls,
+  VoiceTurnIO,
+  VoiceTurnOutcome,
+  CreateMastraVoiceBrainArgs,
+} from './mastra-brain.js';

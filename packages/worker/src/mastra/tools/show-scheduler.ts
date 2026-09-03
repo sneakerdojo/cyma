@@ -25,7 +25,13 @@ export const showSchedulerTool = createTool({
   inputSchema: z.object({
     question: z.string().describe('Main question text'),
     detail: z.string().optional().describe('Additional context, muted text below question'),
-    daysAhead: z.number().default(5).describe('Number of business days ahead to show slots for'),
+    daysAhead: z
+      .number()
+      .int()
+      .min(1, 'daysAhead must be at least 1')
+      .max(30, 'daysAhead cannot exceed 30 to limit calendar quota burn')
+      .default(5)
+      .describe('Number of business days ahead to show slots for (1-30)'),
   }),
   execute: async (input) => {
     try {

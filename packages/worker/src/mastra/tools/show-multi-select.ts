@@ -16,9 +16,23 @@ export const showMultiSelectTool = createTool({
   inputSchema: z.object({
     question: z.string().describe('Main question text'),
     detail: z.string().optional().describe('Additional context, muted text below question'),
-    options: z.array(z.string()).describe('Checkbox labels'),
-    minSelect: z.number().default(1).describe('Minimum number of selections required'),
-    maxSelect: z.number().optional().describe('Maximum number of selections allowed'),
+    options: z
+      .array(z.string().min(1).max(120))
+      .min(2, 'options must contain at least 2 items')
+      .max(10, 'options cannot exceed 10 items')
+      .describe('Checkbox labels (2-10 options, each non-empty)'),
+    minSelect: z
+      .number()
+      .int()
+      .min(0)
+      .default(1)
+      .describe('Minimum number of selections required (>= 0)'),
+    maxSelect: z
+      .number()
+      .int()
+      .min(1)
+      .optional()
+      .describe('Maximum number of selections allowed (>= 1, must be >= minSelect)'),
   }),
   execute: async (input) => ({ rendered: true, ...input }),
 });

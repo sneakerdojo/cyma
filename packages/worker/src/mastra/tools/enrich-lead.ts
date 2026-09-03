@@ -10,8 +10,18 @@ import { db, schema } from '../../db/client.js';
 
 export const enrichLeadTool = createTool({
   id: 'enrich_lead',
-  description:
-    'Store qualifying information learned during the conversation. Call this after the user reveals team size, timeline urgency, decision makers, pain points, or competitor mentions. Do NOT call for every message — only when new qualifying information is shared.',
+  description: `Persist a single qualifying datapoint about the lead to CRM scoring.
+
+WHEN TO CALL: every time the user reveals information about their team size, timeline urgency, decision makers, pain points, competitor mentions, budget confirmation, or any other qualifying context. Call it IMMEDIATELY in the same reply where you acknowledge the fact. Acknowledging the data in text without firing this tool is a critical bug — the data is silently dropped from CRM scoring.
+
+WHEN NOT TO CALL: pure greetings ("hi", "hello"), pure chitchat ("nice weather"), filler messages, or repeated re-statements of info already recorded this conversation.
+
+EXAMPLES:
+- User: "We're a team of 30." → Call enrich_lead(field="team_size", value="~30 people") AND reply "30-person team — useful context."
+- User: "Our onboarding takes weeks." → Call enrich_lead(field="pain_points", value="long customer onboarding") AND reply "That's where AI agents pay off fast."
+- User: "Need it in 6 weeks." → Call enrich_lead(field="timeline_urgency", value="6-week deadline") AND reply "6 weeks is tight but doable."
+
+RETURNS: {ok: true, message: "noted"} on success, {ok: false, error} otherwise.`,
   inputSchema: z.object({
     contactEmail: z
       .string()

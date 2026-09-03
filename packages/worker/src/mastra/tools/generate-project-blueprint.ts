@@ -339,6 +339,20 @@ async function sendBlueprintEmail(options: {
   subject: string;
   htmlBody: string;
 }): Promise<void> {
+  // Test interception: the intensity harness sets GMAIL_INTERCEPT=1 so
+  // tool tests don't send real email. Route through the same buffer the
+  // gmail.ts sendEmail uses so tests can inspect it uniformly.
+  if (process.env.GMAIL_INTERCEPT === '1') {
+    const { sendEmail } = await import('../../services/gmail.js');
+    await sendEmail({
+      to: options.to,
+      cc: options.cc,
+      subject: options.subject,
+      htmlBody: options.htmlBody,
+    });
+    return;
+  }
+
   const auth = getOAuth2Client();
   const gmail = google.gmail({ version: 'v1', auth });
   const raw = base64url(buildRawMessage(options));
@@ -351,8 +365,17 @@ async function sendBlueprintEmail(options: {
 
 export const generateProjectBlueprintTool = createTool({
   id: 'generate_project_blueprint',
-  description:
-    'Generate a personalized project blueprint and email it to the lead. Call this during the close phase of the conversation when you have enough context about their project. The blueprint demonstrates Octio expertise and gives the lead a concrete plan to anchor the discovery call.',
+  description: `Generate a personalised project blueprint (LLM-drafted, branded HTML) and email it to the lead with the team CC'd.
+
+WHEN TO CALL: the user explicitly asks for a blueprint, plan, proposal, or scoping document to be sent. Phrases like "send me a project blueprint", "can you put together a proposal", "I'd like a plan emailed over". You should have collected at minimum: serviceInterest, project summary in your own words, 2-4 pain points, and a budget range. Call IMMEDIATELY in the same reply where you confirm you're sending it — saying "I'll send your blueprint" without firing this tool means no email goes out and the user waits forever.
+
+WHEN NOT TO CALL: early-conversation chat, when key fields are missing (no email/no service interest/no pain points), or when the user wants resources/case studies (use send_resources for those instead).
+
+EXAMPLES:
+- User has shared context, then: "Can you generate a project blueprint with this info?" → Call generate_project_blueprint(contactEmail, contactName, serviceInterest, projectSummary, painPoints, budgetRange, recommendedCallAgenda) AND reply "Sending your blueprint now — it'll land in your inbox in a minute or two."
+- User: "What do you think about AI agents?" → Do NOT call (no explicit blueprint request).
+
+RETURNS: {ok: true, message: "Blueprint sent..."} on success, {ok: false, error} otherwise. Inner LLM call can fail; do NOT claim success unless the tool returns ok:true.`,
   inputSchema,
   execute: async (
     input: z.infer<typeof inputSchema>,
