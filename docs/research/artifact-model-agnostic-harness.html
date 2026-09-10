@@ -1,0 +1,375 @@
+<title>Model-Agnostic Harness</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap');
+
+  :root {
+    --bg: #f2f1ec;
+    --surface: #ffffff;
+    --surface-2: #e9e7de;
+    --border: #d8d5c9;
+    --text: #1c1a16;
+    --text-dim: #5d594e;
+    --text-faint: #8a8577;
+    --accent: #a8570c;
+    --accent-soft: #f2e2cc;
+    --link: #7a3f0a;
+    --ok: #3f6b3f;
+    --risk: #9c3b2e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16140f;
+      --surface: #1e1c16;
+      --surface-2: #262218;
+      --border: #38331f;
+      --text: #ece7da;
+      --text-dim: #b3ab97;
+      --text-faint: #7d7562;
+      --accent: #e3973f;
+      --accent-soft: #3a2c13;
+      --link: #f0ad5e;
+      --ok: #7fae7f;
+      --risk: #d97e6d;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #16140f;
+    --surface: #1e1c16;
+    --surface-2: #262218;
+    --border: #38331f;
+    --text: #ece7da;
+    --text-dim: #b3ab97;
+    --text-faint: #7d7562;
+    --accent: #e3973f;
+    --accent-soft: #3a2c13;
+    --link: #f0ad5e;
+    --ok: #7fae7f;
+    --risk: #d97e6d;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+    font-size: 17px;
+    line-height: 1.65;
+    padding: 0 20px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono {
+    font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+  .wrap {
+    max-width: 700px;
+    margin: 0 auto;
+    padding-block: 56px 80px;
+  }
+
+  /* Masthead */
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    flex-wrap: wrap;
+  }
+  .eyebrow .dot { color: var(--accent); }
+  h1 {
+    font-family: 'Source Serif 4', serif;
+    font-weight: 700;
+    font-size: clamp(30px, 6vw, 42px);
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    margin: 14px 0 6px;
+  }
+  .dek {
+    color: var(--text-dim);
+    font-size: 18px;
+    max-width: 62ch;
+    margin: 0 0 28px;
+  }
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    color: var(--text-faint);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 0;
+    margin-bottom: 40px;
+  }
+  .meta-row b { color: var(--text-dim); font-weight: 600; }
+
+  /* Verdict callout */
+  .verdict {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 3px;
+    padding: 22px 24px;
+    margin: 8px 0 44px;
+  }
+  .verdict .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    display: block;
+    margin-bottom: 10px;
+  }
+  .verdict p { margin: 0 0 10px; color: var(--text); }
+  .verdict p:last-child { margin-bottom: 0; }
+  .verdict .risk-line { color: var(--text); }
+  .verdict .risk-line b { color: var(--risk); }
+
+  /* Sections */
+  section { margin-bottom: 46px; }
+  .sec-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-faint);
+    letter-spacing: 0.08em;
+  }
+  h2 {
+    font-family: 'Source Serif 4', serif;
+    font-size: 25px;
+    font-weight: 600;
+    text-wrap: balance;
+    margin: 2px 0 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 26px 0 10px;
+  }
+  p { margin: 0 0 16px; max-width: 66ch; }
+  ul, ol { margin: 0 0 16px; padding-left: 22px; }
+  li { margin-bottom: 10px; max-width: 62ch; }
+  a { color: var(--link); text-decoration-color: color-mix(in srgb, var(--link) 40%, transparent); text-underline-offset: 3px; }
+  a:hover { text-decoration-color: var(--link); }
+  strong { color: var(--text); font-weight: 600; }
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.86em;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.05em 0.4em;
+  }
+
+  /* Card grid for entity comparisons */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+    margin: 18px 0 22px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px 18px;
+  }
+  .card .k {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    padding: 2px 7px;
+    border-radius: 20px;
+    letter-spacing: 0.04em;
+  }
+  .status.live { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+  .status.preview { background: var(--accent-soft); color: var(--accent); }
+  .card p { font-size: 15px; margin-bottom: 0; max-width: none; color: var(--text-dim); }
+  .card p strong { color: var(--text); }
+
+  /* Risk box */
+  .risk-box {
+    background: color-mix(in srgb, var(--risk) 8%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--risk) 35%, var(--border));
+    border-radius: 4px;
+    padding: 18px 20px;
+    margin: 18px 0;
+  }
+  .risk-box .tag { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--risk); font-weight: 600; display: block; margin-bottom: 8px; }
+  .risk-box p:last-child { margin-bottom: 0; }
+
+  /* Reading list */
+  .reading {
+    list-style: none;
+    padding: 0;
+    counter-reset: read;
+  }
+  .reading li {
+    counter-increment: read;
+    display: flex;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    max-width: none;
+  }
+  .reading li:last-child { border-bottom: none; }
+  .reading li::before {
+    content: counter(read);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    min-width: 20px;
+  }
+  .reading a { font-weight: 600; }
+  .reading .why { display: block; color: var(--text-dim); font-size: 14.5px; margin-top: 2px; }
+
+  footer {
+    margin-top: 50px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+
+  @media (max-width: 480px) {
+    body { font-size: 16px; }
+    .verdict, .card { padding: 16px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <div class="eyebrow"><span class="dot">●</span> RESEARCH BRIEF <span>/</span> HARNESS ARCHITECTURE</div>
+  <h1>Model-Agnostic Multi-Agent Harness</h1>
+  <p class="dek">DeepSeek Harness, GPT-6 Astra, and the gateway pattern that lets a tmux-driven agent ecosystem swap its underlying model as the landscape shifts — read before scoping the build.</p>
+
+  <div class="meta-row">
+    <span><b>Filed</b> 2026-09-10</span>
+    <span><b>Type</b> Technical overview</span>
+    <span><b>Feeds</b> Harness architecture decision</span>
+  </div>
+
+  <div class="verdict">
+    <span class="tag">Plain verdict</span>
+    <p>The architecture is <strong>sound and not novel-risk</strong>. Model-swapping and tmux-based multi-agent orchestration are each independently solved, maintained-by-others layers — compose them, don't rebuild them. DeepSeek Harness proves the right shape (model adapters as plugins) but is too early for production. GPT-6 Astra is real, shipped, and API-reachable.</p>
+    <p class="risk-line"><b>The biggest risk is contractual, not technical:</b> the subscription-to-API billing bridge is explicitly unsupported by Anthropic's Agent SDK and likely by OpenAI's consumer terms for client-facing use.</p>
+  </div>
+
+  <section>
+    <div class="sec-num mono">01</div>
+    <h2>DeepSeek Harness (<code>dsh</code>)</h2>
+    <p><strong>Confirmed real</strong> — <a href="https://github.com/deepseek-ai/deepseek-harness" target="_blank" rel="noopener">github.com/deepseek-ai/deepseek-harness</a>, docs at <a href="https://deepseek-harness.github.io/deepseek-harness/" target="_blank" rel="noopener">deepseek-harness.github.io</a>. An "everything-is-a-plugin" agent harness — CLI plus a local Web UI (<code>npx @deepseek-ai/dsh web</code>, serves <code>127.0.0.1:3080</code>) — built on <strong>Cordis</strong>, a spatiotemporal composability framework.</p>
+    <p>No privileged core. Model adapters, tool registries, session logging, agent loops, sandboxes, and even the UI are all plugins mounted alongside each other; registrations auto-revoke on unload. The load-bearing detail: <strong>model adapters are plugins, not hardcoded</strong> — the correct shape for swapping the model without rewriting the harness.</p>
+    <div class="cards">
+      <div class="card">
+        <div class="k">Status <span class="status preview">DEV PREVIEW</span></div>
+        <p>Rapid iteration, breaking changes expected. Not yet a stable target for client-facing production infra.</p>
+      </div>
+      <div class="card">
+        <div class="k">Traction <span class="status live">FAST</span></div>
+        <p>Reported in the tens-of-thousands to 200k+ stars within days; active <code>dsh-plugin</code> ecosystem already forming.</p>
+      </div>
+    </div>
+    <p>Worth prototyping against, not worth committing production architecture to — the plugin shape is right, the vendor-branded pre-1.0 surface is the catch.</p>
+  </section>
+
+  <section>
+    <div class="sec-num mono">02</div>
+    <h2>"Astra" — two unrelated things</h2>
+    <div class="cards">
+      <div class="card">
+        <div class="k">OpenAI <span class="status live">SHIPPED</span></div>
+        <p><strong>GPT-6 Astra</strong> — released Sept 3–4, 2026. Rolling out across ChatGPT plans plus the <strong>OpenAI API</strong> and AWS. OpenAI's largest training run to date, per VP Research Aidan Clark. This is almost certainly the model you meant, and it's the one that's actually API-swappable into a harness.</p>
+      </div>
+      <div class="card">
+        <div class="k">Google DeepMind <span class="status preview">PROTOTYPE</span></div>
+        <p><strong>Project Astra</strong> — a separate, older research prototype. Closed tester access only, feeding features into Gemini Live. No public API, no GA timeline.</p>
+      </div>
+    </div>
+    <p>Sources: <a href="https://openai.com/index/gpt-6-astra/" target="_blank" rel="noopener">OpenAI</a>, <a href="https://www.axios.com/2026/09/03/openai-astra-gpt-6-agi-brockman" target="_blank" rel="noopener">Axios</a>, <a href="https://fortune.com/2026/09/03/openai-debuts-gpt-6-astra-computer-use-greg-brockman-says-start-of-agi/" target="_blank" rel="noopener">Fortune</a>, <a href="https://deepmind.google/models/project-astra/" target="_blank" rel="noopener">DeepMind</a>. This is a days-old announcement — confirm the exact API model string and pricing directly against OpenAI's platform docs before integrating; nothing gathered here nails those down.</p>
+  </section>
+
+  <section>
+    <div class="sec-num mono">03</div>
+    <h2>Is the swappable-model, tmux-driven design sound?</h2>
+
+    <h3>The model-swap layer already exists</h3>
+    <p>Don't build model-swapping into the harness — it's a solved layer, separate from orchestration entirely.</p>
+    <ul>
+      <li><strong><a href="https://www.litellm.ai/" target="_blank" rel="noopener">LiteLLM</a></strong> — self-hostable proxy translating 140+ providers into one OpenAI-compatible interface. Closest match to what "Claude gateway" should mean here: a provider-agnostic proxy, not something Anthropic-specific.</li>
+      <li><strong><a href="https://openrouter.ai/blog/insights/llm-gateway/" target="_blank" rel="noopener">OpenRouter</a></strong> — hosted equivalent, unified endpoint with fallback and consolidated billing across providers.</li>
+    </ul>
+    <p>Put the swap point here — behind one interface for self-hosted DeepSeek, Claude, and OpenAI — not inside <code>dsh</code>'s plugin system or bespoke tmux glue.</p>
+
+    <h3>The tmux orchestration layer already exists</h3>
+    <p>This pattern isn't something to pioneer — it's already built, more than once:</p>
+    <ul>
+      <li><strong><a href="https://github.com/awslabs/cli-agent-orchestrator" target="_blank" rel="noopener">awslabs/cli-agent-orchestrator</a></strong> — AWS-authored, explicitly multi-CLI (Claude Code, Kiro, Codex) coordinated in isolated tmux sessions. The closest existing match to the whole idea.</li>
+      <li><strong>tmux-orchestrator</strong>, <strong><a href="https://github.com/Dicklesworthstone/claude_code_agent_farm" target="_blank" rel="noopener">claude_code_agent_farm</a></strong>, and peers — isolated tmux windows per agent, git worktrees, lock-based coordination, heartbeat monitoring.</li>
+    </ul>
+    <p>The novel part of the idea isn't tmux orchestration — it's <em>coupling</em> that orchestration to a swappable model layer underneath, which is a LiteLLM/OpenRouter concern, not a tmux one.</p>
+
+    <div class="risk-box">
+      <span class="tag">The actual risk: billing</span>
+      <p>Anthropic's Consumer Terms exempt Claude Code CLI on your own machine from the automation ban — but that exemption <strong>does not extend to production, always-on, or client-facing automation</strong>. Anthropic's Agent SDK now technically enforces this: <strong>OAuth tokens from Free/Pro/Max accounts cannot authenticate the Agent SDK at all</strong> — API keys are mandatory. Assume OpenAI's consumer terms carry the same restriction for client automation, though that wasn't independently re-verified here.</p>
+      <p>Budget API-token billing from the POC, for every hosted provider — not just at client rollout. DeepSeek Harness's self-hosted leg is the one exception; it's a reason to weight it more heavily in a client-facing product, not less.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-num mono">04</div>
+    <h2>Suggested reading order</h2>
+    <ol class="reading">
+      <li>
+        <div><a href="https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md" target="_blank" rel="noopener">DeepSeek Harness — architecture doc</a><span class="why">The plugin/Cordis model, to see what's worth borrowing.</span></div>
+      </li>
+      <li>
+        <div><a href="https://docs.litellm.ai/" target="_blank" rel="noopener">LiteLLM docs</a> <span class="mono" style="color:var(--text-faint)">+</span> <a href="https://openrouter.ai/blog/insights/llm-gateway/" target="_blank" rel="noopener">OpenRouter's gateway explainer</a><span class="why">Pick one as the swap layer.</span></div>
+      </li>
+      <li>
+        <div><a href="https://github.com/awslabs/cli-agent-orchestrator" target="_blank" rel="noopener">awslabs/cli-agent-orchestrator</a><span class="why">Closest existing prior art to the orchestration layer.</span></div>
+      </li>
+      <li>
+        <div><a href="https://code.claude.com/docs/en/legal-and-compliance" target="_blank" rel="noopener">Anthropic — Legal and compliance</a><span class="why">Read before writing a line of harness code, not after.</span></div>
+      </li>
+      <li>
+        <div><a href="https://openai.com/index/gpt-6-astra/" target="_blank" rel="noopener">GPT-6 Astra announcement</a><span class="why">Confirm current API pricing / model ID directly — this brief is already a week old.</span></div>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="sec-num mono">05</div>
+    <h2>Open questions</h2>
+    <ul>
+      <li>Exact GPT-6 Astra API model string, pricing, and rate limits — not confirmed here; sources were launch coverage, not API docs.</li>
+      <li>OpenAI's current consumer ToS wording on automated/business use, for direct comparison with Anthropic's.</li>
+      <li>Whether <code>dsh</code>'s plugin API is scriptable headlessly today, or only reachable through its Web UI.</li>
+    </ul>
+  </section>
+
+  <footer>docs/research/model-agnostic-harness-overview.md · branch worktree-research-harness-overview</footer>
+
+</div>
